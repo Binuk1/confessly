@@ -1,0 +1,195 @@
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(to right, #a1c4fd, #c2e9fb);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem;
+  color: #333;
+}
+
+.App {
+  width: 100%;
+  max-width: 600px;
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #0d47a1;
+}
+
+/* Confession Form */
+.confession-form {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2rem;
+}
+
+.confession-form textarea {
+  height: 120px;
+  resize: none;
+  font-size: 1rem;
+  padding: 1rem;
+  border: 2px solid #90caf9;
+  border-radius: 8px;
+  background: #f1f8ff;
+  margin-bottom: 10px;
+}
+
+.confession-form button {
+  padding: 0.75rem;
+  font-size: 1rem;
+  background: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.confession-form button:hover {
+  background: #1565c0;
+}
+
+/* Confession Items */
+.confession-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.confession-item {
+  background: #e3f2fd;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.confession-item p {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  white-space: pre-wrap;
+}
+
+.reaction-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.reaction-bar button {
+  background: white;
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.reaction-bar button:hover {
+  background-color: #f0f0f0;
+}
+
+.reaction-bar button.selected {
+  background-color: #d1eaff;
+  border-color: #42a5f5;
+}
+
+/* Toggle View */
+.toggle-bar {
+  display: flex;
+  justify-content: center;
+  margin: 1.5rem 0;
+  gap: 1rem;
+}
+
+.toggle-bar button {
+  padding: 0.5rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 2px solid #2196f3;
+  background: white;
+  color: #2196f3;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.toggle-bar button.active {
+  background: #2196f3;
+  color: white;
+}
+
+/* Rank Styling */
+.rank-badge {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  text-align: left;
+}
+
+.confession-item.rank-1 {
+  background-color: #fff8e1;
+  border-left: 6px solid #ffd700;
+}
+
+.confession-item.rank-2 {
+  background-color: #f5f5f5;
+  border-left: 6px solid #c0c0c0;
+}
+
+.confession-item.rank-3 {
+  background-color: #fbe9e7;
+  border-left: 6px solid #cd7f32;
+}
+
+.confession-item.rank-4,
+.confession-item.rank-5 {
+  background-color: #e3f2fd;
+  border-left: 6px solid #64b5f6;
+}
+
+/* Fade animation for rank change */
+.fade-in {
+  animation: fadeIn 0.6s ease-in-out;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0.4;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .App {
+    padding: 1rem;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .reaction-bar button {
+    font-size: 1rem;
+  }
+}
