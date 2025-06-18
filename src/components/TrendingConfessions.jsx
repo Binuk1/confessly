@@ -30,7 +30,11 @@ function TrendingConfessions() {
   return (
     <div className="trending-wrapper">
       {trending.map((conf, index) => (
-        <ConfessionItem key={conf.id} confession={conf} rank={index + 1} />
+        <ConfessionItem 
+          key={conf.id} 
+          confession={conf} 
+          rank={index + 1} 
+        />
       ))}
     </div>
   );

@@ -1,7 +1,7 @@
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 
-function getUserId() {
+export function getUserId() {
   let id = localStorage.getItem('anonUserId');
   if (!id) {
     id = 'user_' + Math.random().toString(36).substr(2, 9);

@@ -1,10 +1,71 @@
-/* Reset */
+/* Reset & Base Styles */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Theme Variables */
+:root {
+  /* Colors */
+  --bg-color: white;
+  --text-color: #333;
+  --card-bg: #e3f2fd;
+  --border-color: #ddd;
+  --primary-color: #2196f3;
+  --primary-hover: #1565c0;
+  --error-bg: #ffebee;
+  --error-text: #d32f2f;
+  --gif-button-bg: #00c6ff;
+  --emoji-button-bg: #FFCA28;
+  --emoji-button-hover: #FFB300;
+  --toggle-active-shadow: rgba(33, 150, 243, 0.3);
+  
+  /* Rank Colors */
+  --rank-1-bg: #fff8e1;
+  --rank-1-border: #ffd700;
+  --rank-2-bg: #f5f5f5;
+  --rank-2-border: #c0c0c0;
+  --rank-3-bg: #fbe9e7;
+  --rank-3-border: #cd7f32;
+  --rank-4-5-bg: #e3f2fd;
+  --rank-4-5-border: #64b5f6;
+  
+  /* Shadows */
+  --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+  --modal-shadow: 0 5px 20px rgba(0,0,0,0.2);
+  
+  /* Transitions */
+  --transition-fast: 0.2s;
+  --transition-normal: 0.3s;
+  
+  /* Spacing */
+  --section-spacing: 1.5rem;
+}
+
+.dark-mode {
+  --bg-color: #1a1a1a;
+  --text-color: #f0f0f0;
+  --card-bg: #2d2d2d;
+  --border-color: #444;
+  --primary-color: #42a5f5;
+  --primary-hover: #1e88e5;
+  --error-bg: #5c2a2a;
+  --error-text: #ff8a80;
+  --toggle-active-shadow: rgba(66, 165, 245, 0.4);
+  
+  /* Rank Colors */
+  --rank-1-bg: #3a3a2a;
+  --rank-2-bg: #3a3a3a;
+  --rank-3-bg: #3a2e2a;
+  --rank-4-5-bg: #2d3a3a;
+}
+
+/* Base Layout */
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(to right, #a1c4fd, #c2e9fb);
@@ -12,55 +73,212 @@ body {
   display: flex;
   justify-content: center;
   padding: 2rem 1rem;
-  color: #333;
+  color: var(--text-color);
+  touch-action: manipulation;
 }
 
 .App {
   width: 100%;
   max-width: 600px;
-  background: white;
+  background: var(--bg-color);
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-h1 {
-  text-align: center;
-  margin-bottom: 1.5rem;
-  color: #0d47a1;
+/* Header & Settings */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--section-spacing);
 }
 
-/* Confession Form */
-.confession-form {
+.settings-button {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--text-color);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all var(--transition-normal);
+}
+
+.settings-button:hover {
+  background: rgba(0,0,0,0.1);
+  transform: rotate(90deg);
+}
+
+.settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: modal-fade-in 0.3s ease-out;
+}
+
+.settings-content {
+  background: var(--bg-color);
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: var(--modal-shadow);
+  position: relative;
+  animation: content-scale-up 0.3s ease-out;
+}
+
+.close-settings {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: var(--text-color);
+}
+
+.theme-switch {
+  display: flex;
+  gap: 1rem;
+  margin: var(--section-spacing) 0;
+}
+
+.theme-switch button {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 2px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-color);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all var(--transition-normal);
+}
+
+.theme-switch button.active {
+  border-color: var(--primary-color);
+  background: rgba(33, 150, 243, 0.1);
+}
+
+/* Toggle Bar */
+.toggle-bar {
+  display: flex;
+  justify-content: center;
+  margin: var(--section-spacing) 0 calc(var(--section-spacing) * 1.5);
+  gap: 1rem;
+  position: relative;
+}
+
+.toggle-bar::after {
+  content: '';
+  position: absolute;
+  bottom: -1rem;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border-color);
+  opacity: 0.5;
+}
+
+.toggle-bar button {
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 2px solid var(--primary-color);
+  background: var(--bg-color);
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+}
+
+.toggle-bar button.active {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 8px var(--toggle-active-shadow);
+}
+
+.toggle-bar button:not(.active):hover {
+  background: rgba(33, 150, 243, 0.1);
+}
+
+.dark-mode .toggle-bar button:not(.active) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Forms */
+.confession-form,
+.reply-form {
   display: flex;
   flex-direction: column;
+}
+
+.confession-form {
   margin-bottom: 2rem;
 }
 
 .confession-form textarea {
   height: 120px;
   resize: none;
+}
+
+.reply-form {
+  margin-bottom: 1rem;
+}
+
+.confession-form textarea,
+.reply-form textarea {
   font-size: 1rem;
   padding: 1rem;
-  border: 2px solid #90caf9;
+  border: 2px solid var(--primary-color);
   border-radius: 8px;
-  background: #f1f8ff;
-  margin-bottom: 10px;
+  background: var(--bg-color);
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+  width: 100%;
+}
+
+.reply-form textarea {
+  min-height: 60px;
+  resize: vertical;
+  padding: 0.5rem;
+  border-width: 1px;
+  font-size: 16px; /* Prevent iOS zoom */
+}
+
+.confession-form button,
+.reply-form button {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background var(--transition-normal);
 }
 
 .confession-form button {
   padding: 0.75rem;
   font-size: 1rem;
-  background: #1976d2;
-  color: white;
-  border: none;
   border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.3s;
 }
 
-.confession-form button:hover {
-  background: #1565c0;
+.confession-form button:hover,
+.reply-form button:hover {
+  background: var(--primary-hover);
 }
 
 /* Confession Items */
@@ -71,66 +289,18 @@ h1 {
 }
 
 .confession-item {
-  background: #e3f2fd;
+  background: var(--card-bg);
   padding: 1rem;
   border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s ease;
+  box-shadow: var(--card-shadow);
+  transition: all var(--transition-normal) ease;
 }
 
 .confession-item p {
   font-size: 1rem;
   margin-bottom: 0.5rem;
   white-space: pre-wrap;
-}
-
-.reaction-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.reaction-bar button {
-  background: white;
-  border: 2px solid #ccc;
-  border-radius: 8px;
-  padding: 0.4rem 0.6rem;
-  font-size: 1.2rem;
-  cursor: pointer;
-  transition: transform 0.2s, background-color 0.2s;
-}
-
-.reaction-bar button:hover {
-  background-color: #f0f0f0;
-}
-
-.reaction-bar button.selected {
-  background-color: #d1eaff;
-  border-color: #42a5f5;
-}
-
-/* Toggle View */
-.toggle-bar {
-  display: flex;
-  justify-content: center;
-  margin: 1.5rem 0;
-  gap: 1rem;
-}
-
-.toggle-bar button {
-  padding: 0.5rem 1.5rem;
-  font-size: 1rem;
-  border-radius: 6px;
-  border: 2px solid #2196f3;
-  background: white;
-  color: #2196f3;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.toggle-bar button.active {
-  background: #2196f3;
-  color: white;
+  color: var(--text-color);
 }
 
 /* Rank Styling */
@@ -141,29 +311,267 @@ h1 {
 }
 
 .confession-item.rank-1 {
-  background-color: #fff8e1;
-  border-left: 6px solid #ffd700;
+  background-color: var(--rank-1-bg);
+  border-left: 6px solid var(--rank-1-border);
 }
 
 .confession-item.rank-2 {
-  background-color: #f5f5f5;
-  border-left: 6px solid #c0c0c0;
+  background-color: var(--rank-2-bg);
+  border-left: 6px solid var(--rank-2-border);
 }
 
 .confession-item.rank-3 {
-  background-color: #fbe9e7;
-  border-left: 6px solid #cd7f32;
+  background-color: var(--rank-3-bg);
+  border-left: 6px solid var(--rank-3-border);
 }
 
 .confession-item.rank-4,
 .confession-item.rank-5 {
-  background-color: #e3f2fd;
-  border-left: 6px solid #64b5f6;
+  background-color: var(--rank-4-5-bg);
+  border-left: 6px solid var(--rank-4-5-border);
 }
 
-/* Fade animation for rank change */
+/* Reactions */
+.reaction-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.reaction-bar button {
+  background: rgba(88, 153, 144, 0.295);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  padding: 0.4rem 0.6rem;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+  color: var(--text-color);
+}
+
+.reaction-bar button:hover {
+  background-color: rgba(240, 240, 240, 0.2);
+}
+
+.reaction-bar button.selected {
+  background-color: rgba(209, 234, 255, 0.3);
+  border-color: var(--primary-color);
+}
+
+/* Reply Section */
+.reply-section {
+  margin-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 0.5rem;
+}
+
+.toggle-replies-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 0.2rem 0;
+  margin-bottom: 0.5rem;
+}
+
+.reply-item {
+  background: var(--card-bg);
+  border-left: 3px solid var(--primary-color);
+  padding: 0.8rem;
+  margin: 0.5rem 0;
+  border-radius: 0 4px 4px 0;
+}
+
+.reply-meta {
+  font-size: 0.7rem;
+  color: var(--text-color);
+  opacity: 0.7;
+  margin-top: 0.3rem;
+}
+
+/* Form Actions */
+.form-actions,
+.reply-actions {
+  display: flex;
+  gap: 0.5rem;
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.reply-form button {
+  padding: 0.3rem 0.8rem;
+  margin-top: 0.3rem;
+}
+
+/* Special Buttons */
+.gif-button {
+  background: var(--gif-button-bg);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 0.5rem;
+}
+
+.emoji-button {
+  background: var(--emoji-button-bg);
+  color: #333;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all var(--transition-fast);
+}
+
+.emoji-button:hover {
+  background: var(--emoji-button-hover);
+}
+
+/* Emoji Picker */
+.emoji-picker-container {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  z-index: 100;
+  margin-top: 0.5rem;
+}
+
+/* ADDED: New class to make emoji picker open upwards */
+.emoji-picker-container.upwards {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+}
+
+.dark-mode .emoji-picker-react {
+  background-color: var(--card-bg) !important;
+  border-color: var(--border-color) !important;
+}
+
+.dark-mode .emoji-picker-react .emoji-search {
+  background-color: var(--bg-color) !important;
+  border-color: var(--border-color) !important;
+  color: var(--text-color) !important;
+}
+
+.dark-mode .emoji-picker-react .emoji-group:before {
+  background-color: var(--card-bg) !important;
+  color: var(--text-color) !important;
+}
+
+.dark-mode .emoji-picker-react .emoji-categories button {
+  filter: invert(1);
+}
+
+.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar {
+  background-color: var(--card-bg);
+}
+
+.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+}
+
+/* Media Elements */
+.media-container {
+  margin: 0.5rem 0;
+  display: flex;
+  justify-content: center;
+  background: rgba(245, 245, 245, 0.1);
+  border-radius: 8px;
+  padding: 8px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.confession-gif,
+.reply-gif {
+  max-width: 100%;
+  max-height: 300px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.reply-gif {
+  max-height: 250px;
+}
+
+.gif-preview-container {
+  position: relative;
+  margin: 0.5rem 0;
+  display: inline-block;
+  max-width: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.05);
+  border: 1px solid var(--border-color);
+}
+
+.confession-form .gif-preview-container {
+  max-width: 300px;
+}
+
+.reply-form .gif-preview-container {
+  max-width: 200px;
+}
+
+.gif-preview {
+  max-width: 100%;
+  max-height: 200px;
+  display: block;
+}
+
+.remove-gif {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0,0,0,0.7);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  z-index: 2;
+  transition: all var(--transition-fast);
+}
+
+.remove-gif:hover {
+  background: rgba(255,0,0,0.8);
+  transform: scale(1.1);
+}
+
+/* Feedback Elements */
+.error-message {
+  color: var(--error-text);
+  background: var(--error-bg);
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.loading {
+  color: var(--text-color);
+  opacity: 0.7;
+  font-style: italic;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* Animations */
 .fade-in {
   animation: fadeIn 0.6s ease-in-out;
+  will-change: opacity, transform;
 }
 
 @keyframes fadeIn {
@@ -177,7 +585,19 @@ h1 {
   }
 }
 
-/* Responsive */
+/* ADDED: Animations for settings modal */
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes content-scale-up {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+
+/* Responsive Adjustments */
 @media (max-width: 600px) {
   .App {
     padding: 1rem;
@@ -185,11 +605,57 @@ h1 {
     box-shadow: none;
   }
 
-  h1 {
-    font-size: 1.5rem;
+  .toggle-bar {
+    margin: 1rem 0 1.5rem;
+  }
+  
+  .toggle-bar button {
+    padding: 0.75rem 1.5rem;
+    flex: 1;
+    text-align: center;
   }
 
-  .reaction-bar button {
-    font-size: 1rem;
+  .emoji-picker-container {
+    width: 100%;
+    left: 0;
   }
+
+  .emoji-picker-react {
+    width: 100% !important;
+  }
+  
+  /* UPDATED: Ensured all inputs are 16px to prevent mobile zoom */
+  .confession-form textarea,
+  .reply-form textarea,
+  .gif-search input, /* Target GifPicker's input */
+  .emoji-picker-react .emoji-search /* Target EmojiPicker's search */ {
+    font-size: 16px !important;
+  }
+
+  .confession-form .gif-preview-container {
+    max-width: 100%;
+  }
+  
+  .reply-form .gif-preview-container {
+    max-width: 180px;
+  }
+  
+  .confession-gif, .reply-gif {
+    max-height: 250px;
+  }
+
+  .reply-actions {
+    flex-wrap: wrap;
+  }
+
+  .reply-actions button {
+    flex: 1;
+    min-width: 120px;
+  }
+}
+
+/* Dark Mode Specific */
+.dark-mode .gif-preview-container {
+  background: rgba(255,255,255,0.05);
+  border-color: var(--border-color);
 }
