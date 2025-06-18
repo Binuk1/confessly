@@ -2,13 +2,14 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
+// Your configuration is now loaded securely from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyAuUM9EIWVZLMIMPWJu85QK5c2LOXHNQHI",
-  authDomain: "confey-72ff8.firebaseapp.com",
-  projectId: "confey-72ff8",
-  storageBucket: "confey-72ff8.firebasestorage.app",
-  messagingSenderId: "623094545168",
-  appId: "1:623094545168:web:10291b6e116ef088cd0395"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY, //
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN, //
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID, //
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET, //
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID, //
+  appId: import.meta.env.VITE_FIREBASE_APP_ID //
 };
 
 const app = initializeApp(firebaseConfig);
