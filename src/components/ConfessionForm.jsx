@@ -1,12 +1,15 @@
+// src/components/ConfessionForm.jsx
 import { useState, useRef } from 'react';
 import { db } from '../firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import GifPicker from './GifPicker';
+import GifPicker from './GifPicker'; // Keep this for Giphy
 import EmojiPicker from 'emoji-picker-react';
+import FileUploadButton from './FileUploadButton'; // Import the new component
 
 function ConfessionForm() {
   const [text, setText] = useState('');
-  const [gifUrl, setGifUrl] = useState('');
+  const [gifUrl, setGifUrl] = useState(''); // State for Giphy GIF
+  const [mediaUrl, setMediaUrl] = useState(''); // State for Cloudinary uploaded media
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -14,18 +17,20 @@ function ConfessionForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!text.trim() && !gifUrl) return;
+    if (!text.trim() && !gifUrl && !mediaUrl) return; // Check all media types
     
     setLoading(true);
     try {
       await addDoc(collection(db, 'confessions'), {
         text: text.trim(),
-        gifUrl: gifUrl || null,
+        gifUrl: gifUrl || null,    // Store GIF URL if present
+        mediaUrl: mediaUrl || null, // Store uploaded media URL if present
         createdAt: serverTimestamp(),
         reactions: {},
       });
       setText('');
       setGifUrl('');
+      setMediaUrl(''); // Reset Cloudinary media URL
     } catch (err) {
       console.error("Error submitting confession:", err);
     } finally {
@@ -38,6 +43,17 @@ function ConfessionForm() {
     setShowEmojiPicker(false);
   };
 
+  const handleGifSelect = (url) => {
+    setGifUrl(url);
+    setMediaUrl(''); // Clear Cloudinary media if a GIF is selected
+    setShowGifPicker(false);
+  };
+
+  const handleUploadSuccess = (url) => {
+    setMediaUrl(url); // Set the uploaded Cloudinary URL
+    setGifUrl(''); // Clear GIF if a file is uploaded
+  };
+
   return (
     <form className="confession-form" onSubmit={handleSubmit}>
       <textarea
@@ -47,16 +63,35 @@ function ConfessionForm() {
         rows={4}
       />
       
-      {gifUrl && (
-        <div className="gif-preview-container">
-          <img 
-            src={gifUrl} 
-            alt="Confession GIF preview" 
-            className="gif-preview"
-          />
+      {/* Display media preview - prioritize uploaded media, then GIF */}
+      {(mediaUrl || gifUrl) && (
+        <div className="gif-preview-container"> {/* Reusing GIF preview class, consider renaming */}
+          {mediaUrl ? (
+            // Check if it's an image or video
+            mediaUrl.match(/\.(jpeg|jpg|png|gif)$/i) ? (
+              <img 
+                src={mediaUrl} 
+                alt="Confession photo/video preview" 
+                className="gif-preview"
+              />
+            ) : (
+              <video 
+                src={mediaUrl} 
+                alt="Confession photo/video preview" 
+                className="gif-preview" 
+                controls
+              />
+            )
+          ) : ( // Else, display GIF if mediaUrl is empty
+            <img 
+              src={gifUrl} 
+              alt="Confession GIF preview" 
+              className="gif-preview"
+            />
+          )}
           <button 
             type="button" 
-            onClick={() => setGifUrl('')}
+            onClick={() => { setGifUrl(''); setMediaUrl(''); }} // Clear both
             className="remove-gif"
           >
             ×
@@ -65,6 +100,12 @@ function ConfessionForm() {
       )}
 
       <div className="form-actions">
+        {/* Button for Cloudinary File Upload */}
+        <FileUploadButton 
+          onUploadSuccess={handleUploadSuccess} 
+          buttonText="Upload Photo/Video"
+        />
+        {/* Button for Giphy GIF Picker */}
         <button
           type="button"
           onClick={() => setShowGifPicker(!showGifPicker)}
@@ -82,7 +123,7 @@ function ConfessionForm() {
         </button>
         <button 
           type="submit" 
-          disabled={loading || (!text.trim() && !gifUrl)}
+          disabled={loading || (!text.trim() && !gifUrl && !mediaUrl)}
         >
           {loading ? 'Posting...' : 'Confess'}
         </button>
@@ -101,10 +142,7 @@ function ConfessionForm() {
 
       {showGifPicker && (
         <GifPicker 
-          onSelect={(url) => {
-            setGifUrl(url);
-            setShowGifPicker(false);
-          }} 
+          onSelect={handleGifSelect} 
           onClose={() => setShowGifPicker(false)}
         />
       )}

@@ -15,6 +15,7 @@ function ConfessionList() {
         return {
           id: doc.id,
           ...data,
+          // 'gifUrl' and 'mediaUrl' will now both be part of 'data' if present
           totalReactions: Object.values(data.reactions || {}).reduce((a, b) => a + b, 0)
         };
       });

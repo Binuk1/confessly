@@ -1,3 +1,4 @@
+// src/components/TrendingConfessions.jsx
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -14,7 +15,7 @@ function TrendingConfessions() {
           (a, b) => a + b,
           0
         );
-        return { id: doc.id, ...data, totalReactions };
+        return { id: doc.id, ...data, totalReactions }; // 'gifUrl' and 'mediaUrl' implicitly passed here
       });
 
       const sorted = items
