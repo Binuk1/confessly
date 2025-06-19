@@ -27,8 +27,8 @@ function ConfessionForm() {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'ml_default'); // <-- MUST REPLACE
-    const CLOUD_NAME = 'dqptpxh4r'; // <-- MUST REPLACE
+    formData.append('upload_preset', 'ml_default'); // <-- REPLACE
+    const CLOUD_NAME = 'dqptpxh4r'; // <-- REPLACE
 
     try {
       const resourceType = file.type.startsWith('image') ? 'image' : 'video';
@@ -94,12 +94,66 @@ function ConfessionForm() {
 
   return (
     <form className="confession-form" onSubmit={handleSubmit}>
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="Share your confession, photo, or video..."
-        rows={4}
-      />
+      <div className="textarea-wrapper">
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Share your confession, photo, or video..."
+          rows={4}
+        />
+        <div className="form-actions">
+          <label className="file-input-label">
+            📷
+            <input 
+              type="file" 
+              accept="image/*,video/*" 
+              onChange={handleFileChange} 
+              className="file-input"
+              disabled={isUploading}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              setShowGifPicker(!showGifPicker);
+              setUploadError('');
+            }}
+            className="action-button"
+            aria-label="Add GIF"
+          >
+            GIF
+          </button>
+          <button
+            type="button"
+            ref={emojiButtonRef}
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="action-button"
+            aria-label="Add Emoji"
+          >
+            😊
+          </button>
+          <button 
+            type="submit" 
+            className="submit-button"
+            disabled={loading || isUploading || (!text.trim() && !gifUrl && !mediaUrl)}
+          >
+            {loading ? 'Posting...' : 'Confess'}
+          </button>
+
+          {/* MOVED: Emoji Picker is now inside the actions div to position correctly */}
+          {showEmojiPicker && (
+            <div className="emoji-picker-container">
+              <EmojiPicker 
+                onEmojiClick={onEmojiClick}
+                width={300}
+                height={400}
+                previewConfig={{ showPreview: false }}
+                searchPlaceholder="Search emojis..."
+              />
+            </div>
+          )}
+        </div>
+      </div>
       
       {mediaUrl && (
         <div className="gif-preview-container">
@@ -119,54 +173,6 @@ function ConfessionForm() {
       {isUploading && <div className="loading">Uploading media...</div>}
       {uploadError && <div className="error-message">{uploadError}</div>}
       
-      <div className="form-actions">
-        <label className="file-input-label emoji-button">
-          📷 Photo/Video
-          <input 
-            type="file" 
-            accept="image/*,video/*" 
-            onChange={handleFileChange} 
-            className="file-input"
-            disabled={isUploading}
-          />
-        </label>
-        <button
-          type="button"
-          onClick={() => {
-            setShowGifPicker(!showGifPicker);
-            setUploadError('');
-          }}
-          className="gif-button"
-        >
-          Add GIF
-        </button>
-        <button
-          type="button"
-          ref={emojiButtonRef}
-          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-          className="emoji-button"
-        >
-          😊 Add Emoji
-        </button>
-        <button 
-          type="submit" 
-          disabled={loading || isUploading || (!text.trim() && !gifUrl && !mediaUrl)}
-        >
-          {loading ? 'Posting...' : 'Confess'}
-        </button>
-        {showEmojiPicker && (
-          <div className="emoji-picker-container">
-            <EmojiPicker 
-              onEmojiClick={onEmojiClick}
-              width={300}
-              height={400}
-              previewConfig={{ showPreview: false }}
-              searchPlaceholder="Search emojis..."
-            />
-          </div>
-        )}
-      </div>
-
       {showGifPicker && (
         <GifPicker 
           onSelect={(url) => {

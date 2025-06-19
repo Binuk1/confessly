@@ -11,7 +11,6 @@ html {
 
 /* Theme Variables */
 :root {
-  /* Colors */
   --bg-color: white;
   --text-color: #333;
   --card-bg: #e3f2fd;
@@ -20,12 +19,8 @@ html {
   --primary-hover: #1565c0;
   --error-bg: #ffebee;
   --error-text: #d32f2f;
-  --gif-button-bg: #00c6ff;
-  --emoji-button-bg: #FFCA28;
-  --emoji-button-hover: #FFB300;
   --toggle-active-shadow: rgba(33, 150, 243, 0.3);
   
-  /* Rank Colors */
   --rank-1-bg: #fff8e1;
   --rank-1-border: #ffd700;
   --rank-2-bg: #f5f5f5;
@@ -35,15 +30,12 @@ html {
   --rank-4-5-bg: #e3f2fd;
   --rank-4-5-border: #64b5f6;
   
-  /* Shadows */
   --card-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
   --modal-shadow: 0 5px 20px rgba(0,0,0,0.2);
   
-  /* Transitions */
   --transition-fast: 0.2s;
   --transition-normal: 0.3s;
   
-  /* Spacing */
   --section-spacing: 1.5rem;
 }
 
@@ -58,14 +50,12 @@ html {
   --error-text: #ff8a80;
   --toggle-active-shadow: rgba(66, 165, 245, 0.4);
   
-  /* Rank Colors */
   --rank-1-bg: #3a3a2a;
   --rank-2-bg: #3a3a3a;
   --rank-3-bg: #3a2e2a;
   --rank-4-5-bg: #2d3a3a;
 }
 
-/* Base Layout */
 body {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(to right, #a1c4fd, #c2e9fb);
@@ -86,7 +76,6 @@ body {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Header & Settings */
 .app-header {
   display: flex;
   justify-content: space-between;
@@ -172,7 +161,6 @@ body {
   background: rgba(33, 150, 243, 0.1);
 }
 
-/* Toggle Bar */
 .toggle-bar {
   display: flex;
   justify-content: center;
@@ -220,7 +208,6 @@ body {
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* Forms */
 .confession-form,
 .reply-form {
   display: flex;
@@ -228,60 +215,108 @@ body {
 }
 
 .confession-form {
-  margin-bottom: 2rem;
-}
-
-.confession-form textarea {
-  height: 120px;
-  resize: none;
-}
-
-.reply-form {
   margin-bottom: 1rem;
+}
+
+.textarea-wrapper {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--primary-color);
+  border-radius: 12px;
+  background: var(--bg-color);
+  position: relative;
+  transition: all var(--transition-normal);
+  margin-bottom: 1rem;
+}
+
+.textarea-wrapper:focus-within {
+  box-shadow: 0 0 0 3px var(--toggle-active-shadow);
+}
+
+.reply-wrapper {
+  border-width: 1px;
+  border-radius: 8px;
 }
 
 .confession-form textarea,
 .reply-form textarea {
   font-size: 1rem;
   padding: 1rem;
-  border: 2px solid var(--primary-color);
-  border-radius: 8px;
-  background: var(--bg-color);
+  background: transparent;
   color: var(--text-color);
-  margin-bottom: 0.5rem;
   width: 100%;
+  border: none;
+  outline: none;
+}
+
+.confession-form textarea {
+  min-height: 120px;
+  resize: none;
 }
 
 .reply-form textarea {
   min-height: 60px;
+  padding-bottom: 0.5rem;
   resize: vertical;
-  padding: 0.5rem;
-  border-width: 1px;
-  font-size: 16px; /* Prevent iOS zoom */
+  font-size: 16px;
 }
 
-.confession-form button,
-.reply-form button {
+.form-actions,
+.reply-actions {
+  position: relative; /* Crucial for positioning the emoji picker */
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.8rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.reply-actions {
+  padding: 0.3rem 0.5rem;
+}
+
+.action-button {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--text-color);
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all var(--transition-fast);
+}
+.action-button:hover {
+  opacity: 1;
+  background: rgba(0,0,0,0.05);
+}
+
+.submit-button {
+  margin-left: auto;
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
   cursor: pointer;
   transition: background var(--transition-normal);
 }
 
-.confession-form button {
-  padding: 0.75rem;
-  font-size: 1rem;
-  border-radius: 8px;
-}
-
-.confession-form button:hover,
-.reply-form button:hover {
+.submit-button:hover {
   background: var(--primary-hover);
 }
 
-/* Confession Items */
+.submit-button:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.reply-actions .submit-button {
+  padding: 0.4rem 0.8rem;
+}
+
 .confession-list {
   display: flex;
   flex-direction: column;
@@ -300,65 +335,43 @@ body {
   font-size: 1rem;
   margin-bottom: 0.5rem;
   white-space: pre-wrap;
+  word-break: break-word;
   color: var(--text-color);
 }
 
-/* Rank Styling */
 .rank-badge {
   font-size: 1.5rem;
   margin-bottom: 0.5rem;
   text-align: left;
 }
 
-.confession-item.rank-1 {
-  background-color: var(--rank-1-bg);
-  border-left: 6px solid var(--rank-1-border);
-}
-
-.confession-item.rank-2 {
-  background-color: var(--rank-2-bg);
-  border-left: 6px solid var(--rank-2-border);
-}
-
-.confession-item.rank-3 {
-  background-color: var(--rank-3-bg);
-  border-left: 6px solid var(--rank-3-border);
-}
-
+.confession-item.rank-1 { background-color: var(--rank-1-bg); border-left: 6px solid var(--rank-1-border); }
+.confession-item.rank-2 { background-color: var(--rank-2-bg); border-left: 6px solid var(--rank-2-border); }
+.confession-item.rank-3 { background-color: var(--rank-3-bg); border-left: 6px solid var(--rank-3-border); }
 .confession-item.rank-4,
-.confession-item.rank-5 {
-  background-color: var(--rank-4-5-bg);
-  border-left: 6px solid var(--rank-4-5-border);
-}
+.confession-item.rank-5 { background-color: var(--rank-4-5-bg); border-left: 6px solid var(--rank-4-5-border); }
 
-/* Reactions */
 .reaction-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  margin-top: 1rem;
 }
 
 .reaction-bar button {
-  background: rgba(88, 153, 144, 0.295);
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  padding: 0.4rem 0.6rem;
-  font-size: 1.2rem;
+  background: rgba(255,255,255,0.5);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 0.4rem 0.8rem;
+  font-size: 1rem;
   cursor: pointer;
   transition: transform var(--transition-fast), background-color var(--transition-fast);
   color: var(--text-color);
 }
+.dark-mode .reaction-bar button { background: rgba(0,0,0,0.2); }
+.reaction-bar button:hover { transform: translateY(-2px); }
+.reaction-bar button.selected { border-color: var(--primary-color); background: rgba(33, 150, 243, 0.1); }
 
-.reaction-bar button:hover {
-  background-color: rgba(240, 240, 240, 0.2);
-}
-
-.reaction-bar button.selected {
-  background-color: rgba(209, 234, 255, 0.3);
-  border-color: var(--primary-color);
-}
-
-/* Reply Section */
 .reply-section {
   margin-top: 1rem;
   border-top: 1px solid var(--border-color);
@@ -376,12 +389,13 @@ body {
 }
 
 .reply-item {
-  background: var(--card-bg);
+  background: rgba(0,0,0,0.02);
   border-left: 3px solid var(--primary-color);
   padding: 0.8rem;
-  margin: 0.5rem 0;
+  margin-top: 0.8rem;
   border-radius: 0 4px 4px 0;
 }
+.dark-mode .reply-item { background: rgba(255,255,255,0.05); }
 
 .reply-meta {
   font-size: 0.7rem;
@@ -390,140 +404,79 @@ body {
   margin-top: 0.3rem;
 }
 
-/* Form Actions */
-.form-actions,
-.reply-actions {
-  display: flex;
-  gap: 0.5rem;
-  position: relative;
-  margin-top: 0.5rem;
-}
-
-.reply-form button {
-  padding: 0.3rem 0.8rem;
-  margin-top: 0.3rem;
-}
-
-/* Special Buttons */
-.gif-button {
-  background: var(--gif-button-bg);
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-right: 0.5rem;
-}
-
-.emoji-button {
-  background: var(--emoji-button-bg);
-  color: #333;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
+.file-input { display: none; }
+.file-input-label {
+  display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  color: var(--text-color);
+  opacity: 0.7;
   transition: all var(--transition-fast);
 }
+.file-input-label:hover { opacity: 1; background: rgba(0,0,0,0.05); }
 
-.emoji-button:hover {
-  background: var(--emoji-button-hover);
-}
-
-/* Emoji Picker */
+/* UPDATED: Emoji Picker positioning */
 .emoji-picker-container {
   position: absolute;
-  left: 0;
-  top: 100%;
   z-index: 100;
+  right: 0; /* Align to the right of the actions container */
+  top: 100%; /* Default: pop down */
   margin-top: 0.5rem;
 }
-
-/* ADDED: New class to make emoji picker open upwards */
 .emoji-picker-container.upwards {
-  top: auto;
-  bottom: 100%;
+  top: auto; /* Reset top */
+  bottom: 100%; /* Pop up */
   margin-top: 0;
   margin-bottom: 0.5rem;
 }
 
-.dark-mode .emoji-picker-react {
-  background-color: var(--card-bg) !important;
-  border-color: var(--border-color) !important;
-}
+.dark-mode .emoji-picker-react { background-color: var(--card-bg) !important; border-color: var(--border-color) !important; }
+.dark-mode .emoji-picker-react .emoji-search { background-color: var(--bg-color) !important; border-color: var(--border-color) !important; color: var(--text-color) !important; }
+.dark-mode .emoji-picker-react .emoji-group:before { background-color: var(--card-bg) !important; color: var(--text-color) !important; }
+.dark-mode .emoji-picker-react .emoji-categories button { filter: invert(1); }
+.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar { background-color: var(--card-bg); }
+.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar-thumb { background-color: var(--border-color); }
 
-.dark-mode .emoji-picker-react .emoji-search {
-  background-color: var(--bg-color) !important;
-  border-color: var(--border-color) !important;
-  color: var(--text-color) !important;
-}
-
-.dark-mode .emoji-picker-react .emoji-group:before {
-  background-color: var(--card-bg) !important;
-  color: var(--text-color) !important;
-}
-
-.dark-mode .emoji-picker-react .emoji-categories button {
-  filter: invert(1);
-}
-
-.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar {
-  background-color: var(--card-bg);
-}
-
-.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar-thumb {
-  background-color: var(--border-color);
-}
-
-/* Media Elements */
 .media-container {
-  margin: 0.5rem 0;
+  margin: 0.8rem 0;
   display: flex;
   justify-content: center;
-  background: rgba(245, 245, 245, 0.1);
+  background: rgba(0,0,0,0.02);
   border-radius: 8px;
-  padding: 8px;
-  max-width: 100%;
   overflow: hidden;
 }
 
-.confession-gif,
-.reply-gif {
+.confession-media, .reply-media, .confession-gif, .reply-gif {
   max-width: 100%;
-  max-height: 300px;
+  max-height: 500px;
   border-radius: 8px;
   object-fit: contain;
+  display: block;
 }
 
-.reply-gif {
-  max-height: 250px;
-}
-
+/* UPDATED: Media preview styling */
 .gif-preview-container {
   position: relative;
   margin: 0.5rem 0;
-  display: inline-block;
-  max-width: 100%;
+  width: 100%;
+  max-height: 250px;
   border-radius: 8px;
   overflow: hidden;
   background: rgba(0,0,0,0.05);
   border: 1px solid var(--border-color);
-}
-
-.confession-form .gif-preview-container {
-  max-width: 300px;
-}
-
-.reply-form .gif-preview-container {
-  max-width: 200px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .gif-preview {
-  max-width: 100%;
-  max-height: 200px;
-  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* This is the key fix! */
 }
 
 .remove-gif {
@@ -544,19 +497,14 @@ body {
   z-index: 2;
   transition: all var(--transition-fast);
 }
+.remove-gif:hover { background: rgba(255,0,0,0.8); transform: scale(1.1); }
 
-.remove-gif:hover {
-  background: rgba(255,0,0,0.8);
-  transform: scale(1.1);
-}
-
-/* Feedback Elements */
 .error-message {
   color: var(--error-text);
   background: var(--error-bg);
-  padding: 0.5rem;
+  padding: 0.8rem;
   border-radius: 4px;
-  margin-bottom: 1rem;
+  margin: 0.5rem 0;
   font-size: 0.9rem;
 }
 
@@ -568,142 +516,28 @@ body {
   text-align: center;
 }
 
-/* Animations */
-.fade-in {
-  animation: fadeIn 0.6s ease-in-out;
-  will-change: opacity, transform;
-}
+@keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes content-scale-up { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-@keyframes fadeIn {
-  0% {
-    opacity: 0.4;
-    transform: scale(0.98);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* ADDED: Animations for settings modal */
-@keyframes modal-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes content-scale-up {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-
-/* Responsive Adjustments */
 @media (max-width: 600px) {
-  .App {
-    padding: 1rem;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  .toggle-bar {
-    margin: 1rem 0 1.5rem;
-  }
+  .App { padding: 1rem; border-radius: 0; box-shadow: none; }
+  .toggle-bar { margin: 1rem 0 1.5rem; }
+  .toggle-bar button { padding: 0.75rem 1.5rem; flex: 1; text-align: center; }
   
-  .toggle-bar button {
-    padding: 0.75rem 1.5rem;
-    flex: 1;
-    text-align: center;
-  }
-
-  .emoji-picker-container {
-    width: 100%;
-    left: 0;
-  }
-
-  .emoji-picker-react {
-    width: 100% !important;
-  }
-  
-  /* UPDATED: Ensured all inputs are 16px to prevent mobile zoom */
   .confession-form textarea,
   .reply-form textarea,
-  .gif-search input, /* Target GifPicker's input */
-  .emoji-picker-react .emoji-search /* Target EmojiPicker's search */ {
+  .gif-search input,
+  .emoji-picker-react .emoji-search {
     font-size: 16px !important;
   }
-
-  .confession-form .gif-preview-container {
-    max-width: 100%;
-  }
   
-  .reply-form .gif-preview-container {
-    max-width: 180px;
-  }
-  
-  .confession-gif, .reply-gif {
-    max-height: 250px;
-  }
-
+  .form-actions,
   .reply-actions {
     flex-wrap: wrap;
+    gap: 0.25rem;
   }
 
-  .reply-actions button {
-    flex: 1;
-    min-width: 120px;
+  .action-button {
+    padding: 0.4rem;
   }
-}
-
-/* Dark Mode Specific */
-.dark-mode .gif-preview-container {
-  background: rgba(255,255,255,0.05);
-  border-color: var(--border-color);
-}
-
-.file-input {
-  display: none; /* Hide the default browser input */
-}
-
-.file-input-label {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0.5rem 1rem;
-  /* You can use the same styles as .emoji-button or create new ones */
-}
-
-/* --- Media Styling --- */
-.media-container {
-  margin-top: 0.8rem;
-  margin-bottom: 0.5rem;
-}
-
-.confession-media, .reply-media {
-  max-width: 100%;
-  max-height: 500px;
-  border-radius: 8px;
-  object-fit: contain;
-  margin: auto;
-  display: block;
-}
-
-/* Make sure the main gif class also uses contain */
-.confession-gif,
-.reply-gif {
-  object-fit: contain;
-}
-
-/* Adjustments for the preview container */
-.gif-preview-container video,
-.gif-preview-container img {
-  max-width: 100%;
-  max-height: 200px;
-  display: block;
-}
-
-/* Adjust padding for reply action buttons for better spacing */
-.reply-actions .emoji-button,
-.reply-actions .gif-button {
-  padding: 0.5rem 1rem;
 }

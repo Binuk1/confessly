@@ -27,7 +27,7 @@ function ConfessionItem({ confession, rank }) {
   useEffect(() => {
     function handleClickOutside(event) {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
-        const isEmojiButton = event.target.closest('.emoji-button');
+        const isEmojiButton = event.target.closest('.action-button');
         if (!isEmojiButton) {
           setShowEmojiPicker(false);
         }
@@ -228,77 +228,65 @@ function ConfessionItem({ confession, rank }) {
             {error && <div className="error-message">{error}</div>}
             
             <form onSubmit={handleReplySubmit} className="reply-form">
-              <textarea
-                ref={textareaRef}
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder="Write your reply..."
-                rows={2}
-                disabled={loading || isUploading}
-                className="reply-textarea"
-              />
-              
-              {replyMediaUrl && (
-                  <div className="gif-preview-container">
-                    {replyMediaType === 'image' && <img src={replyMediaUrl} alt="Reply preview" className="gif-preview" />}
-                    {replyMediaType === 'video' && <video src={replyMediaUrl} controls className="gif-preview" />}
-                    <button type="button" onClick={() => { setReplyMediaUrl(''); setUploadError(''); }} className="remove-gif">×</button>
-                  </div>
-              )}
-              {replyGifUrl && !replyMediaUrl && (
-                  <div className="gif-preview-container">
-                    <img src={replyGifUrl} alt="Reply GIF preview" className="gif-preview" />
-                    <button type="button" onClick={() => setReplyGifUrl('')} className="remove-gif">×</button>
-                  </div>
-              )}
-
-              {isUploading && <div className="loading">Uploading...</div>}
-              {uploadError && <div className="error-message">{uploadError}</div>}
-
-              <div className="reply-actions">
-                <label className="file-input-label emoji-button">
-                  📷
-                  <input type="file" accept="image/*,video/*" onChange={handleReplyFileChange} className="file-input" disabled={isUploading}/>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setShowGifPicker(!showGifPicker)}
-                  className="gif-button"
-                  disabled={loading}
-                >
-                  Add GIF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                  className="emoji-button"
-                  disabled={loading}
-                >
-                  😊 Add Emoji
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={loading || isUploading || (!replyText.trim() && !replyGifUrl && !replyMediaUrl)}
-                  className="submit-reply"
-                >
-                  {loading ? 'Posting...' : 'Reply'}
-                </button>
-                {showEmojiPicker && (
-                  <div className="emoji-picker-container upwards" ref={emojiPickerRef}>
-                    <EmojiPicker 
-                      onEmojiClick={onEmojiClick}
-                      width={300}
-                      height={350}
-                      previewConfig={{ showPreview: false }}
-                      searchPlaceholder="Search emojis..."
-                      skinTonesDisabled
-                      lazyLoadEmojis
-                    />
-                  </div>
-                )}
+              <div className="textarea-wrapper reply-wrapper">
+                <textarea
+                  ref={textareaRef}
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Write your reply..."
+                  rows={2}
+                  disabled={loading || isUploading}
+                />
+                <div className="reply-actions">
+                  <label className="file-input-label">
+                    📷
+                    <input type="file" accept="image/*,video/*" onChange={handleReplyFileChange} className="file-input" disabled={isUploading}/>
+                  </label>
+                  <button type="button" onClick={() => setShowGifPicker(!showGifPicker)} className="action-button" aria-label="Add GIF">GIF</button>
+                  <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="action-button" aria-label="Add Emoji">😊</button>
+                  <button 
+                    type="submit" 
+                    className="submit-button"
+                    disabled={loading || isUploading || (!replyText.trim() && !replyGifUrl && !replyMediaUrl)}
+                  >
+                    {loading ? 'Posting...' : 'Reply'}
+                  </button>
+                  
+                  {/* MOVED: Emoji Picker is now inside the actions div to position correctly */}
+                  {showEmojiPicker && (
+                    <div className="emoji-picker-container upwards" ref={emojiPickerRef}>
+                      <EmojiPicker 
+                        onEmojiClick={onEmojiClick}
+                        width={300}
+                        height={350}
+                        previewConfig={{ showPreview: false }}
+                        searchPlaceholder="Search emojis..."
+                        skinTonesDisabled
+                        lazyLoadEmojis
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </form>
+            
+            {replyMediaUrl && (
+                <div className="gif-preview-container">
+                  {replyMediaType === 'image' && <img src={replyMediaUrl} alt="Reply preview" className="gif-preview" />}
+                  {replyMediaType === 'video' && <video src={replyMediaUrl} controls className="gif-preview" />}
+                  <button type="button" onClick={() => { setReplyMediaUrl(''); setUploadError(''); }} className="remove-gif">×</button>
+                </div>
+            )}
+            {replyGifUrl && !replyMediaUrl && (
+                <div className="gif-preview-container">
+                  <img src={replyGifUrl} alt="Reply GIF preview" className="gif-preview" />
+                  <button type="button" onClick={() => setReplyGifUrl('')} className="remove-gif">×</button>
+                </div>
+            )}
 
+            {isUploading && <div className="loading">Uploading...</div>}
+            {uploadError && <div className="error-message">{uploadError}</div>}
+            
             {showGifPicker && (
               <GifPicker 
                 onSelect={(url) => {
