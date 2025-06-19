@@ -7,6 +7,7 @@ function ConfessionList() {
   const [confessions, setConfessions] = useState([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
     setLoading(true);
@@ -22,8 +23,10 @@ function ConfessionList() {
         ...doc.data(),
         totalReactions: Object.values(doc.data().reactions || {}).reduce((a, b) => a + b, 0)
       }));
+      
       setConfessions(items);
       setLoading(false);
+      setHasMore(items.length >= page * 10);
     });
 
     return () => unsub();
@@ -34,13 +37,20 @@ function ConfessionList() {
       {confessions.map((conf) => (
         <ConfessionItem key={conf.id} confession={conf} />
       ))}
-      <button
-        onClick={() => setPage(page + 1)}
-        disabled={loading}
-        className="load-more-btn"
-      >
-        {loading ? 'Loading...' : 'Load More'}
-      </button>
+      
+      {hasMore ? (
+        <button
+          onClick={() => setPage(page + 1)}
+          disabled={loading}
+          className="load-more-btn"
+        >
+          {loading ? 'Loading...' : 'Load More'}
+        </button>
+      ) : (
+        <div className="end-message">
+          You've reached the end! 🎉
+        </div>
+      )}
     </div>
   );
 }

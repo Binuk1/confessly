@@ -20,6 +20,30 @@ function ConfessionForm() {
     const file = event.target.files[0];
     if (!file) return;
 
+    // File validation
+    if (file.type.startsWith('image') && file.size > 2 * 1024 * 1024) {
+      setUploadError('Image must be smaller than 2MB');
+      return;
+    }
+
+    if (file.type.startsWith('video')) {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.onloadedmetadata = function() {
+        window.URL.revokeObjectURL(video.src);
+        if (video.duration > 60) {
+          setUploadError('Video must be shorter than 60 seconds');
+          return;
+        }
+        proceedWithUpload(file);
+      };
+      video.src = URL.createObjectURL(file);
+    } else {
+      proceedWithUpload(file);
+    }
+  };
+
+  const proceedWithUpload = async (file) => {
     setGifUrl('');
     setMediaUrl('');
     setUploadError('');
@@ -40,16 +64,15 @@ function ConfessionForm() {
       });
 
       if (!response.ok) {
-        throw new Error(`Cloudinary upload failed with status: ${response.status}`);
+        throw new Error(`Upload failed: ${response.status}`);
       }
       
       const data = await response.json();
       setMediaUrl(data.secure_url);
       setMediaType(resourceType);
-
     } catch (error) {
-      console.error('Error uploading file:', error);
-      setUploadError('Upload failed. Please check your settings or try a different file.');
+      console.error('Upload error:', error);
+      setUploadError(error.message || 'Upload failed. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -140,7 +163,6 @@ function ConfessionForm() {
             {loading ? 'Posting...' : 'Confess'}
           </button>
 
-          {/* MOVED: Emoji Picker is now inside the actions div to position correctly */}
           {showEmojiPicker && (
             <div className="emoji-picker-container">
               <EmojiPicker 

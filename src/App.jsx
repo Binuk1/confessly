@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { FaCog, FaMoon, FaSun } from 'react-icons/fa';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { FaCog } from 'react-icons/fa';
 import ConfessionForm from './components/ConfessionForm';
 import ConfessionList from './components/ConfessionList';
 import TrendingConfessions from './components/TrendingConfessions';
 import AdminPanel from './components/AdminPanel';
+import AdminAuth from './components/AdminAuth';
+import SettingsModal from './components/SettingsModal';
 import './App.css';
 
-function MainAppContent({ darkMode, setDarkMode, showSettings, setShowSettings }) {
+function MainAppContent({ darkMode, setDarkMode }) {
   const [viewTrending, setViewTrending] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   return (
     <>
@@ -19,36 +22,16 @@ function MainAppContent({ darkMode, setDarkMode, showSettings, setShowSettings }
           onClick={() => setShowSettings(!showSettings)}
           aria-label="Settings"
         >
-          <FaCog />
+          <FaCog size={24} />
         </button>
       </header>
 
       {showSettings && (
-        <div className="settings-modal">
-          <div className="settings-content">
-            <h3>Settings</h3>
-            <div className="theme-switch">
-              <button
-                onClick={() => setDarkMode(false)}
-                className={!darkMode ? 'active' : ''}
-              >
-                <FaSun /> Light Mode
-              </button>
-              <button
-                onClick={() => setDarkMode(true)}
-                className={darkMode ? 'active' : ''}
-              >
-                <FaMoon /> Dark Mode
-              </button>
-            </div>
-            <button 
-              className="close-settings"
-              onClick={() => setShowSettings(false)}
-            >
-              Close
-            </button>
-          </div>
-        </div>
+        <SettingsModal 
+          darkMode={darkMode}
+          setDarkMode={setDarkMode}
+          onClose={() => setShowSettings(false)}
+        />
       )}
 
       <ConfessionForm />
@@ -75,7 +58,6 @@ function MainAppContent({ darkMode, setDarkMode, showSettings, setShowSettings }
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     const savedMode = localStorage.getItem('darkMode') === 'true';
@@ -100,11 +82,10 @@ function App() {
             <MainAppContent 
               darkMode={darkMode}
               setDarkMode={setDarkMode}
-              showSettings={showSettings}
-              setShowSettings={setShowSettings}
             />
           } />
-          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/admin" element={<AdminAuth />} />
+          <Route path="/admin-panel" element={<AdminPanel />} />
         </Routes>
       </div>
     </Router>
