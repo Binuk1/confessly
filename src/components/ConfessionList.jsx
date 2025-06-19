@@ -1,4 +1,3 @@
-// src/components/ConfessionList.jsx
 import { useEffect, useState } from 'react';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -15,7 +14,6 @@ function ConfessionList() {
         return {
           id: doc.id,
           ...data,
-          // 'gifUrl' and 'mediaUrl' will now both be part of 'data' if present
           totalReactions: Object.values(data.reactions || {}).reduce((a, b) => a + b, 0)
         };
       });

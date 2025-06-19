@@ -1,10 +1,8 @@
-// src/components/ConfessionItem.jsx
 import { useState, useEffect, useRef } from 'react';
 import { doc, updateDoc, collection, query, onSnapshot, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
-import GifPicker from './GifPicker'; // Keep this for Giphy
+import GifPicker from './GifPicker';
 import EmojiPicker from 'emoji-picker-react';
-import FileUploadButton from './FileUploadButton'; // Import the new component
 
 const emojis = ['❤️', '😂', '😢', '😡', '👍'];
 
@@ -18,12 +16,14 @@ function ConfessionItem({ confession, rank }) {
   const [error, setError] = useState(null);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [replyGifUrl, setReplyGifUrl] = useState('');     // State for Giphy GIF in reply
-  const [replyMediaUrl, setReplyMediaUrl] = useState(''); // State for Cloudinary upload in reply
+  const [replyGifUrl, setReplyGifUrl] = useState('');
+  const [replyMediaUrl, setReplyMediaUrl] = useState('');
+  const [replyMediaType, setReplyMediaType] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const emojiPickerRef = useRef(null);
   const textareaRef = useRef(null);
 
-  // Close emoji picker when clicking outside
   useEffect(() => {
     function handleClickOutside(event) {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
@@ -39,7 +39,6 @@ function ConfessionItem({ confession, rank }) {
     };
   }, []);
 
-  // Load reactions from localStorage
   useEffect(() => {
     const stored = localStorage.getItem(`reaction-${confession.id}`);
     if (stored) {
@@ -47,7 +46,6 @@ function ConfessionItem({ confession, rank }) {
     }
   }, [confession.id]);
 
-  // Set up reply count listener
   useEffect(() => {
     const repliesRef = collection(db, 'confessions', confession.id, 'replies');
     const unsubscribeCount = onSnapshot(repliesRef, (snapshot) => {
@@ -56,7 +54,6 @@ function ConfessionItem({ confession, rank }) {
     return () => unsubscribeCount();
   }, [confession.id]);
 
-  // Load full replies when toggled
   useEffect(() => {
     if (!showReplies) return;
 
@@ -88,47 +85,14 @@ function ConfessionItem({ confession, rank }) {
       const currentReactions = confession.reactions || {};
       const newReactions = { ...currentReactions };
 
-      // Logic to handle previous reactions from localStorage
-      const prevReactionKey = Object.keys(localStorage).find((key) =>
-        key.startsWith('reaction-')
-      );
-      if (prevReactionKey) {
-        const prevId = prevReactionKey.replace('reaction-', '');
-        const prevEmoji = localStorage.getItem(prevReactionKey);
-        if (prevId !== confession.id) { // Only update if reaction was on a different confession
-          const prevDocRef = doc(db, 'confessions', prevId);
-          // Fetch the previous confession's reactions to decrement correctly
-          // This part requires fetching the document, which can be expensive.
-          // For a more robust solution, consider a transaction or a cloud function.
-          // For simplicity in this client-side code, we'll make a direct update
-          // assuming the reactions object is mostly consistent.
-          // A safer approach: fetch prevDocRef, get its reactions, decrement, then update.
-          // Given current structure, we'll decrement if it exists, otherwise do nothing
-          // on the *previous* confession.
-          if (prevEmoji && prevId) {
-            const tempPrevReactions = { ...confession.reactions || {} }; // Use a temporary object
-            if (tempPrevReactions[prevEmoji] > 0) {
-              tempPrevReactions[prevEmoji]--;
-            }
-            // Update the previous confession's reactions only if there was a change
-            await updateDoc(prevDocRef, { reactions: tempPrevReactions });
-          }
-          localStorage.removeItem(prevReactionKey);
-        }
-      }
-
       if (selectedEmoji === emoji) {
-        // User is unselecting the current emoji
         newReactions[emoji] = (newReactions[emoji] || 1) - 1;
         setSelectedEmoji(null);
         localStorage.removeItem(`reaction-${confession.id}`);
       } else {
-        // User is selecting a new emoji or changing emoji
         if (selectedEmoji) {
-          // Decrement count for previously selected emoji
           newReactions[selectedEmoji] = (newReactions[selectedEmoji] || 1) - 1;
         }
-        // Increment count for newly selected emoji
         newReactions[emoji] = (newReactions[emoji] || 0) + 1;
         setSelectedEmoji(emoji);
         localStorage.setItem(`reaction-${confession.id}`, emoji);
@@ -137,29 +101,63 @@ function ConfessionItem({ confession, rank }) {
       await updateDoc(docRef, { reactions: newReactions });
     } catch (err) {
       console.error("Error updating reaction:", err);
-      setError("Failed to update reaction. Please try again.");
     }
   };
 
+  const handleReplyFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setReplyGifUrl('');
+    setReplyMediaUrl('');
+    setUploadError('');
+    setIsUploading(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'ml_default'); // <-- MUST REPLACE
+    const CLOUD_NAME = 'dqptpxh4r'; // <-- MUST REPLACE
+
+    try {
+      const resourceType = file.type.startsWith('image') ? 'image' : 'video';
+      const api = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
+
+      const response = await fetch(api, { method: 'POST', body: formData });
+
+      if (!response.ok) {
+        throw new Error(`Cloudinary upload failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setReplyMediaUrl(data.secure_url);
+      setReplyMediaType(resourceType);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      setUploadError('Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const handleReplySubmit = async (e) => {
     e.preventDefault();
-    if (!replyText.trim() && !replyGifUrl && !replyMediaUrl) return; // Check all reply media types
+    if (!replyText.trim() && !replyGifUrl && !replyMediaUrl) return;
     
+    setLoading(true);
     try {
-      setLoading(true);
       await addDoc(collection(db, 'confessions', confession.id, 'replies'), {
         text: replyText.trim(),
-        gifUrl: replyGifUrl || null,    // Store reply GIF URL
-        mediaUrl: replyMediaUrl || null, // Store reply Cloudinary media URL
+        gifUrl: replyGifUrl || null,
+        mediaUrl: replyMediaUrl || null,
+        mediaType: replyMediaType || null,
         createdAt: serverTimestamp()
       });
       setReplyText('');
-      setReplyGifUrl('');     // Reset reply GIF URL
-      setReplyMediaUrl('');   // Reset reply Cloudinary media URL
+      setReplyGifUrl('');
+      setReplyMediaUrl('');
+      setReplyMediaType('');
+      setUploadError('');
       setShowEmojiPicker(false);
-      setShowGifPicker(false); // Hide GIF picker after submit
-      setError(null);
     } catch (err) {
       console.error("Error submitting reply:", err);
       setError("Failed to post reply. Please try again.");
@@ -171,17 +169,6 @@ function ConfessionItem({ confession, rank }) {
   const onEmojiClick = (emojiData) => {
     setReplyText(prev => prev + emojiData.emoji);
     textareaRef.current.focus();
-  };
-
-  const handleReplyGifSelect = (url) => {
-    setReplyGifUrl(url);
-    setReplyMediaUrl(''); // Clear Cloudinary media if a GIF is selected
-    setShowGifPicker(false);
-  };
-
-  const handleReplyUploadSuccess = (url) => {
-    setReplyMediaUrl(url); // Set the uploaded Cloudinary URL for reply
-    setReplyGifUrl(''); // Clear GIF if a file is uploaded
   };
 
   const getBadge = () => {
@@ -200,34 +187,15 @@ function ConfessionItem({ confession, rank }) {
       {rank && <div className="rank-badge">{getBadge()}</div>}
       <p>{confession.text}</p>
       
-      {/* Display main confession media */}
-      {(confession.mediaUrl || confession.gifUrl) && (
+      {confession.mediaUrl && (
         <div className="media-container">
-          {confession.mediaUrl ? (
-            confession.mediaUrl.match(/\.(jpeg|jpg|png|gif)$/i) ? (
-              <img 
-                src={confession.mediaUrl} 
-                alt="Confession media" 
-                className="confession-media"
-                loading="lazy"
-              />
-            ) : (
-              <video 
-                src={confession.mediaUrl} 
-                alt="Confession video" 
-                className="confession-media" 
-                controls
-                loading="lazy"
-              />
-            )
-          ) : (
-            <img 
-              src={confession.gifUrl} 
-              alt="Confession GIF" 
-              className="confession-gif"
-              loading="lazy"
-            />
-          )}
+          {confession.mediaType === 'image' && <img src={confession.mediaUrl} alt="Confession media" className="confession-media" loading="lazy" />}
+          {confession.mediaType === 'video' && <video src={confession.mediaUrl} controls className="confession-media" loading="lazy" />}
+        </div>
+      )}
+      {confession.gifUrl && !confession.mediaUrl && (
+        <div className="media-container">
+          <img src={confession.gifUrl} alt="Confession GIF" className="confession-gif" loading="lazy" />
         </div>
       )}
 
@@ -266,83 +234,51 @@ function ConfessionItem({ confession, rank }) {
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder="Write your reply..."
                 rows={2}
-                disabled={loading}
+                disabled={loading || isUploading}
                 className="reply-textarea"
               />
               
-              {/* Display reply media preview - prioritize uploaded media, then GIF */}
-              {(replyMediaUrl || replyGifUrl) && (
-                <div className="gif-preview-container"> {/* Reusing class */}
-                  {replyMediaUrl ? (
-                    replyMediaUrl.match(/\.(jpeg|jpg|png|gif)$/i) ? (
-                      <img 
-                        src={replyMediaUrl} 
-                        alt="Reply photo/video preview" 
-                        className="gif-preview"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <video 
-                        src={replyMediaUrl} 
-                        alt="Reply photo/video preview" 
-                        className="gif-preview"
-                        controls
-                        loading="lazy"
-                      />
-                    )
-                  ) : (
-                    <img 
-                      src={replyGifUrl} 
-                      alt="Reply GIF preview" 
-                      className="gif-preview"
-                      loading="lazy"
-                    />
-                  )}
-                  <button 
-                    type="button" 
-                    onClick={() => { setReplyGifUrl(''); setReplyMediaUrl(''); }} // Clear both
-                    className="remove-gif"
-                    aria-label="Remove media"
-                  >
-                    ×
-                  </button>
-                </div>
+              {replyMediaUrl && (
+                  <div className="gif-preview-container">
+                    {replyMediaType === 'image' && <img src={replyMediaUrl} alt="Reply preview" className="gif-preview" />}
+                    {replyMediaType === 'video' && <video src={replyMediaUrl} controls className="gif-preview" />}
+                    <button type="button" onClick={() => { setReplyMediaUrl(''); setUploadError(''); }} className="remove-gif">×</button>
+                  </div>
+              )}
+              {replyGifUrl && !replyMediaUrl && (
+                  <div className="gif-preview-container">
+                    <img src={replyGifUrl} alt="Reply GIF preview" className="gif-preview" />
+                    <button type="button" onClick={() => setReplyGifUrl('')} className="remove-gif">×</button>
+                  </div>
               )}
 
+              {isUploading && <div className="loading">Uploading...</div>}
+              {uploadError && <div className="error-message">{uploadError}</div>}
+
               <div className="reply-actions">
-                {/* Button for Cloudinary File Upload */}
-                <FileUploadButton 
-                  onUploadSuccess={handleReplyUploadSuccess} 
-                  buttonText="Upload File"
-                />
-                {/* Button for Giphy GIF Picker */}
+                <label className="file-input-label emoji-button">
+                  📷
+                  <input type="file" accept="image/*,video/*" onChange={handleReplyFileChange} className="file-input" disabled={isUploading}/>
+                </label>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowGifPicker(!showGifPicker);
-                    setShowEmojiPicker(false);
-                  }}
+                  onClick={() => setShowGifPicker(!showGifPicker)}
                   className="gif-button"
                   disabled={loading}
-                  aria-label="Add GIF"
                 >
                   Add GIF
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowEmojiPicker(!showEmojiPicker);
-                    setShowGifPicker(false); 
-                  }}
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                   className="emoji-button"
                   disabled={loading}
-                  aria-label="Add emoji"
                 >
                   😊 Add Emoji
                 </button>
                 <button 
                   type="submit" 
-                  disabled={loading || (!replyText.trim() && !replyGifUrl && !replyMediaUrl)}
+                  disabled={loading || isUploading || (!replyText.trim() && !replyGifUrl && !replyMediaUrl)}
                   className="submit-reply"
                 >
                   {loading ? 'Posting...' : 'Reply'}
@@ -365,7 +301,11 @@ function ConfessionItem({ confession, rank }) {
 
             {showGifPicker && (
               <GifPicker 
-                onSelect={handleReplyGifSelect}
+                onSelect={(url) => {
+                  setReplyGifUrl(url);
+                  setReplyMediaUrl('');
+                  setShowGifPicker(false);
+                }}
                 onClose={() => setShowGifPicker(false)}
               />
             )}
@@ -376,33 +316,15 @@ function ConfessionItem({ confession, rank }) {
               replies.map((reply) => (
                 <div key={reply.id} className="reply-item">
                   <p>{reply.text}</p>
-                  {(reply.mediaUrl || reply.gifUrl) && ( // Display reply media
+                  {reply.mediaUrl && (
                     <div className="media-container">
-                      {reply.mediaUrl ? (
-                        reply.mediaUrl.match(/\.(jpeg|jpg|png|gif)$/i) ? (
-                          <img 
-                            src={reply.mediaUrl} 
-                            alt="Reply media" 
-                            className="reply-media"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <video 
-                            src={reply.mediaUrl} 
-                            alt="Reply video" 
-                            className="reply-media"
-                            controls
-                            loading="lazy"
-                          />
-                        )
-                      ) : (
-                        <img 
-                          src={reply.gifUrl} 
-                          alt="Reply GIF" 
-                          className="reply-gif"
-                          loading="lazy"
-                        />
-                      )}
+                        {reply.mediaType === 'image' && <img src={reply.mediaUrl} alt="Reply media" className="reply-gif" loading="lazy" />}
+                        {reply.mediaType === 'video' && <video src={reply.mediaUrl} controls className="reply-gif" loading="lazy" />}
+                    </div>
+                  )}
+                  {reply.gifUrl && !reply.mediaUrl && (
+                    <div className="media-container">
+                      <img src={reply.gifUrl} alt="Reply GIF" className="reply-gif" loading="lazy" />
                     </div>
                   )}
                   <div className="reply-meta">

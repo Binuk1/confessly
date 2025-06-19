@@ -660,67 +660,50 @@ body {
   border-color: var(--border-color);
 }
 
-/* New styles for FileUploadButton */
-.file-upload-container {
-  display: inline-block; /* Or flex-start, depending on layout */
-  margin-right: 0.5rem; /* Space from other buttons */
+.file-input {
+  display: none; /* Hide the default browser input */
 }
 
-.file-upload-button {
-  background: #607d8b; /* A new distinct color for uploads, e.g., grey-blue */
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background var(--transition-normal);
-  display: inline-flex; /* To align text and potential icon */
+.file-input-label {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
-  font-size: 1rem; /* Adjust as needed */
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  /* You can use the same styles as .emoji-button or create new ones */
 }
 
-.file-upload-button:hover {
-  background: #455a64; /* Darker hover state */
-}
-
-/* Ensure these are distinct or more generic if needed */
+/* --- Media Styling --- */
 .media-container {
-  margin-top: 0.5rem;
+  margin-top: 0.8rem;
   margin-bottom: 0.5rem;
-  display: flex;
-  justify-content: center; /* Center the media */
 }
 
-.confession-gif, /* Existing for Giphy GIF */
-.confession-media { /* New for Cloudinary uploaded media */
+.confession-media, .reply-media {
   max-width: 100%;
-  max-height: 350px; /* Adjust max-height for both images and videos */
-  border-radius: 8px;
-  object-fit: contain; /* Ensures entire image/video is visible */
-  display: block; /* Remove extra space below images/videos */
-}
-
-.reply-gif, /* Existing for Giphy GIF */
-.reply-media { /* New for Cloudinary uploaded media */
-  max-width: 100%;
-  max-height: 250px; /* Adjust max-height for videos in replies */
+  max-height: 500px;
   border-radius: 8px;
   object-fit: contain;
+  margin: auto;
   display: block;
 }
 
-/* For video elements specifically */
-video {
-  outline: none; /* Remove outline around controls in some browsers */
+/* Make sure the main gif class also uses contain */
+.confession-gif,
+.reply-gif {
+  object-fit: contain;
 }
 
-/* Ensure the input for file upload is prevented from iOS zoom */
-@media (max-width: 600px) {
-  /* ... existing styles ... */
-  
-  .file-upload-button input[type="file"] {
-    font-size: 16px !important; /* Prevent iOS zoom */
-  }
+/* Adjustments for the preview container */
+.gif-preview-container video,
+.gif-preview-container img {
+  max-width: 100%;
+  max-height: 200px;
+  display: block;
+}
+
+/* Adjust padding for reply action buttons for better spacing */
+.reply-actions .emoji-button,
+.reply-actions .gif-button {
+  padding: 0.5rem 1rem;
 }
