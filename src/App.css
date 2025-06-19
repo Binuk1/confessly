@@ -442,12 +442,15 @@ body {
 .dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar-thumb { background-color: var(--border-color); }
 
 .media-container {
+  position: relative; /* Essential for positioning */
+  max-width: 100%;
+  max-height: 300px;
   margin: 0.8rem 0;
-  display: flex;
-  justify-content: center;
   background: rgba(0,0,0,0.02);
   border-radius: 8px;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
 }
 
 .confession-media, .reply-media, .confession-gif, .reply-gif {
@@ -460,10 +463,10 @@ body {
 
 /* UPDATED: Media preview styling */
 .gif-preview-container {
-  position: relative;
+  position: relative; /* Essential for positioning the remove button */
+  width: 150px;
+  height: 150px;
   margin: 0.5rem 0;
-  width: 100%;
-  max-height: 250px;
   border-radius: 8px;
   overflow: hidden;
   background: rgba(0,0,0,0.05);
@@ -473,10 +476,11 @@ body {
   align-items: center;
 }
 
+
 .gif-preview {
-  width: 100%;
-  height: 100%;
-  object-fit: contain; /* This is the key fix! */
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .remove-gif {
@@ -497,7 +501,65 @@ body {
   z-index: 2;
   transition: all var(--transition-fast);
 }
-.remove-gif:hover { background: rgba(255,0,0,0.8); transform: scale(1.1); }
+
+.remove-gif:hover {
+  background: rgba(255,0,0,0.8);
+  transform: scale(1.1);
+}
+
+/* NEW: Admin Panel Styles */
+.admin-panel {
+  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.admin-media {
+  max-width: 100%;
+  max-height: 200px;
+  margin: 0.5rem 0;
+  border-radius: 8px;
+}
+
+.delete-btn {
+  background: #ff4444;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 0.5rem;
+}
+
+.delete-btn:hover {
+  background: #cc0000;
+}
+
+.load-more-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.8rem;
+  margin: 1rem auto;
+  display: block;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--transition-normal);
+}
+
+.load-more-btn:hover {
+  background: var(--primary-hover);
+}
+
+.load-more-btn:disabled {
+  background: #aaa;
+  cursor: not-allowed;
+}
+
+/* Prevent zoom on mobile */
+textarea, input, button {
+  font-size: 16px !important;
+}
 
 .error-message {
   color: var(--error-text);

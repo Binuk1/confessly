@@ -261,6 +261,7 @@ function ConfessionItem({ confession, rank }) {
                         height={350}
                         previewConfig={{ showPreview: false }}
                         searchPlaceholder="Search emojis..."
+                        autoFocusSearch={false}
                         skinTonesDisabled
                         lazyLoadEmojis
                       />

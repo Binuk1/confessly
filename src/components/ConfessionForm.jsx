@@ -149,6 +149,7 @@ function ConfessionForm() {
                 height={400}
                 previewConfig={{ showPreview: false }}
                 searchPlaceholder="Search emojis..."
+                autoFocusSearch={false}
               />
             </div>
           )}

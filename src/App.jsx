@@ -1,34 +1,17 @@
 import { useState, useEffect } from 'react';
 import { FaCog, FaMoon, FaSun } from 'react-icons/fa';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ConfessionForm from './components/ConfessionForm';
 import ConfessionList from './components/ConfessionList';
 import TrendingConfessions from './components/TrendingConfessions';
+import AdminPanel from './components/AdminPanel';
 import './App.css';
 
-function App() {
+function MainAppContent({ darkMode, setDarkMode, showSettings, setShowSettings }) {
   const [viewTrending, setViewTrending] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-
-  // Load theme preference from localStorage on initial component mount
-  useEffect(() => {
-    const savedMode = localStorage.getItem('darkMode') === 'true';
-    setDarkMode(savedMode);
-  }, []);
-
-  // Apply theme class to body and save preference to localStorage whenever darkMode changes
-  useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add('dark-mode');
-      localStorage.setItem('darkMode', 'true');
-    } else {
-      document.body.classList.remove('dark-mode');
-      localStorage.setItem('darkMode', 'false');
-    }
-  }, [darkMode]);
 
   return (
-    <div className="App">
+    <>
       <header className="app-header">
         <h1>Anonymous Confession Wall</h1>
         <button 
@@ -86,7 +69,45 @@ function App() {
       </div>
 
       {viewTrending ? <TrendingConfessions /> : <ConfessionList />}
-    </div>
+    </>
+  );
+}
+
+function App() {
+  const [darkMode, setDarkMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode') === 'true';
+    setDarkMode(savedMode);
+  }, []);
+
+  useEffect(() => {
+    if (darkMode) {
+      document.body.classList.add('dark-mode');
+      localStorage.setItem('darkMode', 'true');
+    } else {
+      document.body.classList.remove('dark-mode');
+      localStorage.setItem('darkMode', 'false');
+    }
+  }, [darkMode]);
+
+  return (
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={
+            <MainAppContent 
+              darkMode={darkMode}
+              setDarkMode={setDarkMode}
+              showSettings={showSettings}
+              setShowSettings={setShowSettings}
+            />
+          } />
+          <Route path="/admin" element={<AdminPanel />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
