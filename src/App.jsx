@@ -7,6 +7,7 @@ import TrendingConfessions from './components/TrendingConfessions';
 import AdminPanel from './components/AdminPanel';
 import AdminAuth from './components/AdminAuth';
 import SettingsModal from './components/SettingsModal';
+import OnlineUsers from './components/OnlineUsers';
 import './App.css';
 
 function MainAppContent({ darkMode, setDarkMode }) {
@@ -15,6 +16,8 @@ function MainAppContent({ darkMode, setDarkMode }) {
 
   return (
     <>
+      <OnlineUsers />
+
       <header className="app-header">
         <h1>Anonymous Confession Wall</h1>
         <button 
@@ -35,7 +38,7 @@ function MainAppContent({ darkMode, setDarkMode }) {
       )}
 
       <ConfessionForm />
-      
+
       <div className="toggle-bar">
         <button
           className={!viewTrending ? 'active' : ''}
