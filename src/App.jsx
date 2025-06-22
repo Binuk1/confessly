@@ -5,6 +5,7 @@ import ConfessionList from './components/ConfessionList';
 import TrendingConfessions from './components/TrendingConfessions';
 import SettingsModal from './components/SettingsModal';
 import './App.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);

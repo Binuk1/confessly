@@ -1,0 +1,133 @@
+/* MediaCarousel.css */
+
+.media-carousel-modal .modal-content {
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.media-carousel-modal .modal-body {
+  padding: 0;
+  background-color: #000;
+  border-radius: 12px;
+}
+
+.carousel-media {
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 12px;
+  background-color: #000;
+}
+
+/* Custom carousel navigation arrows */
+.custom-arrow {
+  background-color: white;
+  border-radius: 50%;
+  padding: 10px;
+  width: 40px;
+  height: 40px;
+  background-size: 60% 60%;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+}
+
+.carousel-control-prev-icon.custom-arrow {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 16 16' fill='%23000' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' d='M11.354 1.646a.5.5 0 0 1 0 .708L6.707 7l4.647 4.646a.5.5 0 0 1-.708.708l-5-5a.5.5 0 0 1 0-.708l5-5a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E");
+}
+
+.carousel-control-next-icon.custom-arrow {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 16 16' fill='%23000' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill-rule='evenodd' d='M4.646 1.646a.5.5 0 0 1 .708 0l5 5a.5.5 0 0 1 0 .708l-5 5a.5.5 0 0 1-.708-.708L9.293 7 4.646 2.354a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+}
+
+.close-carousel-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1051;
+  background: white;
+  color: black;
+  font-size: 1.5rem;
+  line-height: 1;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* NSFW support */
+.carousel-item.blurred {
+  filter: blur(10px);
+  position: relative;
+}
+
+.carousel-item.blurred::after {
+  content: 'NSFW';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: bold;
+  z-index: 10;
+}
+/*new feature*/
+/* Fix visibility of custom arrows */
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  background-color: white;
+  border-radius: 50%;
+  padding: 10px;
+  width: 40px;
+  height: 40px;
+  background-size: 60% 60%;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 5px rgba(0, 0, 0, 0.5));
+}
+
+/* Ensure control icons appear correctly */
+.carousel-control-prev-icon {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 16 16' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11.354 1.646a.5.5 0 0 1 0 .708L6.707 7l4.647 4.646a.5.5 0 0 1-.708.708l-5-5a.5.5 0 0 1 0-.708l5-5a.5.5 0 0 1 .708 0z'/%3E%3C/svg%3E");
+}
+.carousel-control-next-icon {
+  background-image: url("data:image/svg+xml;charset=utf8,%3Csvg viewBox='0 0 16 16' fill='black' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4.646 1.646a.5.5 0 0 1 .708 0l5 5a.5.5 0 0 1 0 .708l-5 5a.5.5 0 0 1-.708-.708L9.293 7 4.646 2.354a.5.5 0 0 1 0-.708z'/%3E%3C/svg%3E");
+}
+
+/* Blurred image/video preview with NSFW overlay */
+.media-grid-item.blurred::after {
+  content: 'NSFW';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  z-index: 5;
+}
+.media-grid-item.blurred img,
+.media-grid-item.blurred video {
+  filter: blur(12px);
+  pointer-events: none;
+}
+
+/* Hover-to-play video preview */
+.media-grid-item video {
+  transition: transform 0.2s ease;
+}
+.media-grid-item video:hover {
+  transform: scale(1.03);
+}
+
+/*end of new feature*/

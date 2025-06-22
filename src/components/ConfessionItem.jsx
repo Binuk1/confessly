@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-  doc, updateDoc, collection, query, onSnapshot,
-  orderBy, addDoc, serverTimestamp
-} from 'firebase/firestore';
+import { doc, updateDoc, collection, query, onSnapshot, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import GifPicker from './GifPicker';
 import EmojiPicker from 'emoji-picker-react';
 import SkeletonItem from './SkeletonItem';
+import MediaPreviewGrid from './MediaPreviewGrid';
+import MediaCarouselModal from './MediaCarouselModal';
+import { detectNSFW } from '../utils/detectNSFW';
 
-const emojis = ['❤️', '😂', '😢', '😡', '👍'];
+const emojis = ['❤️', '😂', '😭', '😡', '👍'];
 
 function ConfessionItem({ confession, rank }) {
   const [selectedEmoji, setSelectedEmoji] = useState(null);
@@ -24,9 +24,8 @@ function ConfessionItem({ confession, rank }) {
   const [replyMediaFiles, setReplyMediaFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const [modalMedia, setModalMedia] = useState([]);
-  const [modalIndex, setModalIndex] = useState(0);
-  const [showModal, setShowModal] = useState(false);
+  const [modalFiles, setModalFiles] = useState([]);
+  const [startIndex, setStartIndex] = useState(0);
   const emojiPickerRef = useRef(null);
   const textareaRef = useRef(null);
 
@@ -50,10 +49,18 @@ function ConfessionItem({ confession, rank }) {
       collection(db, 'confessions', confession.id, 'replies'),
       orderBy('createdAt', 'desc')
     );
-    const unsubscribeReplies = onSnapshot(q, (snapshot) => {
-      setReplies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-      setLoading(false);
-    });
+    const unsubscribeReplies = onSnapshot(q,
+      (snapshot) => {
+        setReplies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error("Error loading replies:", err);
+        setError("Failed to load replies.");
+        setLoading(false);
+      }
+    );
     return () => unsubscribeReplies();
   }, [showReplies, confession.id]);
 
@@ -75,112 +82,16 @@ function ConfessionItem({ confession, rank }) {
         setSelectedEmoji(emoji);
         localStorage.setItem(`reaction-${confession.id}`, emoji);
       }
+
       await updateDoc(docRef, { reactions: newReactions });
     } catch (err) {
       console.error("Error updating reaction:", err);
     }
   };
 
-  const openMediaModal = (mediaList, index) => {
-    setModalMedia(mediaList);
-    setModalIndex(index);
-    setShowModal(true);
-  };
-
-  const closeModal = () => {
-    setShowModal(false);
-  };
-
-  const handleKeyDown = (e) => {
-    if (showModal) {
-      if (e.key === 'ArrowLeft' && modalIndex > 0) {
-        setModalIndex(modalIndex - 1);
-      } else if (e.key === 'ArrowRight' && modalIndex < modalMedia.length - 1) {
-        setModalIndex(modalIndex + 1);
-      } else if (e.key === 'Escape') {
-        closeModal();
-      }
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showModal, modalIndex, modalMedia]);
-
-  const imageMedia = confession.media?.filter(m => m.type === 'image') || [];
-  const videoMedia = confession.media?.find(m => m.type === 'video');
-
-  const handleReplyFileUpload = async (file) => {
-    setIsUploading(true);
-    setUploadError('');
-    
-    if (file.type.startsWith('image') && file.size > 2 * 1024 * 1024) {
-      setUploadError('Image must be smaller than 2MB');
-      setIsUploading(false);
-      return;
-    }
-    
-    if (file.type.startsWith('video')) {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.onloadedmetadata = function () {
-        window.URL.revokeObjectURL(video.src);
-        if (video.duration > 60) {
-          setUploadError('Video must be shorter than 60 seconds');
-          setIsUploading(false);
-          return;
-        }
-        proceedUpload(file);
-      };
-      video.src = URL.createObjectURL(file);
-    } else {
-      proceedUpload(file);
-    }
-  };
-
-  const proceedUpload = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'ml_default');
-    const CLOUD_NAME = 'dqptpxh4r';
-
-    try {
-      const resourceType = file.type.startsWith('image') ? 'image' : 'video';
-      const api = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
-      const res = await fetch(api, { method: 'POST', body: formData });
-      const data = await res.json();
-      setReplyMediaFiles(prev => [...prev, { url: data.secure_url, type: resourceType }]);
-    } catch (e) {
-      setUploadError('Upload failed.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleReplySubmit = async (e) => {
-    e.preventDefault();
-    if (!replyText.trim() && !replyGifUrl && replyMediaFiles.length === 0) return;
-    setLoading(true);
-    try {
-      await addDoc(collection(db, 'confessions', confession.id, 'replies'), {
-        text: replyText.trim(),
-        gifUrl: replyGifUrl || null,
-        media: replyMediaFiles,
-        createdAt: serverTimestamp(),
-      });
-      setReplyText('');
-      setReplyGifUrl('');
-      setReplyMediaFiles([]);
-    } catch (err) {
-      setError("Failed to post reply.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const removeReplyMedia = (index) => {
-    setReplyMediaFiles(prev => prev.filter((_, i) => i !== index));
+  const openModal = (files, index) => {
+    setModalFiles(files);
+    setStartIndex(index);
   };
 
   const getBadge = () => {
@@ -194,44 +105,81 @@ function ConfessionItem({ confession, rank }) {
     }
   };
 
+  const handleReplyFileChange = async (event) => {
+    const files = Array.from(event.target.files);
+    await uploadReplyFiles(files);
+  };
+
+  const uploadReplyFiles = async (files) => {
+    setUploadError('');
+    setIsUploading(true);
+    const CLOUD_NAME = 'dqptpxh4r';
+    const UPLOAD_PRESET = 'ml_default';
+    const newFiles = [];
+
+    for (let file of files) {
+      if (file.type.startsWith('image') && file.size > 2 * 1024 * 1024) {
+        setUploadError('Image must be smaller than 2MB');
+        continue;
+      }
+      if (file.type.startsWith('video')) {
+        const video = document.createElement('video');
+        video.preload = 'metadata';
+        video.onloadedmetadata = async function () {
+          window.URL.revokeObjectURL(video.src);
+          if (video.duration > 60) {
+            setUploadError('Video must be shorter than 60 seconds');
+            return;
+          }
+          await uploadToCloudinary(file);
+        };
+        video.src = URL.createObjectURL(file);
+      } else {
+        await uploadToCloudinary(file);
+      }
+    }
+
+    async function uploadToCloudinary(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', UPLOAD_PRESET);
+      try {
+        const resourceType = file.type.startsWith('image') ? 'image' : 'video';
+        const api = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
+        const response = await fetch(api, { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('Upload failed');
+        const data = await response.json();
+
+        let nsfw = false;
+        if (resourceType === 'image') {
+          nsfw = await detectNSFW(data.secure_url);
+        }
+
+        newFiles.push({ url: data.secure_url, type: resourceType, nsfw });
+      } catch (err) {
+        setUploadError('Upload failed.');
+      }
+    }
+
+    setReplyMediaFiles((prev) => [...prev, ...newFiles]);
+    setIsUploading(false);
+  };
+
   return (
     <div className={`confession-item rank-${rank || ''}`}>
       {rank && <div className="rank-badge">{getBadge()}</div>}
       <p>{confession.text}</p>
 
-      {/* Media grid - uncropped previews */}
-      {imageMedia.length > 0 && (
-        <div className="media-grid">
-          {imageMedia.slice(0, 5).map((img, i) => (
-            <div 
-              key={i} 
-              className="media-grid-item" 
-              onClick={() => openMediaModal(imageMedia, i)}
-              aria-label={`View image ${i + 1} of ${imageMedia.length}`}
-            >
-              <img 
-                src={img.url} 
-                className="confession-media" 
-                alt={`Confession media ${i + 1}`}
-                style={{ objectFit: 'contain' }}
-              />
-              {i === 4 && imageMedia.length > 5 && (
-                <div className="media-overlay">+{imageMedia.length - 5}</div>
-              )}
-            </div>
-          ))}
-        </div>
+      {confession.media && confession.media.length > 0 && (
+        <MediaPreviewGrid
+          files={confession.media}
+          onMediaClick={(index) => openModal(confession.media, index)}
+        />
       )}
 
-      {videoMedia && (
+      {confession.gifUrl && (!confession.media || confession.media.length === 0) && (
         <div className="media-container">
-          <video 
-            src={videoMedia.url} 
-            controls 
-            className="confession-media"
-            style={{ objectFit: 'contain' }}
-            aria-label="Confession video"
-          />
+          <img src={confession.gifUrl} alt="Confession GIF" className="confession-gif" loading="lazy" />
         </div>
       )}
 
@@ -250,190 +198,48 @@ function ConfessionItem({ confession, rank }) {
       </div>
 
       <div className="reply-section">
-        <button 
-          onClick={() => setShowReplies(!showReplies)} 
+        <button
           className="toggle-replies-btn"
+          onClick={() => setShowReplies(!showReplies)}
+          disabled={loading}
           aria-expanded={showReplies}
-          aria-controls="replies-container"
         >
           {showReplies ? 'Hide Replies' : `Show Replies (${replyCount})`}
         </button>
-        
+
         {showReplies && (
-          <div className="replies-container" id="replies-container">
-            <form onSubmit={handleReplySubmit} className="reply-form">
-              <div className="textarea-wrapper reply-wrapper">
-                <textarea
-                  ref={textareaRef}
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  placeholder="Write your reply..."
-                  aria-label="Reply text"
-                />
-                <div className="reply-actions">
-                  <label className="file-input-label" htmlFor="reply-upload">
-                    📷
-                    <input
-                      id="reply-upload"
-                      type="file"
-                      accept="image/*,video/*"
-                      style={{ display: 'none' }}
-                      onChange={(e) => handleReplyFileUpload(e.target.files[0])}
-                      disabled={isUploading}
-                      aria-label="Upload media"
-                    />
-                  </label>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowGifPicker(!showGifPicker)} 
-                    className="action-button"
-                    aria-label="Add GIF"
-                  >
-                    GIF
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
-                    className="action-button"
-                    aria-label="Add emoji"
-                  >
-                    😊
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="submit-button" 
-                    disabled={loading || isUploading || (!replyText.trim() && !replyGifUrl && replyMediaFiles.length === 0)}
-                    aria-label="Submit reply"
-                  >
-                    {(loading || isUploading) ? 'Posting...' : 'Reply'}
-                  </button>
-                </div>
-              </div>
-            </form>
-
-            {/* Reply preview media - uncropped */}
-            {replyMediaFiles.length > 0 && (
-              <div className="media-previews">
-                {replyMediaFiles.map((file, idx) => (
-                  <div key={idx} className="gif-preview-container">
-                    {file.type === 'image' ? (
-                      <img 
-                        src={file.url} 
-                        alt="Reply preview" 
-                        className="gif-preview" 
-                        style={{ objectFit: 'contain' }} 
-                      />
-                    ) : (
-                      <video 
-                        src={file.url} 
-                        controls 
-                        className="gif-preview" 
-                        style={{ objectFit: 'contain' }} 
-                      />
-                    )}
-                    <button 
-                      type="button" 
-                      onClick={() => removeReplyMedia(idx)} 
-                      className="remove-gif"
-                      aria-label="Remove media"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {replies.map((reply) => (
+          <div className="replies-container">
+            {error && <div className="error-message">{error}</div>}
+            {!loading && replies.map((reply) => (
               <div key={reply.id} className="reply-item">
                 <p>{reply.text}</p>
-                {reply.media?.length > 0 && (
-                  <div className="media-grid">
-                    {reply.media.map((m, i) => (
-                      <div
-                        key={i}
-                        className="media-grid-item"
-                        onClick={() => openMediaModal(reply.media, i)}
-                        aria-label={`View reply media ${i + 1}`}
-                      >
-                        {m.type === 'image' ? (
-                          <img 
-                            src={m.url} 
-                            alt="Reply media" 
-                            className="reply-gif" 
-                            style={{ objectFit: 'contain' }}
-                          />
-                        ) : (
-                          <video 
-                            src={m.url} 
-                            className="reply-gif" 
-                            controls
-                            style={{ objectFit: 'contain' }}
-                          />
-                        )}
-                      </div>
-                    ))}
+                {reply.media && reply.media.length > 0 && (
+                  <MediaPreviewGrid
+                    files={reply.media}
+                    onMediaClick={(index) => openModal(reply.media, index)}
+                  />
+                )}
+                {reply.gifUrl && (!reply.media || reply.media.length === 0) && (
+                  <div className="media-container">
+                    <img src={reply.gifUrl} alt="Reply GIF" className="reply-gif" loading="lazy" />
                   </div>
                 )}
+                <div className="reply-meta">
+                  <span>{new Date(reply.createdAt?.toDate()).toLocaleString()}</span>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      {/* Media modal - carousel */}
-      {showModal && (
-  <div className="modal-backdrop">
-    <div className="modal-container">
-      <div className="modal-content">
-        <button 
-          type="button" 
-          className="btn-close btn-close-white position-absolute top-0 end-0 m-3" 
-          onClick={closeModal}
-          aria-label="Close"
+      {modalFiles.length > 0 && (
+        <MediaCarouselModal
+          files={modalFiles}
+          startIndex={startIndex}
+          onClose={() => setModalFiles([])}
         />
-        
-        <div className="media-display">
-          {modalMedia[modalIndex]?.type === 'image' ? (
-            <img 
-              src={modalMedia[modalIndex].url} 
-              className="img-fluid"
-              alt={`Media ${modalIndex + 1} of ${modalMedia.length}`}
-            />
-          ) : (
-            <video 
-              src={modalMedia[modalIndex].url} 
-              controls
-              className="img-fluid"
-            />
-          )}
-        </div>
-
-        <div className="modal-footer">
-          <button 
-            className="btn btn-outline-light"
-            disabled={modalIndex === 0} 
-            onClick={() => setModalIndex(modalIndex - 1)}
-          >
-            Previous
-          </button>
-          
-          <span className="text-white mx-3">
-            {modalIndex + 1} / {modalMedia.length}
-          </span>
-          
-          <button 
-            className="btn btn-outline-light"
-            disabled={modalIndex === modalMedia.length - 1} 
-            onClick={() => setModalIndex(modalIndex + 1)}
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 }
