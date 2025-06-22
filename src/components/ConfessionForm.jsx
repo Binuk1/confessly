@@ -3,6 +3,7 @@ import { db } from '../firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import GifPicker from './GifPicker';
 import EmojiPicker from 'emoji-picker-react';
+import SkeletonItem from './SkeletonItem'; // ADDED
 
 function ConfessionForm() {
   const [text, setText] = useState('');
@@ -14,13 +15,13 @@ function ConfessionForm() {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const emojiButtonRef = useRef(null);
 
   const handleFileChange = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // File validation
     if (file.type.startsWith('image') && file.size > 2 * 1024 * 1024) {
       setUploadError('Image must be smaller than 2MB');
       return;
@@ -29,7 +30,7 @@ function ConfessionForm() {
     if (file.type.startsWith('video')) {
       const video = document.createElement('video');
       video.preload = 'metadata';
-      video.onloadedmetadata = function() {
+      video.onloadedmetadata = function () {
         window.URL.revokeObjectURL(video.src);
         if (video.duration > 60) {
           setUploadError('Video must be shorter than 60 seconds');
@@ -51,28 +52,21 @@ function ConfessionForm() {
 
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', 'ml_default'); // <-- REPLACE
-    const CLOUD_NAME = 'dqptpxh4r'; // <-- REPLACE
+    formData.append('upload_preset', 'ml_default'); // replace
+    const CLOUD_NAME = 'dqptpxh4r'; // replace
 
     try {
       const resourceType = file.type.startsWith('image') ? 'image' : 'video';
       const api = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
 
-      const response = await fetch(api, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status}`);
-      }
-      
+      const response = await fetch(api, { method: 'POST', body: formData });
+      if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
       const data = await response.json();
+
       setMediaUrl(data.secure_url);
       setMediaType(resourceType);
     } catch (error) {
-      console.error('Upload error:', error);
-      setUploadError(error.message || 'Upload failed. Please try again.');
+      setUploadError(error.message || 'Upload failed.');
     } finally {
       setIsUploading(false);
     }
@@ -81,7 +75,7 @@ function ConfessionForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!text.trim() && !gifUrl && !mediaUrl) return;
-    
+
     setLoading(true);
     try {
       await addDoc(collection(db, 'confessions'), {
@@ -98,17 +92,12 @@ function ConfessionForm() {
       setMediaType('');
       setUploadError('');
     } catch (err) {
-      console.error("Error submitting confession:", err);
+      console.error("Error:", err);
     } finally {
       setLoading(false);
     }
   };
 
-  const onEmojiClick = (emojiData) => {
-    setText(prev => prev + emojiData.emoji);
-    setShowEmojiPicker(false);
-  };
-  
   const removeMedia = () => {
     setMediaUrl('');
     setMediaType('');
@@ -117,7 +106,20 @@ function ConfessionForm() {
 
   return (
     <form className="confession-form" onSubmit={handleSubmit}>
-      <div className="textarea-wrapper">
+      <div
+        className={`textarea-wrapper ${dragOver ? 'drag-over' : ''}`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const file = e.dataTransfer.files[0];
+          if (file) handleFileChange({ target: { files: [file] } });
+        }}
+      >
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -127,14 +129,15 @@ function ConfessionForm() {
         <div className="form-actions">
           <label className="file-input-label">
             📷
-            <input 
-              type="file" 
-              accept="image/*,video/*" 
-              onChange={handleFileChange} 
-              className="file-input"
+            <input
+              type="file"
+              accept="image/*,video/*"
+              onChange={handleFileChange}
               disabled={isUploading}
+              style={{ display: 'none' }}
             />
           </label>
+
           <button
             type="button"
             onClick={() => {
@@ -142,21 +145,30 @@ function ConfessionForm() {
               setUploadError('');
             }}
             className="action-button"
-            aria-label="Add GIF"
           >
             GIF
           </button>
+
           <button
             type="button"
             ref={emojiButtonRef}
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             className="action-button"
-            aria-label="Add Emoji"
           >
             😊
           </button>
-          <button 
-            type="submit" 
+
+          <button
+            type="button"
+            className="action-button"
+            title="Max image: 2MB, Max video: 60s"
+            onClick={() => alert('Max image size: 2MB\nMax video length: 60 seconds')}
+          >
+            ℹ️
+          </button>
+
+          <button
+            type="submit"
             className="submit-button"
             disabled={loading || isUploading || (!text.trim() && !gifUrl && !mediaUrl)}
           >
@@ -165,44 +177,51 @@ function ConfessionForm() {
 
           {showEmojiPicker && (
             <div className="emoji-picker-container">
-              <EmojiPicker 
-                onEmojiClick={onEmojiClick}
+              <EmojiPicker
+                onEmojiClick={(emojiData) => {
+                  setText(prev => prev + emojiData.emoji);
+                  setShowEmojiPicker(false);
+                }}
                 width={300}
                 height={400}
                 previewConfig={{ showPreview: false }}
                 searchPlaceholder="Search emojis..."
-                autoFocusSearch={false}
               />
             </div>
           )}
         </div>
       </div>
-      
+
       {mediaUrl && (
         <div className="gif-preview-container">
-          {mediaType === 'image' && <img src={mediaUrl} alt="Upload preview" className="gif-preview" />}
-          {mediaType === 'video' && <video src={mediaUrl} controls className="gif-preview" />}
+          {mediaType === 'image' ? (
+            <img src={mediaUrl} alt="Preview" className="gif-preview" />
+          ) : (
+            <video src={mediaUrl} controls className="gif-preview" />
+          )}
           <button type="button" onClick={removeMedia} className="remove-gif">×</button>
         </div>
       )}
 
       {gifUrl && !mediaUrl && (
         <div className="gif-preview-container">
-          <img src={gifUrl} alt="Confession GIF preview" className="gif-preview"/>
+          <img src={gifUrl} alt="GIF Preview" className="gif-preview" />
           <button type="button" onClick={() => setGifUrl('')} className="remove-gif">×</button>
         </div>
       )}
 
-      {isUploading && <div className="loading">Uploading media...</div>}
+      {/* UPDATED: Universal loading indicator */}
+      {(isUploading || loading) && <SkeletonItem />}
+      
       {uploadError && <div className="error-message">{uploadError}</div>}
       
       {showGifPicker && (
-        <GifPicker 
+        <GifPicker
           onSelect={(url) => {
             setGifUrl(url);
             removeMedia();
             setShowGifPicker(false);
-          }} 
+          }}
           onClose={() => setShowGifPicker(false)}
         />
       )}

@@ -86,10 +86,10 @@ body {
 .settings-button {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   color: var(--text-color);
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 0.8rem;
   border-radius: 50%;
   transition: all var(--transition-normal);
 }
@@ -143,7 +143,7 @@ body {
 
 .theme-switch button {
   flex: 1;
-  padding: 1rem !important; /* Bigger buttons */
+  padding: 1rem !important;
   font-size: 1.1rem !important;
   border-radius: 8px;
   border: 2px solid var(--border-color);
@@ -264,7 +264,7 @@ body {
 
 .form-actions,
 .reply-actions {
-  position: relative; /* Crucial for positioning the emoji picker */
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -405,45 +405,8 @@ body {
   margin-top: 0.3rem;
 }
 
-.file-input { display: none; }
-.file-input-label {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 50%;
-  font-size: 1.2rem;
-  color: var(--text-color);
-  opacity: 0.7;
-  transition: all var(--transition-fast);
-}
-.file-input-label:hover { opacity: 1; background: rgba(0,0,0,0.05); }
-
-/* UPDATED: Emoji Picker positioning */
-.emoji-picker-container {
-  position: absolute;
-  z-index: 100;
-  right: 0; /* Align to the right of the actions container */
-  top: 100%; /* Default: pop down */
-  margin-top: 0.5rem;
-}
-.emoji-picker-container.upwards {
-  top: auto; /* Reset top */
-  bottom: 100%; /* Pop up */
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-}
-
-.dark-mode .emoji-picker-react { background-color: var(--card-bg) !important; border-color: var(--border-color) !important; }
-.dark-mode .emoji-picker-react .emoji-search { background-color: var(--bg-color) !important; border-color: var(--border-color) !important; color: var(--text-color) !important; }
-.dark-mode .emoji-picker-react .emoji-group:before { background-color: var(--card-bg) !important; color: var(--text-color) !important; }
-.dark-mode .emoji-picker-react .emoji-categories button { filter: invert(1); }
-.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar { background-color: var(--card-bg); }
-.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar-thumb { background-color: var(--border-color); }
-
 .media-container {
-  position: relative; /* Essential for positioning */
+  position: relative;
   max-width: 100%;
   max-height: 300px;
   margin: 0.8rem 0;
@@ -462,9 +425,8 @@ body {
   display: block;
 }
 
-/* UPDATED: Media preview styling */
 .gif-preview-container {
-  position: relative; /* Essential for positioning the remove button */
+  position: relative;
   width: 150px;
   height: 150px;
   margin: 0.5rem 0;
@@ -476,7 +438,6 @@ body {
   justify-content: center;
   align-items: center;
 }
-
 
 .gif-preview {
   max-width: 100%;
@@ -502,62 +463,32 @@ body {
   z-index: 2;
   transition: all var(--transition-fast);
 }
-
 .remove-gif:hover {
   background: rgba(255,0,0,0.8);
   transform: scale(1.1);
 }
 
-/* NEW: Admin Panel Styles */
-.admin-panel {
-  padding: 2rem;
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.admin-media {
-  max-width: 100%;
-  max-height: 200px;
-  margin: 0.5rem 0;
-  border-radius: 8px;
-}
-
-.delete-btn {
-  background: #ff4444;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
+.emoji-picker-container {
+  position: absolute;
+  z-index: 100;
+  right: 0;
+  top: 100%;
   margin-top: 0.5rem;
 }
-
-.delete-btn:hover {
-  background: #cc0000;
+.emoji-picker-container.upwards {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
 }
 
-.load-more-btn {
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 0.8rem;
-  margin: 1rem auto;
-  display: block;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background var(--transition-normal);
-}
+.dark-mode .emoji-picker-react { background-color: var(--card-bg) !important; border-color: var(--border-color) !important; }
+.dark-mode .emoji-picker-react .emoji-search { background-color: var(--bg-color) !important; border-color: var(--border-color) !important; color: var(--text-color) !important; }
+.dark-mode .emoji-picker-react .emoji-group:before { background-color: var(--card-bg) !important; color: var(--text-color) !important; }
+.dark-mode .emoji-picker-react .emoji-categories button { filter: invert(1); }
+.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar { background-color: var(--card-bg); }
+.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar-thumb { background-color: var(--border-color); }
 
-.load-more-btn:hover {
-  background: var(--primary-hover);
-}
-
-.load-more-btn:disabled {
-  background: #aaa;
-  cursor: not-allowed;
-}
-
-/* Prevent zoom on mobile */
 textarea, input, button {
   font-size: 16px !important;
 }
@@ -579,11 +510,6 @@ textarea, input, button {
   text-align: center;
 }
 
-.settings-button {
-  font-size: 1.8rem !important; /* Bigger cog icon */
-  padding: 0.8rem !important;
-}
-
 .end-message {
   text-align: center;
   padding: 1.5rem;
@@ -592,78 +518,18 @@ textarea, input, button {
   font-style: italic;
 }
 
-/*DELETE THIS IF REMOVE TEMPORARY ADMIN PASSOWRD STUFF*/
-.admin-auth-container {
-  max-width: 400px;
-  margin: 2rem auto;
-  padding: 2rem;
-  background: var(--card-bg);
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
+@keyframes modal-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.admin-auth-container h2 {
-  margin-bottom: 1.5rem;
-  text-align: center;
+@keyframes content-scale-up {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
-
-.admin-auth-container input {
-  width: 100%;
-  padding: 0.8rem;
-  margin-bottom: 1rem;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  font-size: 1rem;
-}
-
-.admin-auth-container .button-group {
-  display: flex;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.admin-auth-container button {
-  flex: 1;
-  padding: 0.8rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.admin-auth-container button[type="submit"] {
-  background: var(--primary-color);
-  color: white;
-}
-
-.admin-auth-container button[type="button"] {
-  background: #f0f0f0;
-}
-
-
-/*END OF TEMPORARY ADMIN STUFF*/
-
-@keyframes modal-fade-in { from { opacity: 0; } to { opacity: 1; } }
-@keyframes content-scale-up { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
 @media (max-width: 600px) {
   .App { padding: 1rem; border-radius: 0; box-shadow: none; }
   .toggle-bar { margin: 1rem 0 1.5rem; }
   .toggle-bar button { padding: 0.75rem 1.5rem; flex: 1; text-align: center; }
-  
-  .confession-form textarea,
-  .reply-form textarea,
-  .gif-search input,
-  .emoji-picker-react .emoji-search {
-    font-size: 16px !important;
-  }
-  
-  .form-actions,
-  .reply-actions {
-    flex-wrap: wrap;
-    gap: 0.25rem;
-  }
-
-  .action-button {
-    padding: 0.4rem;
-  }
 }

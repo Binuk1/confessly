@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import ConfessionItem from './ConfessionItem';
+import SkeletonItem from './SkeletonItem'; // ADDED
 
 function ConfessionList() {
   const [confessions, setConfessions] = useState([]);
@@ -34,11 +35,20 @@ function ConfessionList() {
 
   return (
     <div className="confession-list">
-      {confessions.map((conf) => (
-        <ConfessionItem key={conf.id} confession={conf} />
-      ))}
+      {/* UPDATED: Loading logic */}
+      {confessions.length === 0 && loading ? (
+        <>
+          <SkeletonItem />
+          <SkeletonItem />
+          <SkeletonItem />
+        </>
+      ) : (
+        confessions.map((conf) => (
+          <ConfessionItem key={conf.id} confession={conf} />
+        ))
+      )}
       
-      {hasMore ? (
+      {hasMore && !loading && (
         <button
           onClick={() => setPage(page + 1)}
           disabled={loading}
@@ -46,7 +56,8 @@ function ConfessionList() {
         >
           {loading ? 'Loading...' : 'Load More'}
         </button>
-      ) : (
+      )}
+      {!hasMore && confessions.length > 0 && (
         <div className="end-message">
           You've reached the end! 🎉
         </div>
