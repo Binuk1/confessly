@@ -1,3 +1,5 @@
+// ✅ FINAL ConfessionItem.jsx update
+// Uncropped media preview + Bootstrap modal viewer for both confessions AND replies
 import { useState, useEffect, useRef } from 'react';
 import {
   doc, updateDoc, collection, query, onSnapshot,
@@ -21,7 +23,7 @@ function ConfessionItem({ confession, rank }) {
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [replyGifUrl, setReplyGifUrl] = useState('');
-  const [replyMediaFiles, setReplyMediaFiles] = useState([]);
+  const [replyMediaFiles, setReplyMediaFiles] = useState([]); // [{ url, type }]
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [modalMedia, setModalMedia] = useState([]);
@@ -87,40 +89,16 @@ function ConfessionItem({ confession, rank }) {
     setShowModal(true);
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-  };
-
-  const handleKeyDown = (e) => {
-    if (showModal) {
-      if (e.key === 'ArrowLeft' && modalIndex > 0) {
-        setModalIndex(modalIndex - 1);
-      } else if (e.key === 'ArrowRight' && modalIndex < modalMedia.length - 1) {
-        setModalIndex(modalIndex + 1);
-      } else if (e.key === 'Escape') {
-        closeModal();
-      }
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showModal, modalIndex, modalMedia]);
-
   const imageMedia = confession.media?.filter(m => m.type === 'image') || [];
   const videoMedia = confession.media?.find(m => m.type === 'video');
 
   const handleReplyFileUpload = async (file) => {
     setIsUploading(true);
-    setUploadError('');
-    
     if (file.type.startsWith('image') && file.size > 2 * 1024 * 1024) {
       setUploadError('Image must be smaller than 2MB');
       setIsUploading(false);
       return;
     }
-    
     if (file.type.startsWith('video')) {
       const video = document.createElement('video');
       video.preload = 'metadata';
@@ -179,10 +157,6 @@ function ConfessionItem({ confession, rank }) {
     }
   };
 
-  const removeReplyMedia = (index) => {
-    setReplyMediaFiles(prev => prev.filter((_, i) => i !== index));
-  };
-
   const getBadge = () => {
     switch (rank) {
       case 1: return '🥇';
@@ -199,22 +173,12 @@ function ConfessionItem({ confession, rank }) {
       {rank && <div className="rank-badge">{getBadge()}</div>}
       <p>{confession.text}</p>
 
-      {/* Media grid - uncropped previews */}
+      {/* Image grid */}
       {imageMedia.length > 0 && (
         <div className="media-grid">
           {imageMedia.slice(0, 5).map((img, i) => (
-            <div 
-              key={i} 
-              className="media-grid-item" 
-              onClick={() => openMediaModal(imageMedia, i)}
-              aria-label={`View image ${i + 1} of ${imageMedia.length}`}
-            >
-              <img 
-                src={img.url} 
-                className="confession-media" 
-                alt={`Confession media ${i + 1}`}
-                style={{ objectFit: 'contain' }}
-              />
+            <div key={i} className="media-grid-item" onClick={() => openMediaModal(imageMedia, i)}>
+              <img src={img.url} className="confession-media" alt="conf-img" />
               {i === 4 && imageMedia.length > 5 && (
                 <div className="media-overlay">+{imageMedia.length - 5}</div>
               )}
@@ -225,13 +189,7 @@ function ConfessionItem({ confession, rank }) {
 
       {videoMedia && (
         <div className="media-container">
-          <video 
-            src={videoMedia.url} 
-            controls 
-            className="confession-media"
-            style={{ objectFit: 'contain' }}
-            aria-label="Confession video"
-          />
+          <video src={videoMedia.url} controls className="confession-media" />
         </div>
       )}
 
@@ -242,7 +200,6 @@ function ConfessionItem({ confession, rank }) {
             className={selectedEmoji === emoji ? 'selected' : ''}
             onClick={() => toggleReaction(emoji)}
             disabled={loading}
-            aria-label={`React with ${emoji}`}
           >
             {emoji} {confession.reactions?.[emoji] || 0}
           </button>
@@ -250,17 +207,11 @@ function ConfessionItem({ confession, rank }) {
       </div>
 
       <div className="reply-section">
-        <button 
-          onClick={() => setShowReplies(!showReplies)} 
-          className="toggle-replies-btn"
-          aria-expanded={showReplies}
-          aria-controls="replies-container"
-        >
+        <button onClick={() => setShowReplies(!showReplies)} className="toggle-replies-btn">
           {showReplies ? 'Hide Replies' : `Show Replies (${replyCount})`}
         </button>
-        
         {showReplies && (
-          <div className="replies-container" id="replies-container">
+          <div className="replies-container">
             <form onSubmit={handleReplySubmit} className="reply-form">
               <div className="textarea-wrapper reply-wrapper">
                 <textarea
@@ -268,77 +219,35 @@ function ConfessionItem({ confession, rank }) {
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Write your reply..."
-                  aria-label="Reply text"
                 />
                 <div className="reply-actions">
-                  <label className="file-input-label" htmlFor="reply-upload">
-                    📷
+                  <label className="file-input-label">📷
                     <input
-                      id="reply-upload"
                       type="file"
                       accept="image/*,video/*"
                       style={{ display: 'none' }}
                       onChange={(e) => handleReplyFileUpload(e.target.files[0])}
-                      disabled={isUploading}
-                      aria-label="Upload media"
                     />
                   </label>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowGifPicker(!showGifPicker)} 
-                    className="action-button"
-                    aria-label="Add GIF"
-                  >
-                    GIF
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => setShowEmojiPicker(!showEmojiPicker)} 
-                    className="action-button"
-                    aria-label="Add emoji"
-                  >
-                    😊
-                  </button>
-                  <button 
-                    type="submit" 
-                    className="submit-button" 
-                    disabled={loading || isUploading || (!replyText.trim() && !replyGifUrl && replyMediaFiles.length === 0)}
-                    aria-label="Submit reply"
-                  >
+                  <button type="button" onClick={() => setShowGifPicker(!showGifPicker)} className="action-button">GIF</button>
+                  <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="action-button">😊</button>
+                  <button type="submit" className="submit-button" disabled={loading || isUploading || (!replyText.trim() && !replyGifUrl && replyMediaFiles.length === 0)}>
                     {(loading || isUploading) ? 'Posting...' : 'Reply'}
                   </button>
                 </div>
               </div>
             </form>
 
-            {/* Reply preview media - uncropped */}
+            {/* Reply preview media */}
             {replyMediaFiles.length > 0 && (
               <div className="media-previews">
                 {replyMediaFiles.map((file, idx) => (
                   <div key={idx} className="gif-preview-container">
                     {file.type === 'image' ? (
-                      <img 
-                        src={file.url} 
-                        alt="Reply preview" 
-                        className="gif-preview" 
-                        style={{ objectFit: 'contain' }} 
-                      />
+                      <img src={file.url} alt="Reply Preview" className="gif-preview" style={{ objectFit: 'contain' }} />
                     ) : (
-                      <video 
-                        src={file.url} 
-                        controls 
-                        className="gif-preview" 
-                        style={{ objectFit: 'contain' }} 
-                      />
+                      <video src={file.url} controls className="gif-preview" style={{ objectFit: 'contain' }} />
                     )}
-                    <button 
-                      type="button" 
-                      onClick={() => removeReplyMedia(idx)} 
-                      className="remove-gif"
-                      aria-label="Remove media"
-                    >
-                      ×
-                    </button>
                   </div>
                 ))}
               </div>
@@ -354,22 +263,11 @@ function ConfessionItem({ confession, rank }) {
                         key={i}
                         className="media-grid-item"
                         onClick={() => openMediaModal(reply.media, i)}
-                        aria-label={`View reply media ${i + 1}`}
                       >
                         {m.type === 'image' ? (
-                          <img 
-                            src={m.url} 
-                            alt="Reply media" 
-                            className="reply-gif" 
-                            style={{ objectFit: 'contain' }}
-                          />
+                          <img src={m.url} alt="Reply img" className="reply-gif" />
                         ) : (
-                          <video 
-                            src={m.url} 
-                            className="reply-gif" 
-                            controls
-                            style={{ objectFit: 'contain' }}
-                          />
+                          <video src={m.url} className="reply-gif" controls />
                         )}
                       </div>
                     ))}
@@ -381,59 +279,28 @@ function ConfessionItem({ confession, rank }) {
         )}
       </div>
 
-      {/* Media modal - carousel */}
       {showModal && (
-  <div className="modal-backdrop">
-    <div className="modal-container">
-      <div className="modal-content">
-        <button 
-          type="button" 
-          className="btn-close btn-close-white position-absolute top-0 end-0 m-3" 
-          onClick={closeModal}
-          aria-label="Close"
-        />
-        
-        <div className="media-display">
-          {modalMedia[modalIndex]?.type === 'image' ? (
-            <img 
-              src={modalMedia[modalIndex].url} 
-              className="img-fluid"
-              alt={`Media ${modalIndex + 1} of ${modalMedia.length}`}
-            />
-          ) : (
-            <video 
-              src={modalMedia[modalIndex].url} 
-              controls
-              className="img-fluid"
-            />
-          )}
+        <div className="modal fade show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1055 }}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content">
+              <div className="modal-body p-0 text-center">
+                {modalMedia[modalIndex]?.type === 'image' ? (
+                  <img src={modalMedia[modalIndex].url} className="img-fluid w-100" />
+                ) : (
+                  <video src={modalMedia[modalIndex].url} controls className="w-100" />
+                )}
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Close</button>
+                <div>
+                  <button className="btn btn-light me-2" disabled={modalIndex === 0} onClick={() => setModalIndex(modalIndex - 1)}>Prev</button>
+                  <button className="btn btn-light" disabled={modalIndex === modalMedia.length - 1} onClick={() => setModalIndex(modalIndex + 1)}>Next</button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div className="modal-footer">
-          <button 
-            className="btn btn-outline-light"
-            disabled={modalIndex === 0} 
-            onClick={() => setModalIndex(modalIndex - 1)}
-          >
-            Previous
-          </button>
-          
-          <span className="text-white mx-3">
-            {modalIndex + 1} / {modalMedia.length}
-          </span>
-          
-          <button 
-            className="btn btn-outline-light"
-            disabled={modalIndex === modalMedia.length - 1} 
-            onClick={() => setModalIndex(modalIndex + 1)}
-          >
-            Next
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+      )}
     </div>
   );
 }
