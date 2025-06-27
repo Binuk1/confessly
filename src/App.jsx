@@ -91,6 +91,7 @@ function App() {
   // Fetch friends list
   useEffect(() => {
     if (!user) { setFriends([]); return; }
+    if (!user.uid) { setFriends([]); return; }
     const userRef = doc(db, 'users', user.uid);
     getDoc(userRef).then(userDoc => {
       if (userDoc.exists()) {

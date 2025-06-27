@@ -55,7 +55,7 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
 
   // Send or cancel friend request
   const sendFriendRequest = async (userId) => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.uid) return;
     try {
       await updateDoc(doc(db, 'users', userId), {
         friendRequests: arrayUnion(currentUser.uid)
@@ -69,7 +69,7 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
   };
 
   const cancelFriendRequest = async (userId) => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.uid) return;
     try {
       await updateDoc(doc(db, 'users', userId), {
         friendRequests: arrayRemove(currentUser.uid)
@@ -84,7 +84,7 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
 
   // Listen for incoming friend requests and friends
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.uid) return;
     setLoadingFriends(true);
     const userRef = doc(db, 'users', currentUser.uid);
     return onSnapshot(userRef, (docSnap) => {
@@ -97,7 +97,7 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
 
   // Fetch outgoing friend requests (users where currentUser.uid is in their friendRequests) in real time
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.uid) return;
     const q = query(collection(db, 'users'), where('friendRequests', 'array-contains', currentUser.uid));
     const unsubscribe = onSnapshot(q, (snap) => {
       const outgoing = [];
