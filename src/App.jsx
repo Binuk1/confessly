@@ -1,71 +1,131 @@
-import { useState, useEffect } from 'react';
-import { FaCog } from 'react-icons/fa';
-import ConfessionForm from './components/ConfessionForm';
-import ConfessionList from './components/ConfessionList';
-import TrendingConfessions from './components/TrendingConfessions';
-import SettingsModal from './components/SettingsModal';
+import React, { useEffect, useRef, useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Auth from './components/auth/Auth';
+import AdminPage from './components/AdminPage';
 import './App.css';
+import { signOut } from 'firebase/auth';
+import { auth } from './firebase';
+import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { db } from './firebase';
+import { FaTimes } from 'react-icons/fa';
 
 function App() {
-  const [darkMode, setDarkMode] = useState(false);
-  const [viewTrending, setViewTrending] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const settingsRef = useRef(null);
+  const [banner, setBanner] = useState('');
+  const [popup, setPopup] = useState('');
+  const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);
+  const [username, setUsername] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [showBanner, setShowBanner] = useState(true);
+  const [bannerId, setBannerId] = useState(null);
 
+  // Listen for auth state
   useEffect(() => {
-    const savedMode = localStorage.getItem('darkMode') === 'true';
-    setDarkMode(savedMode);
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      setUser(user);
+      if (user) {
+        const userRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userRef);
+        if (userDoc.exists()) {
+          setRole(userDoc.data().role);
+          setUsername(userDoc.data().username || null);
+        } else {
+          setRole(null);
+          setUsername(null);
+        }
+      } else {
+        setRole(null);
+        setUsername(null);
+      }
+      setIsLoggedIn(!!user);
+      setLoadingAuth(false);
+    });
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
+  // Real-time banner/popup using Firestore
   useEffect(() => {
-    if (darkMode) {
-      document.body.classList.add('dark-mode');
-      localStorage.setItem('darkMode', 'true');
-    } else {
-      document.body.classList.remove('dark-mode');
-      localStorage.setItem('darkMode', 'false');
+    const alertDocRef = doc(db, 'config', 'alerts');
+    const unsub = onSnapshot(alertDocRef, (snap) => {
+      const data = snap.data() || {};
+      setBanner(data.banner || '');
+      setPopup(data.popup || '');
+      setBannerId(data.bannerId || null);
+      // Check if user has dismissed this bannerId
+      const dismissed = localStorage.getItem('dismissedBannerId');
+      setShowBanner(data.banner && (!data.bannerId || dismissed !== String(data.bannerId)));
+    });
+    return () => unsub();
+  }, []);
+
+  // Dismiss banner for this user
+  const handleDismissBanner = () => {
+    if (bannerId) {
+      localStorage.setItem('dismissedBannerId', String(bannerId));
     }
-  }, [darkMode]);
+    setShowBanner(false);
+  };
+
+  // Admin: Remove banner for all users
+  const handleAdminRemoveBanner = async () => {
+    await updateDoc(doc(db, 'config', 'alerts'), { banner: '' });
+  };
+
+  // Admin: Remove popup for all users
+  const handleAdminRemovePopup = async () => {
+    await updateDoc(doc(db, 'config', 'alerts'), { popup: '' });
+  };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+  };
+
+  if (loadingAuth) return (
+    <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}>
+      <div className="spinner" style={{width:48,height:48,border:'5px solid #e0e7ff',borderTop:'5px solid #6366f1',borderRadius:'50%',animation:'spin 1s linear infinite'}} />
+      <style>{`@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }`}</style>
+    </div>
+  );
 
   return (
-    <div className="App">
-      <header className="app-header">
-        <h1>Anonymous Confession Wall</h1>
-        <button 
-          className="settings-button"
-          onClick={() => setShowSettings(!showSettings)}
-          aria-label="Settings"
-        >
-          <FaCog size={24} />
-        </button>
-      </header>
-
-      {showSettings && (
-        <SettingsModal 
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          onClose={() => setShowSettings(false)}
-        />
+    <Router>
+      {banner && showBanner && (
+        <div className="admin-banner" style={{position:'relative',width:'100vw',background:'#f59e42',color:'#fff',fontWeight:700,padding:'0.9em 0',textAlign:'center',zIndex:2000,overflow:'hidden',borderBottom:'2px solid #fbbf24',letterSpacing:'0.5px',fontFamily:'Segoe UI Semibold,Segoe UI,Roboto,Arial',fontSize:'1.15rem'}}>
+          <span style={{display:'inline-block',whiteSpace:'nowrap',animation:'admin-banner-move 28s linear infinite'}}>{banner}</span>
+          <button
+            aria-label="Dismiss banner"
+            style={{position:'absolute',top:8,right:16,background:'none',border:'none',color:'#fff',fontSize:'1.5em',cursor:'pointer',padding:0,lineHeight:1}}
+            onClick={handleDismissBanner}
+          >
+            <FaTimes />
+          </button>
+        </div>
       )}
-
-      <ConfessionForm />
-      
-      <div className="toggle-bar">
-        <button
-          className={!viewTrending ? 'active' : ''}
-          onClick={() => setViewTrending(false)}
-        >
-          🆕 Latest
-        </button>
-        <button
-          className={viewTrending ? 'active' : ''}
-          onClick={() => setViewTrending(true)}
-        >
-          🔥 Trending
-        </button>
+      {popup && (
+        <div style={{position:'fixed',top:0,left:0,width:'100vw',height:'100vh',background:'rgba(0,0,0,0.18)',zIndex:3000,display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>{setPopup('')}}>
+          <div style={{background:'#fff',borderRadius:16,padding:'2.2em 1.5em',boxShadow:'0 4px 24px rgba(99,102,241,0.10)',maxWidth:340,width:'90vw',textAlign:'center',fontFamily:'Segoe UI Semibold,Segoe UI,Roboto,Arial',fontSize:'1.15rem',fontWeight:700,color:'#f59e42',letterSpacing:'0.5px',border:'2px solid #fbbf24',position:'relative'}} onClick={e=>e.stopPropagation()}>
+            <span>{popup}</span>
+            <button
+              aria-label="Close popup"
+              style={{position:'absolute',top:12,right:18,background:'none',border:'none',color:'#6366f1',fontSize:'1.5em',cursor:'pointer',padding:0,lineHeight:1}}
+              onClick={()=>{setPopup('')}}
+            >
+              <FaTimes />
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="main-content">
+        <Routes>
+          <Route path="/admin" element={<AdminPage user={user} role={role} username={username} />} />
+          <Route path="/*" element={<Auth onLogout={handleLogout} />} />
+        </Routes>
       </div>
-
-      {viewTrending ? <TrendingConfessions /> : <ConfessionList />}
-    </div>
+    </Router>
   );
 }
 

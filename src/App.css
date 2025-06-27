@@ -1,798 +1,108 @@
-/* Reset & Base Styles */
-* {
+html, body, #root {
+  height: 100%;
   margin: 0;
   padding: 0;
-  box-sizing: border-box;
 }
-
-html {
-  -webkit-text-size-adjust: 100%;
-}
-
-/* Theme Variables - Red & Yellow Palette */
-:root {
-  /* Light Mode */
-  --bg-color: #FFFDE7; /* Light Yellow Background */
-  --text-color: #333333; /* Dark Grey Text */
-  --card-bg: #FFF9C4; /* Lighter Yellow Card Background */
-  --border-color: #FFD54F; /* Amber Border */
-  --primary-color: #FFAB00; /* Vibrant Orange-Yellow (Primary) */
-  --primary-hover: #FF8F00; /* Darker Orange-Yellow on Hover */
-  --accent-color: #D32F2F; /* Deep Red Accent */
-  --accent-hover: #C62828; /* Darker Deep Red */
-  --error-bg: #FFEBEE; /* Light Red for Errors */
-  --error-text: #D32F2F; /* Deep Red Error Text */
-  --toggle-active-shadow: rgba(255, 171, 0, 0.4); /* Shadow for active toggles */
-  
-  /* Rank Colors (kept in warm tones for consistency) */
-  --rank-1-bg: #FFFDE7; /* Gold - Lightest Yellow */
-  --rank-1-border: #FFEA00; /* Bright Yellow */
-  --rank-2-bg: #FFF9C4; /* Silver - Medium Yellow */
-  --rank-2-border: #FFC107; /* Amber */
-  --rank-3-bg: #FFECB3; /* Bronze - Darker Yellow */
-  --rank-3-border: #FFB300; /* Dark Amber */
-  --rank-4-5-bg: #FFEBEE; /* Red-ish tones for lower ranks */
-  --rank-4-5-border: #EF9A9A; /* Light Red */
-  
-  --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Slightly stronger shadow */
-  --modal-shadow: 0 8px 30px rgba(0,0,0,0.25); /* Stronger modal shadow */
-  
-  --transition-fast: 0.2s;
-  --transition-normal: 0.3s;
-  
-  --section-spacing: 1.5rem;
-}
-
-/* Dark Mode - Inverted Red & Yellow Palette */
-.dark-mode {
-  --bg-color: #1A1A1A; /* Dark Background */
-  --text-color: #F0F0F0; /* Light Text */
-  --card-bg: #2B2B2B; /* Darker Grey Card Background */
-  --border-color: #616161; /* Medium Grey Border */
-  --primary-color: #FFECB3; /* Light Yellow (Primary in Dark Mode) */
-  --primary-hover: #FFD54F; /* Amber on Hover */
-  --accent-color: #EF5350; /* Bright Red Accent */
-  --accent-hover: #E53935; /* Darker Bright Red */
-  --error-bg: #420A0A; /* Dark Red for Errors */
-  --error-text: #FF8A80; /* Light Red Error Text */
-  --toggle-active-shadow: rgba(255, 236, 179, 0.2); /* Shadow for active toggles */
-
-  /* Dark Mode Rank Colors */
-  --rank-1-bg: #3A331A; /* Dark Gold */
-  --rank-1-border: #FFEA00; /* Bright Yellow */
-  --rank-2-bg: #33332B; /* Dark Silver */
-  --rank-2-border: #FFC107; /* Amber */
-  --rank-3-bg: #332B1A; /* Dark Bronze */
-  --rank-3-border: #FFB300; /* Dark Amber */
-  --rank-4-5-bg: #2B1A1A; /* Darker Red-ish for lower ranks */
-  --rank-4-5-border: #D32F2F; /* Deep Red */
-}
-
 body {
-  font-family: 'Inter', sans-serif; /* Using Inter font as per instructions */
-  background: linear-gradient(to right, #FFD54F, #FFC107); /* Warm Yellow Gradient */
   min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center; /* Center vertically as well */
-  padding: 2rem 1rem;
-  color: var(--text-color);
-  touch-action: manipulation;
-  overflow-y: auto; /* Allow scrolling if content overflows */
+  background: linear-gradient(135deg, #e0e7ff 0%, #f8fafc 100%);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  color: #222;
 }
-
-.dark-mode body {
-  background: linear-gradient(to right, #1A1A1A, #0A0A0A); /* Dark Grey Gradient */
-}
-
-.App {
-  width: 100%;
-  max-width: 650px; /* Slightly wider for better content display */
-  background: var(--bg-color);
-  padding: 2.5rem; /* Increased padding */
-  border-radius: 16px; /* More rounded corners */
-  box-shadow: var(--card-shadow);
+#root {
+  height: 100vh;
+  width: 100vw;
   display: flex;
   flex-direction: column;
-  gap: var(--section-spacing); /* Spacing between main sections */
 }
-
-.app-header {
+.navbar {
+  max-width: 900px;
+  margin: 0 auto;
+  height: 64px;
+  background: #6366f1;
+  color: #fff;
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  padding-bottom: 1rem; /* Padding below header */
-  border-bottom: 1px solid var(--border-color); /* Subtle separator */
-}
-
-.app-title {
-  font-size: 2.2rem; /* Larger title */
-  font-weight: 700;
-  color: var(--primary-color);
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-}
-
-.dark-mode .app-title {
-  color: var(--primary-color);
-}
-
-.settings-button {
-  background: var(--card-bg); /* Match card background */
-  border: 1px solid var(--border-color); /* Add a subtle border */
-  font-size: 1.8rem;
-  color: var(--text-color);
-  cursor: pointer;
-  padding: 0.8rem;
-  border-radius: 50%;
-  transition: all var(--transition-normal);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.settings-button:hover {
-  background: var(--primary-color);
-  color: white;
-  transform: rotate(90deg) scale(1.05); /* Slightly larger on hover */
-  box-shadow: 0 4px 10px var(--toggle-active-shadow);
-}
-
-.settings-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.6); /* Slightly darker overlay */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 2000;
-  animation: modal-fade-in 0.3s ease-out forwards; /* Keep it visible */
-}
-
-.settings-content {
-  background: var(--card-bg); /* Use card background */
-  padding: 3rem; /* More padding */
-  border-radius: 16px; /* More rounded */
-  width: 90%;
-  max-width: 450px; /* Slightly wider modal */
-  box-shadow: var(--modal-shadow);
-  position: relative;
-  animation: content-scale-up 0.3s ease-out forwards; /* Keep it visible */
-  text-align: center;
-}
-
-.close-settings {
-  position: absolute;
-  top: 15px;
-  right: 15px;
-  background: none;
-  border: none;
-  font-size: 1.5rem; /* Larger close icon */
-  cursor: pointer;
-  color: var(--text-color);
-  opacity: 0.7;
-  transition: all var(--transition-fast);
-}
-
-.close-settings:hover {
-  color: var(--accent-color); /* Red on hover */
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-.settings-content h2 {
-  font-size: 1.8rem;
-  color: var(--primary-color);
-  margin-bottom: 1.5rem;
-}
-
-.theme-switch {
-  display: flex;
-  gap: 1.2rem; /* Increased gap */
-  margin: var(--section-spacing) 0;
-}
-
-.theme-switch button {
-  flex: 1;
-  padding: 1.2rem !important; /* Larger buttons */
-  font-size: 1.1rem !important;
-  border-radius: 10px; /* More rounded */
-  border: 2px solid var(--border-color);
-  background: var(--bg-color);
-  color: var(--text-color);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  transition: all var(--transition-normal);
-  font-weight: 500;
-}
-
-.theme-switch button.active {
-  border-color: var(--primary-color);
-  background: rgba(255, 171, 0, 0.1); /* Primary color tint */
-  color: var(--primary-color);
-  box-shadow: 0 2px 8px var(--toggle-active-shadow);
-  transform: translateY(-3px); /* Slight lift */
-}
-
-.theme-switch button:hover:not(.active) {
-  background: rgba(255, 171, 0, 0.05); /* Light hover effect */
-  border-color: var(--primary-hover);
-}
-
-.toggle-bar {
-  display: flex;
-  justify-content: center;
-  margin: var(--section-spacing) 0 calc(var(--section-spacing) * 1.5);
-  gap: 1.2rem; /* Increased gap */
-  position: relative;
-}
-
-.toggle-bar::after {
-  content: '';
-  position: absolute;
-  bottom: -1rem;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: var(--border-color);
-  opacity: 0.5;
-}
-
-.toggle-bar button {
-  padding: 0.8rem 2.2rem; /* More padding */
-  font-size: 1.05rem;
-  border-radius: 8px; /* More rounded */
-  border: 2px solid var(--accent-color); /* Use accent color for toggle */
-  background: var(--bg-color);
-  color: var(--accent-color);
-  cursor: pointer;
-  transition: all var(--transition-normal);
+  padding: 0 2rem;
+  font-size: 1.5rem;
   font-weight: 600;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-radius: 0 0 16px 16px;
+}
+.navbar-actions {
   position: relative;
-  overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-
-.toggle-bar button.active {
-  background: var(--accent-color); /* Fill with accent color */
-  color: white;
-  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4); /* Accent shadow */
-  transform: translateY(-2px); /* Slight lift */
-}
-
-.toggle-bar button:not(.active):hover {
-  background: rgba(211, 47, 47, 0.1); /* Accent tint on hover */
-  border-color: var(--accent-hover);
-}
-
-.dark-mode .toggle-bar button:not(.active) {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: var(--accent-color);
-  color: var(--accent-color);
-}
-
-.dark-mode .toggle-bar button.active {
-  background: var(--accent-color);
-  color: white;
-  box-shadow: 0 4px 12px rgba(239, 83, 80, 0.4);
-}
-
-.confession-form,
-.reply-form {
   display: flex;
-  flex-direction: column;
+  align-items: center;
 }
-
-.confession-form {
-  margin-bottom: 1.5rem; /* More space below form */
-}
-
-.textarea-wrapper {
-  display: flex;
-  flex-direction: column;
-  border: 2px solid var(--primary-color); /* Primary color border */
-  border-radius: 12px;
-  background: var(--card-bg); /* Card background for textarea */
-  position: relative;
-  transition: all var(--transition-normal);
-  margin-bottom: 1rem;
-  box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); /* Inner shadow */
-}
-
-.textarea-wrapper:focus-within {
-  box-shadow: 0 0 0 4px var(--toggle-active-shadow); /* Stronger focus shadow */
-  border-color: var(--primary-hover);
-}
-
-.reply-wrapper {
-  border-width: 1px;
-  border-radius: 10px;
-}
-
-.confession-form textarea,
-.reply-form textarea {
+.navbar-btn {
+  background: #fff;
+  color: #6366f1;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 1.2rem;
   font-size: 1rem;
-  padding: 1.2rem; /* More padding */
-  background: transparent;
-  color: var(--text-color);
-  width: 100%;
-  border: none;
-  outline: none;
-  resize: none; /* Keep resize none for confession, vertical for reply */
-}
-
-.confession-form textarea {
-  min-height: 140px; /* Taller textarea */
-  resize: vertical; /* Allow vertical resize for confession */
-}
-
-.reply-form textarea {
-  min-height: 70px; /* Taller reply textarea */
-  padding-bottom: 0.8rem;
-  resize: vertical;
-}
-
-.form-actions,
-.reply-actions {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem; /* More gap */
-  padding: 0.8rem 1rem; /* More padding */
-  border-top: 1px solid var(--border-color);
-  background: var(--card-bg); /* Background for actions bar */
-  border-bottom-left-radius: 10px;
-  border-bottom-right-radius: 10px;
-}
-
-.reply-actions {
-  padding: 0.5rem 0.8rem;
-}
-
-.action-button {
-  background: none;
-  border: none;
-  font-size: 1.3rem; /* Larger icons */
-  color: var(--text-color);
-  opacity: 0.8;
+  font-weight: 500;
   cursor: pointer;
-  padding: 0.6rem; /* More padding */
-  border-radius: 50%;
-  transition: all var(--transition-fast);
+  transition: background 0.2s, color 0.2s;
 }
-.action-button:hover {
-  opacity: 1;
-  background: rgba(255, 171, 0, 0.1); /* Primary color hover */
-  color: var(--primary-color);
-  transform: scale(1.1);
+.navbar-btn:hover {
+  background: #e0e7ff;
+  color: #4338ca;
 }
-
-.submit-button {
-  margin-left: auto;
-  background: var(--primary-color);
-  color: white;
-  border: none;
-  border-radius: 8px; /* More rounded */
-  padding: 0.7rem 1.4rem; /* More padding */
-  font-weight: 700; /* Bolder text */
-  cursor: pointer;
-  transition: background var(--transition-normal), transform var(--transition-fast);
-  box-shadow: 0 4px 10px rgba(255, 171, 0, 0.3); /* Subtle shadow */
-}
-
-.submit-button:hover {
-  background: var(--primary-hover);
-  transform: translateY(-2px); /* Slight lift */
-  box-shadow: 0 6px 15px rgba(255, 143, 0, 0.4);
-}
-
-.submit-button:disabled {
-  background: #BDBDBD; /* Light grey when disabled */
-  cursor: not-allowed;
-  opacity: 0.6;
-  box-shadow: none;
-  transform: none;
-}
-
-.reply-actions .submit-button {
-  padding: 0.5rem 1rem;
-  font-size: 0.95rem;
-}
-
-.confession-list {
+.settings-dropdown {
+  position: absolute;
+  top: 110%;
+  right: 0;
+  background: #fff;
+  color: #222;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  min-width: 140px;
+  z-index: 10;
   display: flex;
   flex-direction: column;
-  gap: 1.2rem; /* More space between items */
+  padding: 0.5rem 0;
 }
-
-.confession-item {
-  background: var(--card-bg);
-  padding: 1.5rem; /* More padding */
-  border-radius: 12px; /* More rounded */
-  box-shadow: var(--card-shadow);
-  transition: all var(--transition-normal) ease;
-  border-left: 8px solid var(--border-color); /* Thicker left border */
-}
-
-.confession-item p {
-  font-size: 1.05rem; /* Slightly larger text */
-  line-height: 1.6;
-  margin-bottom: 0.8rem;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: var(--text-color);
-}
-
-.rank-badge {
-  font-size: 1.6rem; /* Slightly larger */
-  margin-bottom: 0.6rem;
-  text-align: left;
-  font-weight: 700;
-  color: var(--accent-color); /* Use accent color for rank badge */
-}
-
-/* Specific Rank Styling - Borders and Backgrounds */
-.confession-item.rank-1 { background-color: var(--rank-1-bg); border-left-color: var(--rank-1-border); }
-.confession-item.rank-2 { background-color: var(--rank-2-bg); border-left-color: var(--rank-2-border); }
-.confession-item.rank-3 { background-color: var(--rank-3-bg); border-left-color: var(--rank-3-border); }
-.confession-item.rank-4,
-.confession-item.rank-5 { background-color: var(--rank-4-5-bg); border-left-color: var(--rank-4-5-border); }
-
-.reaction-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem; /* More space between reactions */
-  margin-top: 1.2rem; /* More margin */
-}
-
-.reaction-bar button {
-  background: var(--bg-color); /* Use background color for buttons */
-  border: 1px solid var(--border-color);
-  border-radius: 20px; /* More rounded pills */
-  padding: 0.5rem 1rem; /* More padding */
-  font-size: 0.95rem;
-  cursor: pointer;
-  transition: transform var(--transition-fast), background-color var(--transition-fast), border-color var(--transition-fast);
-  color: var(--text-color);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-.dark-mode .reaction-bar button { background: rgba(255,255,255,0.08); border-color: var(--border-color); } /* Dark mode subtle background */
-.reaction-bar button:hover { 
-  transform: translateY(-3px); /* Stronger lift */
-  background-color: rgba(255, 171, 0, 0.15); /* Primary color tint on hover */
-  border-color: var(--primary-color);
-  box-shadow: 0 4px 8px rgba(255, 171, 0, 0.2);
-}
-.reaction-bar button.selected { 
-  border-color: var(--accent-color); /* Accent color for selected */
-  background: rgba(211, 47, 47, 0.15); /* Accent color tint */
-  color: var(--accent-color); /* Accent text color */
-  font-weight: 600;
-}
-
-.dark-mode .reaction-bar button.selected {
-  background: rgba(239, 83, 80, 0.2);
-  border-color: var(--accent-color);
-  color: var(--accent-color);
-}
-
-.reply-section {
-  margin-top: 1.5rem;
-  border-top: 1px solid var(--border-color);
-  padding-top: 1rem;
-}
-
-.toggle-replies-btn {
+.dropdown-btn {
   background: none;
   border: none;
-  color: var(--primary-color);
+  color: #6366f1;
+  padding: 0.7rem 1.2rem;
+  text-align: left;
+  font-size: 1rem;
   cursor: pointer;
-  font-size: 0.9rem; /* Slightly larger text */
-  padding: 0.3rem 0;
-  margin-bottom: 0.8rem;
-  font-weight: 600;
-  transition: color var(--transition-fast);
+  transition: background 0.2s;
 }
-.toggle-replies-btn:hover {
-  color: var(--primary-hover);
-  text-decoration: underline;
+.dropdown-btn:hover {
+  background: #e0e7ff;
 }
-
-.reply-item {
-  background: rgba(255, 255, 255, 0.5); /* Semi-transparent white for replies */
-  border-left: 4px solid var(--accent-color); /* Accent color for reply border */
-  padding: 1rem; /* More padding */
-  margin-top: 1rem;
-  border-radius: 0 8px 8px 0; /* Rounded only on right side */
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-.dark-mode .reply-item { 
-  background: rgba(0,0,0,0.15); /* Darker semi-transparent for dark mode */
-  border-left-color: var(--accent-color); 
-}
-
-.reply-meta {
-  font-size: 0.75rem; /* Slightly larger meta text */
-  color: var(--text-color);
-  opacity: 0.8;
-  margin-top: 0.5rem;
-}
-
-.media-container {
-  position: relative;
-  max-width: 100%;
-  max-height: 350px; /* Taller media container */
-  margin: 1rem 0;
-  background: rgba(0,0,0,0.05);
-  border-radius: 10px;
-  overflow: hidden;
+.main-content {
+  flex: 1;
   display: flex;
-  justify-content: center;
-  align-items: center; /* Center media vertically */
-  border: 1px solid var(--border-color);
+  flex-direction: row;
+  width: 100vw;
+  height: calc(100vh - 64px);
+  align-items: stretch;
+  justify-content: stretch;
 }
-
-.confession-media, .reply-media, .confession-gif, .reply-gif {
-  max-width: 100%;
-  max-height: 100%; /* Fill container height */
-  border-radius: 8px;
-  object-fit: contain; /* Ensure entire image is visible */
-  display: block;
-}
-
-.gif-preview-container {
-  position: relative;
-  width: 160px; /* Slightly larger preview */
-  height: 160px;
-  margin: 0.8rem 0;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
+.dashboard-container, .auth-container {
+  flex: 1;
+  min-height: 100%;
+  border-radius: 0;
+  margin: 0;
+  box-shadow: none;
+  background: transparent;
+  padding: 2rem 2.5rem;
+  width: 100%;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
 }
-
-.gif-preview {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.remove-gif {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  background: var(--accent-hover); /* Use a darker red for remove button */
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 32px; /* Larger button */
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 18px; /* Larger icon */
-  z-index: 2;
-  transition: all var(--transition-fast);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-.remove-gif:hover {
-  background: #FF5252; /* Brighter red on hover */
-  transform: scale(1.15) rotate(90deg); /* Rotate and scale on hover */
-}
-
-.emoji-picker-container {
-  position: absolute;
-  z-index: 1000; /* Increased z-index */
-  right: 0;
-  top: 100%;
-  margin-top: 0.5rem;
-}
-.emoji-picker-container.upwards {
-  top: auto;
-  bottom: 100%;
-  margin-top: 0;
-  margin-bottom: 0.5rem;
-}
-
-/* Emoji Picker React overrides for dark mode - adapted to new palette */
-.dark-mode .emoji-picker-react { 
-  background-color: var(--card-bg) !important; 
-  border-color: var(--border-color) !important; 
-  box-shadow: var(--modal-shadow); /* Apply modal shadow */
-}
-.dark-mode .emoji-picker-react .emoji-search { 
-  background-color: var(--bg-color) !important; 
-  border-color: var(--border-color) !important; 
-  color: var(--text-color) !important; 
-}
-.dark-mode .emoji-picker-react .emoji-group:before { 
-  background-color: var(--card-bg) !important; 
-  color: var(--text-color) !important; 
-}
-.dark-mode .emoji-picker-react .emoji-categories button { filter: invert(0.9); } /* Slightly invert for visibility */
-.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar { background-color: var(--card-bg); }
-.dark-mode .emoji-picker-react .emoji-scroll-wrapper::-webkit-scrollbar-thumb { background-color: var(--border-color); }
-
-textarea, input, button {
-  font-size: 16px !important; /* Ensure base font size */
-}
-
-.error-message {
-  color: var(--error-text);
-  background: var(--error-bg);
-  padding: 1.2rem !important; /* More padding */
-  border-radius: 8px; /* More rounded */
-  margin: 0.8rem 0; /* More margin */
-  font-size: 1rem !important;
-  font-weight: 500;
-  border: 1px solid var(--error-text); /* Red border */
-}
-
-.loading {
-  color: var(--text-color);
-  opacity: 0.8;
-  font-style: italic;
-  padding: 1.5rem;
-  text-align: center;
-  font-size: 1.1rem;
-}
-
-.end-message {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-color);
-  opacity: 0.6;
-  font-style: italic;
-  font-size: 1.1rem;
-}
-
-/* Keyframe Animations */
-@keyframes modal-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes content-scale-up {
-  from { transform: scale(0.9); opacity: 0; } /* Stronger scale up */
-  to { transform: scale(1); opacity: 1; }
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  body {
-    padding: 1rem 0.5rem; /* Less padding on smaller screens */
-    align-items: flex-start; /* Align to top to allow scrolling */
-  }
-
-  .App { 
-    padding: 1.5rem; 
-    border-radius: 0; 
-    box-shadow: none; 
-    max-width: 100%; /* Full width on smaller screens */
-    min-height: 100vh; /* Occupy full height */
-  }
-
-  .app-title {
-    font-size: 1.8rem;
-  }
-
-  .settings-button {
-    font-size: 1.5rem;
-    padding: 0.6rem;
-  }
-
-  .settings-content {
-    padding: 2rem;
-  }
-
-  .theme-switch button {
-    padding: 1rem !important;
-    font-size: 1rem !important;
-  }
-
-  .toggle-bar { 
-    margin: 1rem 0 1.5rem; 
-    flex-direction: column; /* Stack buttons vertically */
-    gap: 0.8rem;
-  }
-  .toggle-bar button { 
-    padding: 0.8rem 1.5rem; 
-    width: 100%; /* Full width buttons */
-    text-align: center; 
-  }
-
-  .confession-form textarea {
-    min-height: 100px;
-  }
-
-  .reply-form textarea {
-    min-height: 50px;
-  }
-
-  .form-actions, .reply-actions {
-    flex-wrap: wrap; /* Allow actions to wrap */
-    justify-content: center;
-    padding: 0.6rem 0.8rem;
-  }
-
-  .submit-button {
-    width: 100%; /* Full width submit button */
-    margin-left: 0;
-    margin-top: 0.8rem;
-  }
-
-  .confession-item {
-    padding: 1rem;
-    border-left-width: 6px;
-  }
-
-  .reaction-bar button {
-    padding: 0.4rem 0.8rem;
-    font-size: 0.9rem;
-  }
-
-  .reply-item {
-    padding: 0.8rem;
-    margin-top: 0.8rem;
-    border-left-width: 3px;
-  }
-
-  .gif-preview-container {
-    width: 120px;
-    height: 120px;
-  }
-
-  .remove-gif {
-    width: 28px;
-    height: 28px;
-    font-size: 16px;
-    top: 5px;
-    right: 5px;
+@media (max-width: 900px) {
+  .main-content {
+    flex-direction: column;
   }
 }
-
-@media (max-width: 480px) {
-  .app-title {
-    font-size: 1.6rem;
-  }
-
-  .settings-button {
-    font-size: 1.3rem;
-    padding: 0.5rem;
-  }
-
-  .settings-content h2 {
-    font-size: 1.5rem;
-  }
-
-  .theme-switch {
-    flex-direction: column; /* Stack theme buttons */
-    gap: 0.8rem;
-  }
-
-  .confession-item p {
-    font-size: 0.95rem;
-  }
-
-  .rank-badge {
-    font-size: 1.4rem;
-  }
-
-  .reaction-bar button {
-    padding: 0.3rem 0.7rem;
-    font-size: 0.85rem;
-  }
-
-  .reply-item {
-    font-size: 0.9rem;
-  }
-}
-

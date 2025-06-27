@@ -1,8 +1,10 @@
+// SkeletonItem.jsx
+import React from 'react';
 import './SkeletonItem.css';
 
-function SkeletonItem({ size = 40 }) {
+function SkeletonItem({ style = {}, className = '' }) {
   return (
-    <div className="skeleton-spinner" style={{ width: size, height: size }} />
+    <div className={`skeleton-item ${className}`} style={style} />
   );
 }
 
