@@ -21,7 +21,7 @@ function ChatSystem({ currentUser, selectedFriend, setSelectedFriend }) {
 
   // Real-time chat listener
   useEffect(() => {
-    if (!selectedFriend) {
+    if (!selectedFriend || !currentUser || !currentUser.uid) {
       setMessages([]);
       setLoading(false);
       return;
@@ -43,7 +43,7 @@ function ChatSystem({ currentUser, selectedFriend, setSelectedFriend }) {
       console.error('Chat snapshot error:', err);
     });
     return () => unsub();
-  }, [selectedFriend, currentUser.uid]);
+  }, [selectedFriend, currentUser && currentUser.uid]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -52,7 +52,7 @@ function ChatSystem({ currentUser, selectedFriend, setSelectedFriend }) {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!message.trim() || !selectedFriend) return;
+    if (!message.trim() || !selectedFriend || !currentUser || !currentUser.uid) return;
     setSending(true);
     const chatId = [currentUser.uid, selectedFriend.id].sort().join('_');
     await addDoc(collection(db, 'messages'), {
@@ -77,7 +77,7 @@ function ChatSystem({ currentUser, selectedFriend, setSelectedFriend }) {
           ) :
             messages.length === 0 ? <div className="chat-empty">No messages yet.</div> :
             messages.map(msg => (
-              <div key={msg.id} className={`chat-message${msg.from === currentUser.uid ? ' own' : ''}`} style={{marginBottom:8,alignSelf:msg.from===currentUser.uid?'flex-end':'flex-start',background:msg.from===currentUser.uid?'#6366f1':'#f1f5f9',color:msg.from===currentUser.uid?'#fff':'#222',padding:'0.6em 1em',borderRadius:16,maxWidth:'70%',boxShadow:'0 1px 4px rgba(99,102,241,0.08)'}}>
+              <div key={msg.id} className={`chat-message${msg.from === (currentUser && currentUser.uid) ? ' own' : ''}`} style={{marginBottom:8,alignSelf:msg.from===(currentUser && currentUser.uid)?'flex-end':'flex-start',background:msg.from===(currentUser && currentUser.uid)?'#6366f1':'#f1f5f9',color:msg.from===(currentUser && currentUser.uid)?'#fff':'#222',padding:'0.6em 1em',borderRadius:16,maxWidth:'70%',boxShadow:'0 1px 4px rgba(99,102,241,0.08)'}}>
                 <span>{msg.text}</span>
               </div>
             ))

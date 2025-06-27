@@ -135,7 +135,7 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
 
   // Accept friend request
   const acceptRequest = async (fromUid) => {
-    // Add each other as friends
+    if (!currentUser || !currentUser.uid) return;
     await updateDoc(doc(db, 'users', currentUser.uid), {
       friends: arrayUnion(fromUid),
       friendRequests: arrayRemove(fromUid)
@@ -147,6 +147,7 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
 
   // Decline friend request
   const declineRequest = async (fromUid) => {
+    if (!currentUser || !currentUser.uid) return;
     await updateDoc(doc(db, 'users', currentUser.uid), {
       friendRequests: arrayRemove(fromUid)
     });
@@ -154,7 +155,7 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
 
   // Remove friend
   const removeFriend = async (userId) => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.uid) return;
     try {
       await updateDoc(doc(db, 'users', currentUser.uid), {
         friends: arrayRemove(userId)
@@ -169,7 +170,7 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
   };
 
   // Helper: get outgoing requests (users to whom current user has sent a request, but not received one from)
-  const outgoingRequestsHelper = results.length === 0
+  const outgoingRequestsHelper = results.length === 0 && currentUser && currentUser.uid
     ? Object.entries(userMap)
         .filter(([uid, user]) =>
           user.friendRequests && user.friendRequests.includes(currentUser.uid) && !friendRequests.includes(uid)
@@ -194,6 +195,7 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
 
   // Profile save handler
   const handleProfileSave = async () => {
+    if (!currentUser || !currentUser.uid) return;
     setSavingProfile(true);
     try {
       await updateDoc(doc(db, 'users', currentUser.uid), { username: editUsername });
@@ -206,17 +208,15 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
 
   // Update parent with friends list for chat system
   useEffect(() => {
-    if (setFriendsList && friends.length > 0 && Object.keys(userMap).length > 0) {
+    if (setFriendsList && friends.length > 0 && Object.keys(userMap).length > 0 && currentUser && currentUser.uid) {
       const friendObjs = friends.map(uid => ({
         id: uid,
         username: userMap[uid]?.username || '',
         email: userMap[uid]?.email || ''
       }));
       setFriendsList(friendObjs);
-    } else if (setFriendsList && friends.length === 0) {
-      setFriendsList([]);
     }
-  }, [friends, userMap, setFriendsList]);
+  }, [setFriendsList, friends, userMap, currentUser]);
 
   return (
     <div className="friends-fullpage-bg">
@@ -344,7 +344,7 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsL
                     </>
                   ) : (
                     <>
-                      <div><b>Username:</b> {username || currentUser?.displayName || userMap[currentUser.uid]?.username || 'Unknown'}</div>
+                      <div><b>Username:</b> {username || currentUser?.displayName || (currentUser && currentUser.uid && userMap[currentUser.uid]?.username) || 'Unknown'}</div>
                       <div><b>Email:</b> {currentUser?.email}</div>
                       <div><b>User ID:</b> {currentUser?.uid}</div>
                       <button style={{marginTop:12}} onClick={() => setEditingProfile(true)}>Edit Profile</button>
