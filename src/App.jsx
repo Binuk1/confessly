@@ -11,6 +11,8 @@ import { auth } from './firebase';
 import { doc, getDoc, onSnapshot, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import { FaTimes } from 'react-icons/fa';
+import Welcome from './components/Welcome';
+import './components/welcome.css';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -146,7 +148,7 @@ function App() {
         </div>
       )}
       <div className="main-content">
-        <AppRoutes user={user} role={role} username={username} friends={friends} handleLogout={handleLogout} />
+        <AppRoutes user={user} role={role} username={username} friends={friends} handleLogout={handleLogout} setFriends={setFriends} />
       </div>
     </Router>
   );
@@ -159,7 +161,7 @@ function ProtectedRoute({ user, children }) {
   return children;
 }
 
-function AppRoutes({ user, role, username, friends, handleLogout }) {
+function AppRoutes({ user, role, username, friends, handleLogout, setFriends }) {
   const navigate = useNavigate();
   return (
     <Routes>
@@ -179,9 +181,13 @@ function AppRoutes({ user, role, username, friends, handleLogout }) {
         </ProtectedRoute>
       } />
       <Route path="/" element={
-        <ProtectedRoute user={user}>
-          <Dashboard user={user} role={role} username={username} onLogout={handleLogout} friends={friends} />
-        </ProtectedRoute>
+        user ? (
+          <ProtectedRoute user={user}>
+            <Dashboard user={user} role={role} username={username} onLogout={handleLogout} friends={friends} setFriendsList={setFriends} />
+          </ProtectedRoute>
+        ) : (
+          <Welcome />
+        )
       } />
       <Route path="/auth" element={<Auth onLogout={handleLogout} />} />
       <Route path="*" element={<Navigate to={user ? "/" : "/auth"} replace />} />

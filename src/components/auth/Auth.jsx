@@ -8,6 +8,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import Signup from './Signup';
 import Dashboard from '../Dashboard';
 import './auth.css';
+import { useLocation } from 'react-router-dom';
 
 const Auth = ({ onLogout }) => {
   const [user, setUser] = useState(null);
@@ -17,6 +18,13 @@ const Auth = ({ onLogout }) => {
   const [error, setError] = useState('');
   const [role, setRole] = useState(null);
   const [username, setUsername] = useState(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    // Show signup if ?mode=signup in URL
+    if (location.search.includes('mode=signup')) setShowSignup(true);
+    else if (location.search.includes('mode=login')) setShowSignup(false);
+  }, [location.search]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -65,23 +73,22 @@ const Auth = ({ onLogout }) => {
   }
 
   return (
-    <div className="auth-container">
-      <h2>Authentication</h2>
+    <div className="auth-card">
+      <h2 className="auth-title">{showSignup ? 'Sign Up' : 'Login'}</h2>
       {showSignup ? (
         <>
           <Signup onSignup={() => setShowSignup(false)} />
-          <p>Already have an account? <button className="link-btn" onClick={() => setShowSignup(false)}>Login</button></p>
+          <p className="auth-switch">Already have an account? <button className="link-btn" onClick={() => setShowSignup(false)}>Login</button></p>
         </>
       ) : (
         <>
           <form className="auth-form" onSubmit={handleLogin}>
-            <h3>Login</h3>
             <input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
             <input type="password" placeholder="Password" value={password} onChange={e => setPassword(e.target.value)} required />
             <button type="submit">Login</button>
             {error && <p className="auth-error">{error}</p>}
           </form>
-          <p>Don't have an account? <button className="link-btn" onClick={() => setShowSignup(true)}>Sign Up</button></p>
+          <p className="auth-switch">Don't have an account? <button className="link-btn" onClick={() => setShowSignup(true)}>Sign Up</button></p>
         </>
       )}
     </div>

@@ -6,9 +6,8 @@ import Friends from './friends/Friends';
 import ChatSystem from './chatsystem/ChatSystem';
 import '../registerSW';
 
-const Dashboard = ({ user, role, username, onLogout }) => {
+const Dashboard = ({ user, role, username, onLogout, friends, setFriendsList }) => {
   const [adminModalOpen, setAdminModalOpen] = useState(false);
-  const [friendsList, setFriendsList] = useState([]);
   const navigate = useNavigate();
   return (
     <div style={{position:'relative',width:'100%',minHeight:'100vh',background:'linear-gradient(135deg, #f8fafc 0%, #e0e7ff 60%, #fbbf24 100%)', overflowX:'hidden', display:'flex'}}>
@@ -53,7 +52,7 @@ const Dashboard = ({ user, role, username, onLogout }) => {
             <RiWechatFill size={36} color="#fff" style={{display:'block'}} />
           </button>
         </div>
-        <ChatSystem currentUser={user} friends={friendsList} />
+        <ChatSystem currentUser={user} friends={friends} />
       </div>
     </div>
   );

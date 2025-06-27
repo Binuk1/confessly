@@ -1,0 +1,95 @@
+.welcome-bg {
+  min-height: 100vh;
+  min-width: 100vw;
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 60%, #fbbf24 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  overflow: auto;
+}
+.welcome-content {
+  background: rgba(255,255,255,0.92);
+  border-radius: 24px;
+  box-shadow: 0 4px 32px rgba(99,102,241,0.13);
+  padding: 2.5em 2em 2em 2em;
+  max-width: 420px;
+  width: 95vw;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 2em 0;
+}
+.welcome-logo {
+  width: 90px;
+  height: 90px;
+  margin-bottom: 1.2em;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(99,102,241,0.12);
+}
+.welcome-title {
+  font-size: 2.2em;
+  font-weight: 800;
+  margin-bottom: 0.5em;
+  letter-spacing: 0.01em;
+  color: #222;
+  text-shadow: 0 2px 8px rgba(99,102,241,0.08);
+}
+.welcome-desc {
+  color: #444;
+  font-size: 1.15em;
+  margin-bottom: 1.5em;
+  font-weight: 500;
+  text-shadow: 0 2px 8px rgba(99,102,241,0.06);
+}
+.welcome-made {
+  color: #6366f1;
+  font-size: 1.1em;
+  margin-bottom: 1.2em;
+  font-weight: 700;
+  text-shadow: 0 2px 8px rgba(99,102,241,0.10);
+}
+.welcome-actions {
+  display: flex;
+  gap: 1em;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.welcome-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 80%, #fbbf24 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7em 1.5em;
+  font-size: 1.1em;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.10);
+  transition: background 0.18s;
+}
+.welcome-btn:hover {
+  background: linear-gradient(135deg, #818cf8 0%, #6366f1 80%, #fbbf24 100%);
+}
+@media (max-width: 600px) {
+  .welcome-content {
+    max-width: 98vw;
+    padding: 1.5em 0.5em 1.5em 0.5em;
+    border-radius: 16px;
+  }
+  .welcome-logo {
+    width: 64px;
+    height: 64px;
+  }
+  .welcome-title {
+    font-size: 1.3em;
+  }
+  .welcome-desc {
+    font-size: 1em;
+  }
+}
