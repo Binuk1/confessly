@@ -162,6 +162,7 @@ export default function ChatInput({
   const [showGif, setShowGif] = useState(false);
   const [uploads, setUploads] = useState([]);
   const [emojiPickerKey, setEmojiPickerKey] = useState(0);
+  const [sending, setSending] = useState(false); // Add sending state
   const textareaRef = useRef(null);
   const emojiBtnRef = useRef(null);
 
@@ -178,15 +179,16 @@ export default function ChatInput({
   // File upload logic
   const handleFileChange = e => {
     const files = Array.from(e.target.files);
-    setUploads([...uploads, ...files]);
+    setUploads(prev => [...prev, ...files]);
     onUpload && onUpload(files);
+    e.target.value = null; // Reset file input so same file can be selected again
   };
 
   // Send on Enter, newline on Shift+Enter
   const handleKeyDown = e => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (value.trim() || uploads.length) onSend();
+      if (value.trim() || uploads.length) handleSendAll();
     }
   };
 
@@ -208,6 +210,52 @@ export default function ChatInput({
     setTimeout(() => textareaRef.current.focus(), 0);
   };
 
+  // Cloudinary config
+  const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/dqptpxh4r/upload'; // updated to your cloud name
+  const CLOUDINARY_PRESET = 'ztxza7xb'; // your unsigned preset
+
+  // Upload all files to Cloudinary, return array of {url, type}
+  const uploadAll = async files => {
+    const uploads = await Promise.all(files.map(async file => {
+      if (file.url && file.isGif) {
+        // GIF from picker, just use URL
+        return { url: file.url, type: 'image/gif' };
+      }
+      const form = new FormData();
+      form.append('file', file);
+      form.append('upload_preset', CLOUDINARY_PRESET);
+      const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: form });
+      const data = await res.json();
+      // Use file.type for images, Cloudinary resource_type for video, and fallback to jpeg if missing
+      let type = '';
+      if (data.resource_type === 'video') {
+        type = 'video/mp4';
+      } else if (data.format === 'gif') {
+        type = 'image/gif';
+      } else if (file.type && file.type.startsWith('image/')) {
+        type = file.type;
+      } else {
+        type = 'image/jpeg';
+      }
+      return { url: data.secure_url, type };
+    }));
+    return uploads;
+  };
+
+  // Enhanced send handler
+  const handleSendAll = async () => {
+    if ((!value.trim() && uploads.length === 0) || disabled || sending) return;
+    setSending(true);
+    let media = [];
+    if (uploads.length > 0) {
+      media = await uploadAll(uploads);
+      setUploads([]);
+    }
+    await onSend({ text: value, media });
+    onChange('');
+    setSending(false);
+  };
+
   return (
     <div style={{
       position: 'sticky',
@@ -225,8 +273,13 @@ export default function ChatInput({
       {uploads.length > 0 && (
         <div style={{display:'flex',overflowX:'auto',marginBottom:8}}>
           {uploads.map((file, i) => (
-            <div key={i} style={{marginRight:8}}>
-              <img src={file.url ? file.url : URL.createObjectURL(file)} alt="upload" style={{width:48,height:48,objectFit:'cover',borderRadius:8,border:'1px solid #e5e7eb'}} />
+            <div key={i} style={{marginRight:8,position:'relative',width:48,height:48}}>
+              <img src={file.url ? file.url : URL.createObjectURL(file)} alt="upload" style={{width:48,height:48,objectFit:'cover',borderRadius:8,border:'1px solid #e5e7eb',opacity:sending?0.5:1}} />
+              {sending && (
+                <div className="chat-upload-skeleton" style={{position:'absolute',top:0,left:0,right:0,bottom:0,background:'rgba(99,102,241,0.12)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  <div className="skeleton-loader" style={{width:24,height:24,border:'3px solid #e0e7ff',borderTop:'3px solid #6366f1',borderRadius:'50%',animation:'spin 1s linear infinite'}}></div>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -281,7 +334,7 @@ export default function ChatInput({
           aria-label="Type a message"
           disabled={disabled}
         />
-        <button type="button" aria-label="Send" onClick={onSend} disabled={(!value.trim() && uploads.length === 0) || disabled} style={{background:'#6366f1',color:'#fff',border:'none',borderRadius:16,padding:'0.7em 1.1em',fontWeight:700,fontSize:'1.2em',cursor:'pointer',minWidth:44,minHeight:44,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(99,102,241,0.08)'}}>
+        <button type="button" aria-label="Send" onClick={handleSendAll} disabled={(!value.trim() && uploads.length === 0) || disabled || sending} style={{background:'#6366f1',color:'#fff',border:'none',borderRadius:16,padding:'0.7em 1.1em',fontWeight:700,fontSize:'1.2em',cursor:'pointer',minWidth:44,minHeight:44,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(99,102,241,0.08)',opacity:sending?0.6:1}}>
           <FaPaperPlane style={{fontSize:22}} />
         </button>
       </div>
@@ -339,7 +392,8 @@ export default function ChatInput({
       {/* GIF picker */}
       {showGif && !showEmoji && (
         <GifPicker onSelect={url => {
-          setUploads([...uploads, { url, isGif: true }]);
+          // Immediately send GIF as a message, only one per message
+          onSend({ text: '', media: [{ url, type: 'image/gif' }] });
           setShowGif(false);
         }} onClose={()=>setShowGif(false)} />
       )}

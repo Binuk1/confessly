@@ -54,6 +54,76 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* === Dark mode and neutral input styles for all text inputs, chat, auth, and find friends === */
+
+input, textarea, select {
+  background: #f8fafc;
+  color: #222 !important;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 10px;
+  transition: border 0.2s, background 0.2s, color 0.2s;
+  font-size: 1.08rem;
+  box-sizing: border-box;
+}
+input:focus, textarea:focus, select:focus {
+  border: 1.5px solid #6366f1;
+  outline: none;
+  background: #fff;
+  color: #222 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  input, textarea, select {
+    background: #23272f;
+    color: #f8fafc !important;
+    border: 1.5px solid #6366f1;
+  }
+  input:focus, textarea:focus, select:focus {
+    background: #181a20;
+    color: #f8fafc !important;
+    border: 1.5px solid #818cf8;
+  }
+}
+
+/* Chat input area override for dark mode */
+.chat-input, textarea {
+  background: #f8fafc;
+  color: #222 !important;
+}
+@media (prefers-color-scheme: dark) {
+  .chat-input, textarea {
+    background: #23272f;
+    color: #f8fafc !important;
+    border: 1.5px solid #6366f1;
+  }
+}
+
+/* Auth form input override for dark mode */
+.auth-form input {
+  background: #f8fafc;
+  color: #222 !important;
+}
+@media (prefers-color-scheme: dark) {
+  .auth-form input {
+    background: #23272f;
+    color: #f8fafc !important;
+    border: 1.5px solid #6366f1;
+  }
+}
+
+/* Find friends/search bar override for dark mode */
+.friends-search-input, .find-friends-input {
+  background: #f8fafc;
+  color: #222 !important;
+}
+@media (prefers-color-scheme: dark) {
+  .friends-search-input, .find-friends-input {
+    background: #23272f;
+    color: #f8fafc !important;
+    border: 1.5px solid #6366f1;
+  }
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
