@@ -71,7 +71,12 @@ function ChatSystem({ currentUser, selectedFriend, setSelectedFriend }) {
   const renderChatPanel = () => (
     <div style={{display:'flex',flexDirection:'column',height:'100%',width:'100%'}}>
       <div className="chat-messages-panel" style={{flex:1,display:'flex',flexDirection:'column',background:'#fff',padding:'0 0 0 0'}}>
-        <div className="chat-messages-list" style={{flex:1,overflowY:'auto',padding:'1em',display:'flex',flexDirection:'column'}}>
+        <div className="chat-messages-list" 
+          style={{flex:1,overflowY:'auto',padding:'1em',display:'flex',flexDirection:'column'}}
+          onTouchStart={e => { e.stopPropagation(); }}
+          onTouchMove={e => { e.stopPropagation(); }}
+          onWheel={e => { e.stopPropagation(); }}
+        >
           {loading ? (
             <div style={{color:'#888'}}>Loading...</div>
           ) :
