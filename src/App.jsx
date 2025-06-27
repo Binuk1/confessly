@@ -1,7 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import Auth from './components/auth/Auth';
 import AdminPage from './components/AdminPage';
+import Dashboard from './components/Dashboard';
+import ChatSystem from './components/chatsystem/ChatSystem';
+import FullChatPage from './pages/FullChatPage';
 import './App.css';
 import { signOut } from 'firebase/auth';
 import { auth } from './firebase';
@@ -20,6 +23,7 @@ function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [showBanner, setShowBanner] = useState(true);
   const [bannerId, setBannerId] = useState(null);
+  const [friends, setFriends] = useState([]);
 
   // Listen for auth state
   useEffect(() => {
@@ -84,6 +88,27 @@ function App() {
     await signOut(auth);
   };
 
+  // Fetch friends list
+  useEffect(() => {
+    if (!user) { setFriends([]); return; }
+    const userRef = doc(db, 'users', user.uid);
+    getDoc(userRef).then(userDoc => {
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        const friendUids = data.friends || [];
+        Promise.all(friendUids.map(uid => getDoc(doc(db, 'users', uid)))).then(friendDocs => {
+          setFriends(friendDocs.filter(d => d.exists()).map(d => ({
+            id: d.id,
+            username: d.data().username || '',
+            email: d.data().email || ''
+          })));
+        });
+      } else {
+        setFriends([]);
+      }
+    });
+  }, [user]);
+
   if (loadingAuth) return (
     <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}>
       <div className="spinner" style={{width:48,height:48,border:'5px solid #e0e7ff',borderTop:'5px solid #6366f1',borderRadius:'50%',animation:'spin 1s linear infinite'}} />
@@ -120,12 +145,24 @@ function App() {
         </div>
       )}
       <div className="main-content">
-        <Routes>
-          <Route path="/admin" element={<AdminPage user={user} role={role} username={username} />} />
-          <Route path="/*" element={<Auth onLogout={handleLogout} />} />
-        </Routes>
+        <AppRoutes user={user} role={role} username={username} friends={friends} handleLogout={handleLogout} />
       </div>
     </Router>
+  );
+}
+
+function AppRoutes({ user, role, username, friends, handleLogout }) {
+  const navigate = useNavigate();
+  return (
+    <Routes>
+      <Route path="/admin" element={<AdminPage user={user} role={role} username={username} />} />
+      <Route path="/chat/:friendId" element={<FullChatPage user={user} friends={friends} />} />
+      <Route path="/chat" element={<FullChatPage user={user} friends={friends} />} />
+      <Route path="/" element={
+        <Dashboard user={user} role={role} username={username} onLogout={handleLogout} friends={friends} />
+      } />
+      <Route path="*" element={<Auth onLogout={handleLogout} />} />
+    </Routes>
   );
 }
 

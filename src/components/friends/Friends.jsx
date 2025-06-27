@@ -6,12 +6,13 @@ import { FaCog, FaUser, FaUserFriends, FaMoon, FaSun, FaRegStar } from 'react-ic
 import { deleteUser } from 'firebase/auth';
 import { deleteDoc } from 'firebase/firestore';
 import './friends.css';
+import SkeletonItem from '../SkeletonItem';
 
 const Spinner = () => (
   <div className="spinner-container"><div className="spinner"></div></div>
 );
 
-const Friends = ({ currentUser, username, onLogout, showAdminButton }) => {
+const Friends = ({ currentUser, username, onLogout, showAdminButton, setFriendsList }) => {
   const [search, setSearch] = useState('');
   const [results, setResults] = useState([]);
   const [message, setMessage] = useState('');
@@ -203,6 +204,20 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton }) => {
     setSavingProfile(false);
   };
 
+  // Update parent with friends list for chat system
+  useEffect(() => {
+    if (setFriendsList && friends.length > 0 && Object.keys(userMap).length > 0) {
+      const friendObjs = friends.map(uid => ({
+        id: uid,
+        username: userMap[uid]?.username || '',
+        email: userMap[uid]?.email || ''
+      }));
+      setFriendsList(friendObjs);
+    } else if (setFriendsList && friends.length === 0) {
+      setFriendsList([]);
+    }
+  }, [friends, userMap, setFriendsList]);
+
   return (
     <div className="friends-fullpage-bg">
       {/* Header/Navbar */}
@@ -310,7 +325,13 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton }) => {
             <div className="profile-info">
               <div className="profile-avatar"><FaUser size={48} /></div>
               <div>
-                {loadingProfile ? <Spinner /> : (
+                {loadingProfile ? (
+                  <>
+                    <SkeletonItem style={{height:24,width:120,marginBottom:8}} />
+                    <SkeletonItem style={{height:20,width:180,marginBottom:8}} />
+                    <SkeletonItem style={{height:20,width:140}} />
+                  </>
+                ) : (
                   editingProfile ? (
                     <>
                       <div style={{marginBottom:8}}>
@@ -401,12 +422,18 @@ const Friends = ({ currentUser, username, onLogout, showAdminButton }) => {
         </section>
         <section className="friends-section">
           <h4>Your Friends</h4>
-          {loadingFriends ? <Spinner /> : (
+          {loadingFriends ? (
+            <ul className="friends-list">
+              {[...Array(3)].map((_, i) => (
+                <li key={i}><SkeletonItem style={{height:24,width:120,marginBottom:8}} /></li>
+              ))}
+            </ul>
+          ) : (
             <ul className="friends-list">
               {friends.length === 0 && <li>No friends yet</li>}
               {friends.map(uid => (
                 <li key={uid}>
-                  {userMap[uid]?.username || uid}
+                  {userMap[uid]?.username || userMap[uid]?.email || <SkeletonItem style={{height:24,width:120}} />}
                   <button className="remove-friend-btn" onClick={() => removeFriend(uid)}>
                     Remove
                   </button>
