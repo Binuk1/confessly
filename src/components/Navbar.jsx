@@ -5,7 +5,7 @@ export default function Navbar({ onProfile, onSettings, user }) {
   return (
     <nav className="navbar">
       <div className="navbar-left">
-        <img src="/src/assets/logo.png" alt="Confessly Logo" className="navbar-logo" />
+        <img src="/logo.png" alt="Confessly Logo" className="navbar-logo" />
         <span className="navbar-title">Confessly</span>
       </div>
       <div className="navbar-right">

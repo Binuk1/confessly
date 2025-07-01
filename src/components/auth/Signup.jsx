@@ -92,10 +92,10 @@ const Signup = ({ onSignup }) => {
       <h3>Sign Up</h3>
       
       {/* Profile Picture Upload */}
-      <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+      <div style={{ textAlign: 'center', marginBottom: '1rem', width: '100%', maxWidth: '100%' }}>
         <div style={{
-          width: 60,
-          height: 60,
+          width: '60px',
+          height: '60px',
           borderRadius: '50%',
           margin: '0 auto 0.5rem',
           background: profilePreview ? 'none' : '#e0e7ff',
@@ -105,7 +105,9 @@ const Signup = ({ onSignup }) => {
           border: '2px dashed #6366f1',
           cursor: 'pointer',
           position: 'relative',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          minWidth: '60px',
+          minHeight: '60px'
         }} onClick={() => document.getElementById('profile-picture-input').click()}>
           {profilePreview ? (
             <img 
@@ -124,7 +126,14 @@ const Signup = ({ onSignup }) => {
           onChange={handleProfilePictureChange}
           style={{ display: 'none' }}
         />
-        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+        <div style={{ 
+          display: 'flex', 
+          gap: '0.5rem', 
+          justifyContent: 'center', 
+          flexWrap: 'wrap',
+          width: '100%',
+          maxWidth: '100%'
+        }}>
           <button 
             type="button" 
             onClick={() => document.getElementById('profile-picture-input').click()}
@@ -135,7 +144,9 @@ const Signup = ({ onSignup }) => {
               padding: '0.3rem 0.8rem',
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '0.8rem'
+              fontSize: '0.8rem',
+              whiteSpace: 'nowrap',
+              minWidth: 'fit-content'
             }}
           >
             {profilePicture ? 'Change' : 'Add Photo'}
@@ -153,7 +164,9 @@ const Signup = ({ onSignup }) => {
                 color: '#ef4444',
                 padding: '0.3rem 0.8rem',
                 cursor: 'pointer',
-                fontSize: '0.8rem'
+                fontSize: '0.8rem',
+                whiteSpace: 'nowrap',
+                minWidth: 'fit-content'
               }}
             >
               Remove
