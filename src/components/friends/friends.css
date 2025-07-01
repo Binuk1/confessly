@@ -22,7 +22,7 @@
   box-shadow: 0 2px 8px rgba(99,102,241,0.08);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
 }
 .logo {
   font-weight: 700;
@@ -34,6 +34,9 @@
   display: flex;
   align-items: center;
   gap: 1.2rem;
+  justify-content: flex-end;
+  width: 100%;
+  z-index: 101;
 }
 .icon-btn {
   background: none !important;
@@ -593,4 +596,348 @@ body.dark-mode .theme-toggle .icon-btn.selected {
   background: none !important;
   box-shadow: none !important;
   border: none !important;
+}
+@media (max-width: 700px) {
+  .header-actions {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    background: none !important;
+    width: auto !important;
+    z-index: auto !important;
+  }
+}
+
+/* Search Modal/Full-screen Styles */
+.search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.search-container {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Desktop Modal */
+.search-desktop {
+  width: 90%;
+  max-width: 500px;
+  min-height: 400px;
+}
+
+/* Mobile Full-screen */
+.search-mobile {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  max-height: 100vh;
+}
+
+.search-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%);
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.search-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.search-form {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.search-input-wrapper {
+  display: flex;
+  align-items: center;
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0.5rem;
+  transition: border-color 0.2s;
+}
+
+.search-input-wrapper:focus-within {
+  border-color: #6366f1;
+  background: #fff;
+}
+
+.search-icon {
+  color: #9ca3af;
+  margin: 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 0.75rem 0;
+  font-size: 1rem;
+  outline: none;
+  color: #374151;
+}
+
+.search-input::placeholder {
+  color: #9ca3af;
+}
+
+.search-submit-btn {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-left: 0.5rem;
+}
+
+.search-submit-btn:hover {
+  background: #4f46e5;
+}
+
+.search-results-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 2rem;
+}
+
+.search-message {
+  text-align: center;
+  color: #6b7280;
+  margin: 1rem 0;
+  font-style: italic;
+}
+
+.search-results {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.2s;
+}
+
+.search-result-item:hover {
+  background: #f9fafb;
+}
+
+.search-result-item:last-child {
+  border-bottom: none;
+}
+
+.search-result-info {
+  flex: 1;
+}
+
+.search-result-username {
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.25rem;
+}
+
+.search-result-email {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.search-result-actions {
+  margin-left: 1rem;
+}
+
+.search-add-btn {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-size: 0.875rem;
+}
+
+.search-add-btn:hover {
+  background: #4f46e5;
+}
+
+.search-status {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Dark mode styles for search */
+body.dark-mode .search-container {
+  background: #1f2937;
+  color: #f9fafb;
+}
+
+body.dark-mode .search-header {
+  background: linear-gradient(135deg, #312e81 0%, #4338ca 100%);
+}
+
+body.dark-mode .search-form {
+  border-bottom-color: #374151;
+}
+
+body.dark-mode .search-input-wrapper {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+body.dark-mode .search-input-wrapper:focus-within {
+  border-color: #818cf8;
+  background: #4b5563;
+}
+
+body.dark-mode .search-input {
+  color: #f9fafb;
+}
+
+body.dark-mode .search-input::placeholder {
+  color: #9ca3af;
+}
+
+body.dark-mode .search-submit-btn {
+  background: #4338ca;
+}
+
+body.dark-mode .search-submit-btn:hover {
+  background: #6366f1;
+}
+
+body.dark-mode .search-result-item {
+  border-bottom-color: #374151;
+}
+
+body.dark-mode .search-result-item:hover {
+  background: #374151;
+}
+
+body.dark-mode .search-result-username {
+  color: #f9fafb;
+}
+
+body.dark-mode .search-result-email {
+  color: #9ca3af;
+}
+
+body.dark-mode .search-add-btn {
+  background: #4338ca;
+}
+
+body.dark-mode .search-add-btn:hover {
+  background: #6366f1;
+}
+
+body.dark-mode .search-status {
+  color: #9ca3af;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Mobile specific adjustments */
+@media (max-width: 700px) {
+  .search-mobile .search-header {
+    padding: 1rem 1.5rem;
+  }
+  
+  .search-mobile .search-form {
+    padding: 1rem 1.5rem;
+  }
+  
+  .search-mobile .search-results-container {
+    padding: 0.5rem 1.5rem;
+  }
+  
+  .search-mobile .search-result-item {
+    padding: 0.75rem 0;
+  }
+  
+  .search-mobile .search-input-wrapper {
+    flex-direction: row !important;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    align-items: center;
+  }
+  
+  .search-mobile .search-icon {
+    margin: 0 0.5rem 0 0 !important;
+    flex-shrink: 0;
+    order: 1;
+  }
+  
+  .search-mobile .search-input {
+    flex: 1 !important;
+    min-width: 0;
+    padding: 0.5rem 0;
+    order: 2;
+  }
+  
+  .search-mobile .search-submit-btn {
+    width: auto !important;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+    padding: 0.75rem 1.2rem;
+    order: 3;
+  }
+}
+
+@media (max-width: 700px) {
+  .header-actions {
+    position: static !important;
+    top: auto !important;
+    right: auto !important;
+    background: none !important;
+    width: auto !important;
+    z-index: auto !important;
+  }
 }

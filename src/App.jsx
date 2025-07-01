@@ -13,6 +13,7 @@ import { db } from './firebase';
 import { FaTimes } from 'react-icons/fa';
 import Welcome from './components/Welcome';
 import './components/welcome.css';
+import SplashScreen from './components/SplashScreen';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -30,20 +31,30 @@ function App() {
   // Listen for auth state
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      setUser(user);
       if (user) {
         const userRef = doc(db, 'users', user.uid);
         const userDoc = await getDoc(userRef);
         if (userDoc.exists()) {
-          setRole(userDoc.data().role);
-          setUsername(userDoc.data().username || null);
+          const userData = userDoc.data();
+          setRole(userData.role);
+          setUsername(userData.username || null);
+          // Create enhanced user object with Firestore data
+          const enhancedUser = {
+            ...user,
+            username: userData.username,
+            photoURL: userData.photoURL || user.photoURL, // Use Firestore photoURL if available, fallback to auth photoURL
+            role: userData.role
+          };
+          setUser(enhancedUser);
         } else {
           setRole(null);
           setUsername(null);
+          setUser(user);
         }
       } else {
         setRole(null);
         setUsername(null);
+        setUser(null);
       }
       setIsLoggedIn(!!user);
       setLoadingAuth(false);
@@ -52,6 +63,29 @@ function App() {
       unsubscribe();
     };
   }, []);
+
+  // Real-time listener for user document changes (profile updates)
+  useEffect(() => {
+    if (!user?.uid) return;
+    
+    const userRef = doc(db, 'users', user.uid);
+    const unsubscribe = onSnapshot(userRef, (doc) => {
+      if (doc.exists()) {
+        const userData = doc.data();
+        setRole(userData.role);
+        setUsername(userData.username || null);
+        // Update user object with latest Firestore data
+        setUser(prevUser => ({
+          ...prevUser,
+          username: userData.username,
+          photoURL: userData.photoURL || prevUser?.photoURL,
+          role: userData.role
+        }));
+      }
+    });
+    
+    return () => unsubscribe();
+  }, [user?.uid]);
 
   // Real-time banner/popup using Firestore
   useEffect(() => {
@@ -103,7 +137,8 @@ function App() {
           setFriends(friendDocs.filter(d => d.exists()).map(d => ({
             id: d.id,
             username: d.data().username || '',
-            email: d.data().email || ''
+            email: d.data().email || '',
+            photoURL: d.data().photoURL || null
           })));
         });
       } else {
@@ -112,12 +147,9 @@ function App() {
     });
   }, [user]);
 
-  if (loadingAuth) return (
-    <div style={{display:'flex',justifyContent:'center',alignItems:'center',height:'100vh'}}>
-      <div className="spinner" style={{width:48,height:48,border:'5px solid #e0e7ff',borderTop:'5px solid #6366f1',borderRadius:'50%',animation:'spin 1s linear infinite'}} />
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }`}</style>
-    </div>
-  );
+  if (loadingAuth) {
+    return <SplashScreen />;
+  }
 
   return (
     <Router>

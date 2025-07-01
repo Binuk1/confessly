@@ -1,0 +1,35 @@
+/* Delete Account Modal Styles */
+.delete-modal {
+  min-width: 280px;
+  max-width: 350px;
+  background: var(--bg, #fff);
+  border-radius: 18px;
+  box-shadow: 0 6px 32px rgba(239,68,68,0.13), 0 2px 8px rgba(0,0,0,0.04);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  position: relative;
+  text-align: center;
+}
+.delete-modal input {
+  width: 100%;
+  margin: 1rem 0 0.5rem 0;
+  padding: 0.6em;
+  border-radius: 8px;
+  border: 1.5px solid #ef4444;
+  font-size: 1.08rem;
+}
+.confirm-delete-btn {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6em 1.2em;
+  font-weight: 600;
+  margin-top: 0.7rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(239,68,68,0.10);
+}
+.error-msg {
+  color: #ef4444;
+  font-size: 0.98rem;
+  margin-bottom: 0.5rem;
+}

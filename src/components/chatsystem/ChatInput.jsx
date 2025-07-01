@@ -1,10 +1,27 @@
 import React, { useRef, useState } from 'react';
-import { FaSmile, FaPaperclip, FaPaperPlane } from 'react-icons/fa';
+import { FaRegImage, FaRegSmile, FaArrowCircleUp } from 'react-icons/fa';
 import { HiOutlineGif } from 'react-icons/hi2';
 import EmojiPicker from 'emoji-picker-react';
 import axios from 'axios';
+import { IoIosArrowDroprightCircle } from 'react-icons/io';
+import MediaPreviewGrid from './MediaPreviewGrid';
 
 const isMobile = () => window.innerWidth < 700;
+
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024; // 2MB
+const MAX_VIDEO_DURATION = 60; // 60 seconds
+
+function getVideoDuration(url) {
+  return new Promise(resolve => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      resolve(video.duration);
+      URL.revokeObjectURL(url);
+    };
+    video.src = url;
+  });
+}
 
 function GifPicker({ onSelect, onClose }) {
   const [query, setQuery] = useState('');
@@ -59,6 +76,7 @@ function GifPicker({ onSelect, onClose }) {
     setLoading(false);
   };
 
+  // Only search when user types
   const handleSearch = async (q) => {
     setQuery(q);
     if (!q) { setResults([]); return; }
@@ -66,7 +84,7 @@ function GifPicker({ onSelect, onClose }) {
     else await searchTenor(q);
   };
 
-  // Real-time search on source toggle if query exists
+  // Auto-update results when switching source if query exists
   React.useEffect(() => {
     if (query) {
       if (source === 'giphy') searchGiphy(query);
@@ -114,17 +132,16 @@ function GifPicker({ onSelect, onClose }) {
   };
 
   return (
-    <div style={popupStyle}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
-        <span style={{fontWeight:700,color:'#6366f1'}}>
-          GIFs <span style={{fontSize:13,marginLeft:8,padding:'2px 8px',borderRadius:8,background:source==='giphy'?'#6366f1':'#e5e7eb',color:source==='giphy'?'#fff':'#6366f1'}}>{source==='giphy'?'Giphy':'Tenor'}</span>
-        </span>
+    <div style={{
+      position: 'fixed', left: 0, right: 0, bottom: '64px', width: '100vw', maxWidth: '100vw', background: '#fff', zIndex: 2000, borderTopLeftRadius: 18, borderTopRightRadius: 18, boxShadow: '0 -2px 24px rgba(0,0,0,0.18)', padding: '8px 0 0 0', minHeight: '220px', maxHeight: '50vh', overflowY: 'auto', display: 'flex', flexDirection: 'column',
+    }}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0 16px 8px 16px'}}>
+        <input value={query} onChange={e=>handleSearch(e.target.value)} placeholder="Search GIFs..." style={{flex:1,padding:10,borderRadius:8,border:'2px solid #6366f1',marginRight:8,background:'#fff',color:'#222',fontWeight:500,fontSize:16,boxShadow:'0 1px 4px rgba(99,102,241,0.08)'}} />
         <button onClick={onClose} style={{background:'none',border:'none',color:'#6366f1',fontSize:22,cursor:'pointer'}}>✕</button>
       </div>
-      <input value={query} onChange={e=>handleSearch(e.target.value)} placeholder="Search GIFs..." style={{width:'100%',padding:8,borderRadius:8,border:'1px solid #e5e7eb',marginBottom:8}} />
       {/* Preloaded GIFs row (hide if searching) */}
       {!query && (
-        <div style={{display:'flex',overflowX:'auto',gap:8,marginBottom:8,paddingBottom:4}}>
+        <div style={{display:'flex',overflowX:'auto',gap:8,marginBottom:8,paddingBottom:4,paddingLeft:16}}>
           {preGifs.map((url, i) => (
             <img key={i} src={url} alt="gif" style={{width:64,height:64,objectFit:'cover',borderRadius:8,cursor:'pointer',boxShadow:'0 1px 4px rgba(99,102,241,0.08)'}} onClick={()=>onSelect(url)} />
           ))}
@@ -132,7 +149,7 @@ function GifPicker({ onSelect, onClose }) {
       )}
       <div style={{flex:1,overflowY:'auto',WebkitOverflowScrolling:'touch',paddingRight:2}}>
         {loading ? <div style={{color:'#888',textAlign:'center'}}>Loading...</div> :
-          <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+          <div style={{display:'flex',flexWrap:'wrap',gap:8,paddingLeft:16}}>
             {results.map(gif => (
               <img key={gif.id} src={gif.url} alt="gif" style={{width:88,height:88,objectFit:'cover',borderRadius:8,cursor:'pointer'}} onClick={()=>onSelect(gif.url)} />
             ))}
@@ -154,51 +171,84 @@ export default function ChatInput({
   onSend,
   onUpload,
   disabled,
-  placeholder = 'Type a message...',
+  placeholder = 'Type here',
   typing,
   setTyping,
+  style = {},
 }) {
   const [showEmoji, setShowEmoji] = useState(false);
   const [showGif, setShowGif] = useState(false);
-  const [uploads, setUploads] = useState([]);
+  const [uploads, setUploads] = useState([]); // {file, url, type, size, duration?}
   const [emojiPickerKey, setEmojiPickerKey] = useState(0);
-  const [sending, setSending] = useState(false); // Add sending state
+  const [sending, setSending] = useState(false);
+  const [toolsVisible, setToolsVisible] = useState(true);
   const textareaRef = useRef(null);
-  const emojiBtnRef = useRef(null);
+  const [emojiSearch, setEmojiSearch] = useState('');
+  const fileInputRef = useRef(null);
+  const isDesktop = typeof window !== 'undefined' ? window.innerWidth > 700 : true;
 
   // Auto-grow textarea
   const handleInput = e => {
     textareaRef.current.style.height = 'auto';
-    textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+    textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + 'px';
     onChange(e.target.value);
     setTyping && setTyping(true);
     setShowEmoji(false);
     setShowGif(false);
   };
 
-  // File upload logic
-  const handleFileChange = e => {
+  const handleFocus = () => setToolsVisible(false);
+  const handleExpandTools = () => setToolsVisible(true);
+
+  // File input and drag-drop
+  const handleFileChange = async e => {
     const files = Array.from(e.target.files);
-    setUploads(prev => [...prev, ...files]);
-    onUpload && onUpload(files);
-    e.target.value = null; // Reset file input so same file can be selected again
+    const validFiles = [];
+    for (const file of files) {
+      if (file.type.startsWith('image/') && file.size > MAX_IMAGE_SIZE) {
+        alert('Image too large (max 2MB)');
+        continue;
+      }
+      if (file.type.startsWith('video/')) {
+        const previewUrl = URL.createObjectURL(file);
+        const duration = await getVideoDuration(previewUrl);
+        if (duration > MAX_VIDEO_DURATION) {
+          alert('Video too long (max 60s)');
+          continue;
+        }
+        validFiles.push({ file, previewUrl, type: file.type, size: file.size, duration });
+      } else {
+        validFiles.push({ file, previewUrl: URL.createObjectURL(file), type: file.type, size: file.size });
+      }
+    }
+    setUploads(prev => [...prev, ...validFiles]);
+    if (onUpload) onUpload(validFiles.map(f => f.file));
+    e.target.value = null;
   };
 
-  // Send on Enter, newline on Shift+Enter
-  const handleKeyDown = e => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      if (value.trim() || uploads.length) handleSendAll();
-    }
+  // Drag and drop
+  const handleDrop = async e => {
+    e.preventDefault();
+    const files = Array.from(e.dataTransfer.files);
+    await handleFileChange({ target: { files } });
   };
+  const handleDragOver = e => e.preventDefault();
 
-  // Close popups on input focus/click
-  const handleInputFocus = (e) => {
-    // Only close popups if the focus/click is on the textarea, not on toolbar buttons
-    if (e && e.target && e.target.tagName === 'TEXTAREA') {
-      setShowEmoji(false);
-      setShowGif(false);
+  // Remove file
+  const handleRemove = idx => setUploads(uploads => uploads.filter((_, i) => i !== idx));
+
+  // Send handler
+  const handleSendAll = async () => {
+    if ((!value.trim() && uploads.length === 0) || disabled || sending) return;
+    setSending(true);
+    let media = [];
+    if (uploads.length > 0) {
+      media = await uploadAll(uploads); // Only remote URLs
+      setUploads([]);
     }
+    await onSend({ text: value, media });
+    onChange('');
+    setSending(false);
   };
 
   // Insert emoji at cursor
@@ -216,24 +266,23 @@ export default function ChatInput({
 
   // Upload all files to Cloudinary, return array of {url, type}
   const uploadAll = async files => {
-    const uploads = await Promise.all(files.map(async file => {
-      if (file.url && file.isGif) {
+    const uploads = await Promise.all(files.map(async fileObj => {
+      if (fileObj.url && fileObj.isGif) {
         // GIF from picker, just use URL
-        return { url: file.url, type: 'image/gif' };
+        return { url: fileObj.url, type: 'image/gif' };
       }
       const form = new FormData();
-      form.append('file', file);
+      form.append('file', fileObj.file); // Always use the actual File object
       form.append('upload_preset', CLOUDINARY_PRESET);
       const res = await fetch(CLOUDINARY_URL, { method: 'POST', body: form });
       const data = await res.json();
-      // Use file.type for images, Cloudinary resource_type for video, and fallback to jpeg if missing
       let type = '';
       if (data.resource_type === 'video') {
         type = 'video/mp4';
       } else if (data.format === 'gif') {
         type = 'image/gif';
-      } else if (file.type && file.type.startsWith('image/')) {
-        type = file.type;
+      } else if (fileObj.type && fileObj.type.startsWith('image/')) {
+        type = fileObj.type;
       } else {
         type = 'image/jpeg';
       }
@@ -242,104 +291,286 @@ export default function ChatInput({
     return uploads;
   };
 
-  // Enhanced send handler
-  const handleSendAll = async () => {
-    if ((!value.trim() && uploads.length === 0) || disabled || sending) return;
-    setSending(true);
-    let media = [];
-    if (uploads.length > 0) {
-      media = await uploadAll(uploads);
-      setUploads([]);
-    }
-    await onSend({ text: value, media });
-    onChange('');
-    setSending(false);
-  };
+  // Only one modal open at a time
+  const openGifModal = () => { setShowGif(true); setShowEmoji(false); };
+  const openEmojiModal = () => { setShowEmoji(true); setShowGif(false); };
 
   return (
-    <div style={{
-      position: 'sticky',
-      bottom: 0,
-      background: '#fff',
-      borderTop: '1px solid #e5e7eb',
-      padding: isMobile() ? '0.5em 0.5em 0.7em 0.5em' : '0.7em 1em',
-      display: 'flex',
-      flexDirection: 'column',
-      zIndex: 10,
-      boxShadow: isMobile() ? 'none' : 'none', // no shadow
-      minHeight: 60,
-    }}>
-      {/* Upload preview */}
-      {uploads.length > 0 && (
-        <div style={{display:'flex',overflowX:'auto',marginBottom:8}}>
-          {uploads.map((file, i) => (
-            <div key={i} style={{marginRight:8,position:'relative',width:48,height:48}}>
-              <img src={file.url ? file.url : URL.createObjectURL(file)} alt="upload" style={{width:48,height:48,objectFit:'cover',borderRadius:8,border:'1px solid #e5e7eb',opacity:sending?0.5:1}} />
-              {sending && (
-                <div className="chat-upload-skeleton" style={{position:'absolute',top:0,left:0,right:0,bottom:0,background:'rgba(99,102,241,0.12)',borderRadius:8,display:'flex',alignItems:'center',justifyContent:'center'}}>
-                  <div className="skeleton-loader" style={{width:24,height:24,border:'3px solid #e0e7ff',borderTop:'3px solid #6366f1',borderRadius:'50%',animation:'spin 1s linear infinite'}}></div>
-                </div>
-              )}
-            </div>
-          ))}
+    <div
+      className={"messenger-input-bar chatinput-bar-root"}
+      style={{
+        ...style,
+        ...(isDesktop
+          ? {
+              width: '96%',
+              maxWidth: 640,
+              minWidth: 0,
+              margin: '0 auto 18px auto',
+              borderRadius: 24,
+              boxShadow: '0 4px 24px rgba(99,102,241,0.10)',
+              position: 'static',
+              background: 'rgba(255,255,255,0.85)',
+              border: '1.5px solid #e5e7eb',
+            }
+          : {
+              width: '100vw',
+              position: 'fixed',
+              left: 0,
+              bottom: 'env(safe-area-inset-bottom, 0px)', // Safe area for mobile
+              zIndex: 1000,
+              background: 'rgba(255,255,255,0.95)',
+              backdropFilter: 'blur(20px)',
+              border: '1px solid rgba(229,231,235,0.8)',
+              borderRadius: '24px 24px 0 0',
+              padding: '12px 16px',
+              boxShadow: '0 -4px 24px rgba(0,0,0,0.1)',
+              // Mobile-specific fixes for Chrome and other browsers
+              minHeight: 'auto',
+              maxHeight: 'none',
+              paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
+            }
+        ),
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: 12,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        transition: 'all 0.2s ease',
+      }}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver }
+    >
+      <div className="messenger-input-inner" style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+        width: '100%',
+        gap: 0,
+        padding: '2px 2px',
+        margin: 0,
+        background: 'rgba(255,255,255,0.05)',
+        borderRadius: 28,
+        border: '1px solid rgba(255,255,255,0.1)',
+        backdropFilter: 'blur(10px)',
+        position: 'relative',
+        overflow: 'hidden',
+        boxSizing: 'border-box',
+      }}>
+        {/* Media preview grid above textarea */}
+        {uploads.length > 0 && (
+          <MediaPreviewGrid files={uploads.map(f => ({ url: f.previewUrl, type: f.type }))} onRemove={handleRemove} />
+        )}
+        {/* If tools are hidden on mobile, show only the expand arrow and textarea */}
+        {!isDesktop && !toolsVisible && (
+          <button
+            className="messenger-input-icon"
+            type="button"
+            aria-label="Show tools"
+            onClick={handleExpandTools}
+            style={{
+              width: 44,
+              minWidth: 44,
+              maxWidth: 44,
+              height: 44,
+              minHeight: 44,
+              maxHeight: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              boxSizing: 'border-box',
+              background: 'rgba(0,120,255,0.15)',
+              color: '#0078ff',
+              border: 'none',
+            }}
+          >
+            <IoIosArrowDroprightCircle size={32} style={{ width: 32, height: 32 }} />
+          </button>
+        )}
+        {/* Tool icons (hide when textarea focused on mobile only) */}
+        {(isDesktop || toolsVisible) && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 0,
+              transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              opacity: 1,
+              pointerEvents: 'auto',
+            }}
+          >
+            <button
+              className="messenger-input-icon"
+              type="button"
+              tabIndex={-1}
+              aria-label="GIF"
+              onClick={() => openGifModal()}
+              style={{
+                width: 44,
+                minWidth: 44,
+                maxWidth: 44,
+                height: 44,
+                minHeight: 44,
+                maxHeight: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                boxSizing: 'border-box',
+              }}
+            >
+              <HiOutlineGif size={32} style={{ width: 32, height: 32 }} />
+            </button>
+            <button
+              className="messenger-input-icon"
+              type="button"
+              tabIndex={-1}
+              aria-label="Image"
+              onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              style={{
+                width: 44,
+                minWidth: 44,
+                maxWidth: 44,
+                height: 44,
+                minHeight: 44,
+                maxHeight: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                boxSizing: 'border-box',
+                position: 'relative',
+              }}
+            >
+              <FaRegImage size={32} style={{ width: 32, height: 32 }} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={handleFileChange}
+                tabIndex={-1}
+              />
+            </button>
+            {isDesktop && (
+        <button
+                className="messenger-input-icon"
+          type="button"
+                tabIndex={-1}
+          aria-label="Emoji"
+                onClick={() => openEmojiModal()}
+                style={{
+                  width: 44,
+                  minWidth: 44,
+                  maxWidth: 44,
+                  height: 44,
+                  minHeight: 44,
+                  maxHeight: 44,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: 0,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <FaRegSmile size={32} style={{ width: 32, height: 32 }} />
+        </button>
+            )}
+          </div>
+        )}
+        {/* Textarea and send button in a row */}
+        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', width: '100%', gap: 8 }}>
+          <textarea
+            ref={textareaRef}
+            className="messenger-input"
+            value={value}
+            onChange={handleInput}
+            onFocus={() => { if (!isDesktop) setToolsVisible(false); }}
+            onBlur={() => { if (!isDesktop) setToolsVisible(true); }}
+            placeholder={placeholder}
+            disabled={disabled}
+            autoComplete="off"
+            aria-label="Type a message"
+            rows={1}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              width: '100%',
+              resize: 'none',
+              minHeight: 36,
+              maxHeight: 80,
+              overflow: 'auto',
+              fontSize: '16px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+              fontWeight: '400',
+              background: 'rgba(255,255,255,0.08)',
+              color: '#ffffff',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 22,
+              outline: 'none',
+              padding: '6px 6px',
+              lineHeight: '1.4',
+              transition: 'all 0.2s ease',
+              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)',
+              marginRight: 0,
+              boxSizing: 'border-box',
+            }}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendAll(); } }}
+          />
+          <button
+            className="messenger-send-btn"
+            type="button"
+            aria-label="Send"
+            onClick={handleSendAll}
+            disabled={disabled || sending}
+            style={{
+              width: 44,
+              minWidth: 44,
+              maxWidth: 44,
+              height: 44,
+              minHeight: 44,
+              maxHeight: 44,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              marginLeft: 8,
+              boxSizing: 'border-box',
+            }}
+          >
+            <FaArrowCircleUp size={32} style={{ width: 32, height: 32 }} />
+          </button>
+        </div>
+      </div>
+      {/* Responsive GIF picker modal */}
+      {showGif && !showEmoji && (
+        <div style={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: '64px',
+          width: '100vw',
+          maxWidth: '100vw',
+          background: '#fff',
+          zIndex: 2000,
+          borderTopLeftRadius: 18,
+          borderTopRightRadius: 18,
+          boxShadow: '0 -2px 24px rgba(0,0,0,0.18)',
+          padding: '8px 0 0 0',
+          minHeight: '220px',
+          maxHeight: '50vh',
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+        }}>
+          <GifPicker onSelect={url => {
+            onSend({ text: '', media: [{ url, type: 'image/gif' }] });
+            setShowGif(false);
+          }} onClose={()=>setShowGif(false)} />
         </div>
       )}
-      <div style={{display:'flex',alignItems:'flex-end',gap:8}}>
-        <button
-          type="button"
-          aria-label="Emoji"
-          ref={emojiBtnRef}
-          onMouseDown={e => e.preventDefault()}
-          onClick={() => {
-            setShowEmoji(v => !v);
-            setShowGif(false);
-            setEmojiPickerKey(k => k + 1); // force re-render
-          }}
-          style={{background:'none',border:'none',fontSize:22,color:'#6366f1',padding:6,cursor:'pointer',outline:'none',boxShadow:'none'}}
-        >
-          <FaSmile />
-        </button>
-        <button type="button" aria-label="GIF" onClick={()=>{setShowGif(v=>!v); setShowEmoji(false);}} style={{background:'none',border:'none',fontSize:22,color:'#6366f1',padding:6,cursor:'pointer',outline:'none',boxShadow:'none'}}>
-          <HiOutlineGif />
-        </button>
-        <label style={{background:'none',border:'none',fontSize:22,color:'#6366f1',padding:6,cursor:'pointer',outline:'none',boxShadow:'none'}}>
-          <FaPaperclip />
-          <input type="file" multiple accept="image/*,video/*" style={{display:'none'}} onChange={handleFileChange} />
-        </label>
-        <textarea
-          ref={textareaRef}
-          value={value}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          onFocus={handleInputFocus}
-          onClick={handleInputFocus}
-          placeholder={placeholder}
-          rows={1}
-          style={{
-            flex:1,
-            resize:'none',
-            border:'1px solid #e5e7eb',
-            borderRadius:16,
-            padding:'0.7em 1em',
-            fontSize:'1em',
-            minHeight:44,
-            maxHeight:120,
-            outline:'none',
-            background:'#f8fafc',
-            marginRight:8,
-            overflow:'auto',
-            transition:'box-shadow 0.2s',
-          }}
-          autoComplete="off"
-          aria-label="Type a message"
-          disabled={disabled}
-        />
-        <button type="button" aria-label="Send" onClick={handleSendAll} disabled={(!value.trim() && uploads.length === 0) || disabled || sending} style={{background:'#6366f1',color:'#fff',border:'none',borderRadius:16,padding:'0.7em 1.1em',fontWeight:700,fontSize:'1.2em',cursor:'pointer',minWidth:44,minHeight:44,display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 1px 4px rgba(99,102,241,0.08)',opacity:sending?0.6:1}}>
-          <FaPaperPlane style={{fontSize:22}} />
-        </button>
-      </div>
-      {/* Emoji picker */}
-      {showEmoji && !showGif && (
+      {/* Emoji picker (desktop only) */}
+      {isDesktop && showEmoji && !showGif && (
         <div
           style={
             isMobile()
@@ -351,7 +582,7 @@ export default function ChatInput({
                   bottom: 70,
                   width: '95vw',
                   maxWidth: 320,
-                  height: 260,
+                  height: 320,
                   background: '#fff',
                   borderRadius: 12,
                   boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
@@ -375,6 +606,16 @@ export default function ChatInput({
                 }
           }
         >
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px 4px 12px'}}>
+            <input
+              type="text"
+              placeholder="Search emojis..."
+              style={{flex:1,padding:6,borderRadius:8,border:'1px solid #e5e7eb',marginRight:8}}
+              onChange={e => setEmojiSearch(e.target.value)}
+              value={emojiSearch}
+            />
+            <button onClick={()=>setShowEmoji(false)} style={{background:'none',border:'none',color:'#6366f1',fontSize:22,cursor:'pointer'}}>✕</button>
+          </div>
           <EmojiPicker
             key={emojiPickerKey}
             onEmojiClick={handleEmojiClick}
@@ -386,16 +627,9 @@ export default function ChatInput({
             lazyLoadEmojis
             autoFocusSearch={false}
             disableAutoFocus
+            search={emojiSearch}
           />
         </div>
-      )}
-      {/* GIF picker */}
-      {showGif && !showEmoji && (
-        <GifPicker onSelect={url => {
-          // Immediately send GIF as a message, only one per message
-          onSend({ text: '', media: [{ url, type: 'image/gif' }] });
-          setShowGif(false);
-        }} onClose={()=>setShowGif(false)} />
       )}
     </div>
   );

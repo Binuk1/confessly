@@ -6,6 +6,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
 .media-viewer-modal {
   background: #fff;
@@ -18,6 +20,8 @@
   flex-direction: column;
   align-items: center;
   position: relative;
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
 .media-viewer-close {
   position: absolute;
@@ -83,5 +87,25 @@
   .media-viewer-img, .media-viewer-video {
     max-width: 98vw;
     max-height: 40vh;
+  }
+  
+  .media-viewer-overlay {
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+  
+  .media-viewer-modal {
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+  
+  .media-viewer-nav button {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  
+  .media-viewer-close {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
 }

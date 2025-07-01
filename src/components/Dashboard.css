@@ -1,0 +1,51 @@
+/* Dashboard Modern UI Styles */
+.dashboard-main {
+  min-height: 100vh;
+  background: var(--bg, #f8fafc);
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-content {
+  flex: 1;
+  padding: 1.5rem 1rem 5rem 1rem;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dashboard-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.friend-requests-btn {
+  background: #fff;
+  color: #6366f1;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(99,102,241,0.08), 0 1.5px 4px rgba(0,0,0,0.03);
+  font-weight: 600;
+  padding: 0.7em 1.5em;
+  font-size: 1.08rem;
+  transition: box-shadow 0.2s, background 0.2s;
+  cursor: pointer;
+}
+.friend-requests-btn:hover {
+  background: #f1f5f9;
+  box-shadow: 0 4px 18px rgba(99,102,241,0.13);
+}
+
+@media (max-width: 600px) {
+  .dashboard-content {
+    padding: 1rem 0.2rem 5rem 0.2rem;
+  }
+  .dashboard-header-row {
+    flex-direction: column;
+    gap: 0.7rem;
+    align-items: stretch;
+  }
+}

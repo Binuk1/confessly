@@ -1,0 +1,26 @@
+/* Profile Modal Styles */
+.profile-modal {
+  min-width: 280px;
+  max-width: 350px;
+  background: var(--bg, #fff);
+  border-radius: 18px;
+  box-shadow: 0 6px 32px rgba(99,102,241,0.13), 0 2px 8px rgba(0,0,0,0.04);
+  padding: 2rem 1.5rem 1.5rem 1.5rem;
+  position: relative;
+  text-align: center;
+}
+.profile-info {
+  margin-top: 1.2rem;
+  font-size: 1.08rem;
+  color: var(--text, #181a20);
+}
+.close-modal {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  font-size: 2rem;
+  background: none;
+  border: none;
+  color: #6366f1;
+  cursor: pointer;
+}
