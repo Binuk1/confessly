@@ -5,6 +5,7 @@ import ConfessionList from './components/ConfessionList';
 import TrendingConfessions from './components/TrendingConfessions';
 import SettingsModal from './components/SettingsModal';
 import './App.css';
+import logo from './assets/android-chrome-192x192.png';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
@@ -18,27 +19,62 @@ function App() {
 
   useEffect(() => {
     if (darkMode) {
-      document.body.classList.add('dark-mode');
-      localStorage.setItem('darkMode', 'true');
+      document.body.classList.add('dark');
     } else {
-      document.body.classList.remove('dark-mode');
-      localStorage.setItem('darkMode', 'false');
+      document.body.classList.remove('dark');
     }
+    localStorage.setItem('darkMode', darkMode);
   }, [darkMode]);
 
   return (
-    <div className="App">
-      <header className="app-header">
-        <h1>Anonymous Confession Wall</h1>
+    <>
+      <header className="confession-wall-header" dir="ltr" style={{
+        background: 'linear-gradient(90deg, #4e54c8 0%, #8f94fb 100%)',
+        color: '#fff',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: '1.2rem 2rem 1.2rem 2rem',
+        borderRadius: '0 0 1.5rem 1.5rem',
+        boxShadow: '0 2px 12px 0 rgba(80,80,120,0.08)',
+        marginBottom: 0,
+        fontWeight: 600,
+        fontSize: '1.7rem',
+        letterSpacing: '0.01em',
+      }}>
+        <span className="confession-wall-title" style={{fontWeight:700, fontSize:'1.5em', letterSpacing:'0.01em'}}>Anonymous Confession Wall</span>
         <button 
-          className="settings-button"
+          className={`settings-button${showSettings ? ' open' : ''}`}
           onClick={() => setShowSettings(!showSettings)}
           aria-label="Settings"
+          style={{
+            background: 'none',
+            border: 'none',
+            borderRadius: 0,
+            padding: 0,
+            cursor: 'pointer',
+            color: '#fff',
+            marginLeft: '1.2em',
+            display: 'flex',
+            alignItems: 'center',
+          }}
         >
-          <FaCog size={24} />
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 24,
+            height: 24,
+            lineHeight: 0,
+            transition: 'transform 3s cubic-bezier(.4,2,.6,1)',
+            transform: showSettings ? 'rotate(360deg)' : 'rotate(0deg)',
+            willChange: 'transform',
+            verticalAlign: 'middle',
+          }}>
+            <FaCog size={24} style={{ display: 'block', margin: 0, padding: 0 }} />
+          </span>
         </button>
       </header>
-
       {showSettings && (
         <SettingsModal 
           darkMode={darkMode}
@@ -47,25 +83,25 @@ function App() {
         />
       )}
 
-      <ConfessionForm />
-      
-      <div className="toggle-bar">
-        <button
-          className={!viewTrending ? 'active' : ''}
-          onClick={() => setViewTrending(false)}
-        >
-          🆕 Latest
-        </button>
-        <button
-          className={viewTrending ? 'active' : ''}
-          onClick={() => setViewTrending(true)}
-        >
-          🔥 Trending
-        </button>
+      <div className="confession-wall-container">
+        <ConfessionForm />
+        <div className="toggle-bar">
+          <button
+            className={!viewTrending ? 'active' : ''}
+            onClick={() => setViewTrending(false)}
+          >
+            🆕 Latest
+          </button>
+          <button
+            className={viewTrending ? 'active' : ''}
+            onClick={() => setViewTrending(true)}
+          >
+            🔥 Trending
+          </button>
+        </div>
+        {viewTrending ? <TrendingConfessions /> : <ConfessionList />}
       </div>
-
-      {viewTrending ? <TrendingConfessions /> : <ConfessionList />}
-    </div>
+    </>
   );
 }
 

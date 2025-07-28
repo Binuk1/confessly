@@ -1,0 +1,33 @@
+.red-close {
+  background: #ef4444 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 0.5rem 1.2rem !important;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 1.5rem;
+  box-shadow: 0 2px 8px rgba(239,68,68,0.10);
+  transition: background 0.2s, color 0.2s;
+}
+.red-close:hover, .red-close:focus {
+  background: #b91c1c !important;
+  color: #fff !important;
+  outline: none;
+}
+
+.settings-content h3 {
+  font-size: 2.1rem;
+  font-weight: 800;
+  color: inherit;
+  margin-bottom: 2rem;
+  letter-spacing: 0.5px;
+}
+
+@media (max-width: 600px) {
+  .settings-content h3 {
+    margin-left: 2.5rem;
+    font-size: 1.2rem;
+  }
+}

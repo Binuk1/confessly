@@ -1,0 +1,105 @@
+/* Hide emoji button on mobile */
+@media (max-width: 600px) {
+  .form-actions .emoji-action {
+    display: none !important;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.left-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.right-actions {
+  display: flex;
+  align-items: center;
+}
+
+/* Modern, compact confession form */
+.confession-form {
+  background: #fff9d6;
+  border: 1.5px solid #ffe082;
+  border-radius: 10px;
+  padding: 0.7rem 0.7rem 0.5rem 0.7rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 1px 4px 0 rgba(80,80,120,0.04);
+  max-width: 370px;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .confession-form {
+    max-width: 100vw;
+    padding: 0.5rem 0.3rem 0.3rem 0.3rem;
+    border-radius: 8px;
+  }
+  
+  .form-actions {
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    width: 100%;
+    flex-wrap: nowrap;
+    margin-top: 0.3rem;
+    margin-bottom: 0.1rem;
+  }
+  
+  .left-actions {
+    gap: 0.3rem;
+  }
+  
+  .form-actions .submit-button {
+    width: auto !important;
+    min-width: unset !important;
+    max-width: 100%;
+    margin-left: 0 !important;
+    margin-bottom: 0 !important;
+    padding-left: 1.1em;
+    padding-right: 1.1em;
+    white-space: nowrap;
+    align-self: center;
+    box-sizing: border-box;
+  }
+  
+  .form-actions .action-button {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    align-self: center;
+    box-sizing: border-box;
+  }
+}
+/* Remove focus outline from all action buttons */
+.action-button:focus,
+.action-button:active,
+.gif-button:focus,
+.gif-button:active,
+.emoji-action:focus,
+.emoji-action:active,
+.submit-button:focus,
+.submit-button:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Optional: Add a subtle custom focus state instead */
+.action-button:focus,
+.gif-button:focus,
+.emoji-action:focus {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(0.98);
+}
+
+.submit-button:focus {
+  background-color: rgba(0, 0, 0, 0.1);
+}

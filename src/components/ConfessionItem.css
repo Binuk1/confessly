@@ -1,0 +1,89 @@
+.reply-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.left-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.right-actions {
+  display: flex;
+  align-items: center;
+}
+
+.reply-wrapper {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+@media (max-width: 600px) {
+  .reply-actions {
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    flex-wrap: nowrap;
+    margin-top: 0.3rem;
+  }
+  
+  .left-actions {
+    gap: 0.3rem;
+  }
+  
+  .reply-actions .submit-button {
+    width: auto !important;
+    min-width: unset !important;
+    max-width: 100%;
+    margin-left: 0 !important;
+    margin-bottom: 0 !important;
+    padding-left: 1.1em !important;
+    padding-right: 1.1em !important;
+    white-space: nowrap;
+    align-self: center;
+    box-sizing: border-box;
+  }
+  
+  .reply-actions .action-button {
+    width: auto;
+    min-width: 0;
+    max-width: 100%;
+    align-self: center;
+    box-sizing: border-box;
+  }
+}
+/* Remove focus outline from all action buttons */
+.action-button:focus,
+.action-button:active,
+.gif-button:focus,
+.gif-button:active,
+.emoji-action:focus,
+.emoji-action:active,
+.submit-button:focus,
+.submit-button:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* Optional: Add a subtle custom focus state instead */
+.action-button:focus,
+.gif-button:focus,
+.emoji-action:focus {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: scale(0.98);
+}
+
+.submit-button:focus {
+  background-color: rgba(0, 0, 0, 0.1);
+}

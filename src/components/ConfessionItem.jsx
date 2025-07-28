@@ -1,75 +1,53 @@
 import { useState, useEffect, useRef } from 'react';
-import { doc, updateDoc, collection, query, onSnapshot, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
+import SkeletonItem from './SkeletonItem';
 import GifPicker from './GifPicker';
 import EmojiPicker from 'emoji-picker-react';
-import SkeletonItem from './SkeletonItem'; // ADDED
+import { HiGif } from 'react-icons/hi2';
+import { MdOutlineEmojiEmotions } from 'react-icons/md';
+import './ConfessionItem.css';
 
 const emojis = ['❤️', '😂', '😢', '😡', '👍'];
 
 function ConfessionItem({ confession, rank }) {
-  const [selectedEmoji, setSelectedEmoji] = useState(null);
-  const [showReplies, setShowReplies] = useState(false);
-  const [replies, setReplies] = useState([]);
-  const [replyText, setReplyText] = useState('');
-  const [replyCount, setReplyCount] = useState(0);
+  const [selectedEmoji, setSelectedEmoji] = useState(() => 
+    localStorage.getItem(`reaction-${confession.id}`) || null
+  );
   const [loading, setLoading] = useState(false);
+  const [showReplies, setShowReplies] = useState(false);
+  const [replyCount, setReplyCount] = useState(confession.replyCount || 0);
   const [error, setError] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [replyGifUrl, setReplyGifUrl] = useState("");
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [replyGifUrl, setReplyGifUrl] = useState('');
-  const [replyMediaUrl, setReplyMediaUrl] = useState('');
-  const [replyMediaType, setReplyMediaType] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState('');
-  const [dragOver, setDragOver] = useState(false);
-  const emojiPickerRef = useRef(null);
+  const [replies, setReplies] = useState([]);
+  
   const textareaRef = useRef(null);
+  const emojiPickerRef = useRef(null);
 
-  useEffect(() => {
-    const stored = localStorage.getItem(`reaction-${confession.id}`);
-    if (stored) setSelectedEmoji(stored);
-  }, [confession.id]);
+  function getBadge() {
+    switch (rank) {
+      case 1: 
+        return '🥇';
+      case 2: 
+        return '🥈';
+      case 3: 
+        return '🥉';
+      case 4:
+      case 5: 
+        return '🏅';
+      default: 
+        return null;
+    }
+  }
 
-  useEffect(() => {
-    const repliesRef = collection(db, 'confessions', confession.id, 'replies');
-    const unsubscribeCount = onSnapshot(repliesRef, (snapshot) => {
-      setReplyCount(snapshot.size);
-    });
-    return () => unsubscribeCount();
-  }, [confession.id]);
-
-  useEffect(() => {
-    if (!showReplies) return;
-
-    setLoading(true);
-    const q = query(
-      collection(db, 'confessions', confession.id, 'replies'),
-      orderBy('createdAt', 'desc')
-    );
-
-    const unsubscribeReplies = onSnapshot(q,
-      (snapshot) => {
-        setReplies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-        setLoading(false);
-        setError(null);
-      },
-      (err) => {
-        console.error("Error loading replies:", err);
-        setError("Failed to load replies.");
-        setLoading(false);
-      }
-    );
-
-    return () => unsubscribeReplies();
-  }, [showReplies, confession.id]);
-
-  const toggleReaction = async (emoji) => {
+  async function toggleReaction(emoji) {
     try {
-      const docRef = doc(db, 'confessions', confession.id);
       const currentReactions = confession.reactions || {};
       const newReactions = { ...currentReactions };
-
+      
       if (selectedEmoji === emoji) {
         newReactions[emoji] = (newReactions[emoji] || 1) - 1;
         setSelectedEmoji(null);
@@ -82,124 +60,53 @@ function ConfessionItem({ confession, rank }) {
         setSelectedEmoji(emoji);
         localStorage.setItem(`reaction-${confession.id}`, emoji);
       }
-
-      await updateDoc(docRef, { reactions: newReactions });
+      
+      // TODO: Update Firestore with newReactions
     } catch (err) {
       console.error("Error updating reaction:", err);
     }
-  };
+  }
 
-  const handleReplyFileChange = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    setReplyGifUrl('');
-    setReplyMediaUrl('');
-    setUploadError('');
-    setIsUploading(true);
-
-    if (file.type.startsWith('image') && file.size > 2 * 1024 * 1024) {
-      setUploadError('Image must be smaller than 2MB');
-      setIsUploading(false);
-      return;
-    }
-
-    if (file.type.startsWith('video')) {
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.onloadedmetadata = function () {
-        window.URL.revokeObjectURL(video.src);
-        if (video.duration > 60) {
-          setUploadError('Video must be shorter than 60 seconds');
-          setIsUploading(false);
-          return;
-        }
-        proceedUpload(file);
-      };
-      video.src = URL.createObjectURL(file);
-    } else {
-      proceedUpload(file);
-    }
-  };
-
-  const proceedUpload = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', 'ml_default'); // replace
-    const CLOUD_NAME = 'dqptpxh4r'; // replace
-
-    try {
-      const resourceType = file.type.startsWith('image') ? 'image' : 'video';
-      const api = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`;
-
-      const response = await fetch(api, { method: 'POST', body: formData });
-      if (!response.ok) throw new Error(`Cloudinary upload failed: ${response.status}`);
-
-      const data = await response.json();
-      setReplyMediaUrl(data.secure_url);
-      setReplyMediaType(resourceType);
-    } catch (err) {
-      setUploadError('Upload failed.');
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleReplySubmit = async (e) => {
+  function handleReplySubmit(e) {
     e.preventDefault();
-    if (!replyText.trim() && !replyGifUrl && !replyMediaUrl) return;
-
-    setLoading(true);
-    try {
-      await addDoc(collection(db, 'confessions', confession.id, 'replies'), {
-        text: replyText.trim(),
-        gifUrl: replyGifUrl || null,
-        mediaUrl: replyMediaUrl || null,
-        mediaType: replyMediaType || null,
-        createdAt: serverTimestamp()
-      });
-      setReplyText('');
-      setReplyGifUrl('');
-      setReplyMediaUrl('');
-      setReplyMediaType('');
-      setUploadError('');
-      setShowEmojiPicker(false);
-    } catch (err) {
-      console.error("Reply error:", err);
-      setError("Failed to post reply.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getBadge = () => {
-    switch (rank) {
-      case 1: return '🥇';
-      case 2: return '🥈';
-      case 3: return '🥉';
-      case 4:
-      case 5: return '🏅';
-      default: return null;
-    }
-  };
+    // TODO: Implement reply submission logic
+    console.log('Reply submitted:', { text: replyText, gifUrl: replyGifUrl });
+  }
 
   return (
     <div className={`confession-item rank-${rank || ''}`}>
       {rank && <div className="rank-badge">{getBadge()}</div>}
+      
       <p>{confession.text}</p>
 
       {confession.mediaUrl && (
         <div className="media-container">
           {confession.mediaType === 'image' ? (
-            <img src={confession.mediaUrl} alt="Confession media" className="confession-media" loading="lazy" />
+            <img 
+              src={confession.mediaUrl} 
+              alt="Confession media" 
+              className="confession-media" 
+              loading="lazy" 
+            />
           ) : (
-            <video src={confession.mediaUrl} controls className="confession-media" loading="lazy" />
+            <video 
+              src={confession.mediaUrl} 
+              controls 
+              className="confession-media" 
+              loading="lazy" 
+            />
           )}
         </div>
       )}
+
       {confession.gifUrl && !confession.mediaUrl && (
         <div className="media-container">
-          <img src={confession.gifUrl} alt="Confession GIF" className="confession-gif" loading="lazy" />
+          <img 
+            src={confession.gifUrl} 
+            alt="Confession GIF" 
+            className="confession-gif" 
+            loading="lazy" 
+          />
         </div>
       )}
 
@@ -221,7 +128,7 @@ function ConfessionItem({ confession, rank }) {
         <button
           className="toggle-replies-btn"
           onClick={() => setShowReplies(!showReplies)}
-          disabled={loading}
+          disabled={loading && !showReplies}
           aria-expanded={showReplies}
         >
           {showReplies ? 'Hide Replies' : `Show Replies (${replyCount})`}
@@ -232,132 +139,143 @@ function ConfessionItem({ confession, rank }) {
             {error && <div className="error-message">{error}</div>}
 
             <form onSubmit={handleReplySubmit} className="reply-form">
-              <div
-                className={`textarea-wrapper reply-wrapper ${dragOver ? 'drag-over' : ''}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOver(true);
-                }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOver(false);
-                  const file = e.dataTransfer.files[0];
-                  if (file) handleReplyFileChange({ target: { files: [file] } });
-                }}
-              >
+              <div className="textarea-wrapper reply-wrapper">
                 <textarea
                   ref={textareaRef}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Write your reply..."
                   rows={2}
-                  disabled={loading || isUploading}
+                  disabled={loading}
                 />
-                <div className="reply-actions">
-                  <label className="file-input-label">
-                    📷
-                    <input
-                      type="file"
-                      accept="image/*,video/*"
-                      onChange={handleReplyFileChange}
-                      disabled={isUploading}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-                  <button type="button" onClick={() => setShowGifPicker(!showGifPicker)} className="action-button">GIF</button>
-                  <button type="button" onClick={() => setShowEmojiPicker(!showEmojiPicker)} className="action-button">😊</button>
-                  <button
-                    type="button"
-                    onClick={() => alert('Max image size: 2MB\nMax video length: 60 seconds')}
-                    className="action-button"
-                    title="Max image: 2MB, Max video: 60s"
-                  >
-                    ℹ️
-                  </button>
-                  {/* UPDATED: Reply button */}
-                  <button
-                    type="submit"
-                    className="submit-button"
-                    disabled={loading || isUploading || (!replyText.trim() && !replyGifUrl && !replyMediaUrl)}
-                  >
-                    {(loading || isUploading) ? 'Posting...' : 'Reply'}
-                  </button>
-
-                  {showEmojiPicker && (
-                    <div className="emoji-picker-container upwards" ref={emojiPickerRef}>
-                      <EmojiPicker
-                        onEmojiClick={(emojiData) => {
-                          setReplyText(prev => prev + emojiData.emoji);
-                          textareaRef.current.focus();
-                        }}
-                        width={300}
-                        height={350}
-                        previewConfig={{ showPreview: false }}
-                        searchPlaceholder="Search emojis..."
-                        skinTonesDisabled
-                        lazyLoadEmojis
-                      />
-                    </div>
-                  )}
+                <div className="reply-actions" style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  gap: '0.5rem',
+                  marginTop: '0.5rem'
+                }}>
+                  <div className="left-actions" style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowGifPicker(!showGifPicker)}
+                      className="action-button gif-button"
+                      aria-label="Add GIF"
+                    >
+                      <HiGif size={24} />
+                    </button>
+                    <button
+                      type="button"
+                      ref={emojiPickerRef}
+                      onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                      className="action-button emoji-action"
+                      aria-label="Add emoji"
+                    >
+                      <MdOutlineEmojiEmotions size={24} />
+                    </button>
+                  </div>
+                  <div className="right-actions">
+                    <button
+                      type="submit"
+                      className="submit-button"
+                      disabled={loading || (!replyText.trim() && !replyGifUrl)}
+                      style={{ 
+                        width: 'auto',
+                        minWidth: 'unset',
+                        paddingLeft: '1.1em',
+                        paddingRight: '1.1em',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {loading ? 'Posting...' : 'Reply'}
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {showEmojiPicker && (
+                <div className="emoji-picker-overlay" onClick={() => setShowEmojiPicker(false)}>
+                  <div
+                    className="emoji-picker-modal"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="emoji-picker-header">
+                      <span className="emoji-picker-title">Select Emoji</span>
+                      <button 
+                        className="close-emoji-picker-modal" 
+                        onClick={() => setShowEmojiPicker(false)}
+                      >
+                        Done
+                      </button>
+                    </div>
+                    <EmojiPicker
+                      onEmojiClick={(emojiData) => {
+                        setReplyText(prev => prev + emojiData.emoji);
+                        setShowEmojiPicker(false);
+                        textareaRef.current?.focus();
+                      }}
+                      width={320}
+                      height={350}
+                      previewConfig={{ showPreview: false }}
+                      searchPlaceholder="Search emojis..."
+                      skinTonesDisabled
+                      lazyLoadEmojis
+                      className="minimal-emoji-picker"
+                    />
+                  </div>
+                </div>
+              )}
             </form>
 
-            {replyMediaUrl && (
+            {replyGifUrl && (
               <div className="gif-preview-container">
-                {replyMediaType === 'image' ? (
-                  <img src={replyMediaUrl} alt="Reply preview" className="gif-preview" />
-                ) : (
-                  <video src={replyMediaUrl} controls className="gif-preview" />
-                )}
-                <button type="button" onClick={() => { setReplyMediaUrl(''); setUploadError(''); }} className="remove-gif">×</button>
-              </div>
-            )}
-            {replyGifUrl && !replyMediaUrl && (
-              <div className="gif-preview-container">
-                <img src={replyGifUrl} alt="Reply GIF preview" className="gif-preview" />
-                <button type="button" onClick={() => setReplyGifUrl('')} className="remove-gif">×</button>
+                <img 
+                  src={replyGifUrl} 
+                  alt="Reply GIF preview" 
+                  className="gif-preview" 
+                />
+                <button 
+                  type="button" 
+                  onClick={() => setReplyGifUrl('')} 
+                  className="remove-gif"
+                >
+                  Remove
+                </button>
               </div>
             )}
 
-            {/* UPDATED: Reply upload loader */}
-            {isUploading && <SkeletonItem />}
-            {uploadError && <div className="error-message">{uploadError}</div>}
-            
             {showGifPicker && (
               <GifPicker
                 onSelect={(url) => {
                   setReplyGifUrl(url);
-                  setReplyMediaUrl('');
-                  setShowGifPicker(false);
+                  setTimeout(() => setShowGifPicker(false), 0);
                 }}
                 onClose={() => setShowGifPicker(false)}
               />
             )}
 
-            {/* UPDATED: Reply list loader */}
             {loading && replies.length === 0 && <SkeletonItem />}
 
             {!loading && replies.map((reply) => (
               <div key={reply.id} className="reply-item">
                 <p>{reply.text}</p>
-                {reply.mediaUrl && (
+                {reply.gifUrl && (
                   <div className="media-container">
-                    {reply.mediaType === 'image' ? (
-                      <img src={reply.mediaUrl} alt="Reply media" className="reply-gif" loading="lazy" />
-                    ) : (
-                      <video src={reply.mediaUrl} controls className="reply-gif" loading="lazy" />
-                    )}
-                  </div>
-                )}
-                {reply.gifUrl && !reply.mediaUrl && (
-                  <div className="media-container">
-                    <img src={reply.gifUrl} alt="Reply GIF" className="reply-gif" loading="lazy" />
+                    <img 
+                      src={reply.gifUrl} 
+                      alt="Reply GIF" 
+                      className="reply-gif" 
+                      loading="lazy" 
+                    />
                   </div>
                 )}
                 <div className="reply-meta">
-                  <span>{new Date(reply.createdAt?.toDate()).toLocaleString()}</span>
+                  <span>
+                    {reply.createdAt?.toDate 
+                      ? new Date(reply.createdAt.toDate()).toLocaleString() 
+                      : ''
+                    }
+                  </span>
                 </div>
               </div>
             ))}

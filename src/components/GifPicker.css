@@ -1,41 +1,249 @@
-.gif-picker {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-top: 1rem;
-  background: white;
-}
-
-.gif-search {
+/* GIF Picker Header */
+.gif-picker-header {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.gif-picker-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.25);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gif-picker-modal {
+  position: relative;
+  max-width: 420px;
+  width: 96vw;
+  max-height: 80vh;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+  padding: 0.7rem 0.7rem 1rem 0.7rem;
+  animation: gif-modal-in 0.18s cubic-bezier(.4,0,.2,1);
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes gif-modal-in {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* Provider Toggle */
+.gif-provider-toggle {
+  display: flex;
+  justify-content: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
 }
 
-.gif-search input {
-  flex: 1;
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.gif-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.gif-item {
-  width: 100%;
-  height: 100px;
-  object-fit: cover;
+.gif-provider-toggle button {
+  background: #f3f3f3;
+  border: none;
+  border-radius: 20px;
+  padding: 0.3rem 1.1rem;
+  font-weight: 500;
   cursor: pointer;
-  border-radius: 4px;
-  transition: transform 0.2s;
+  transition: background 0.2s;
 }
 
-.gif-item:hover {
-  transform: scale(1.05);
+.gif-provider-toggle .active {
+  background: #4f8cff;
+  color: #fff;
+}
+
+/* Done Button */
+.done-gif-picker-modal {
+  background: #4f8cff;
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  padding: 0.4rem 1.1rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+  transition: background 0.18s, color 0.18s;
+  margin-left: 1rem;
+}
+
+.done-gif-picker-modal:hover {
+  background: #2563eb;
+}
+
+/* Search Row */
+.gif-search-row {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 0.7rem;
+}
+
+.gif-search-input {
+  flex: 1;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.gif-trending-btn {
+  background: #f3f3f3;
+  border: none;
+  border-radius: 6px;
+  padding: 0.4rem 0.7rem;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.gif-trending-btn:hover {
+  background: #e6e6e6;
+}
+
+/* Masonry Grid Layout - Better for Full-Form GIFs */
+.gif-masonry-grid {
+  display: columns;
+  columns: 3;
+  column-gap: 0.5rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: 50vh;
+  padding-right: 4px;
+}
+
+.gif-item-container {
+  position: relative;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  break-inside: avoid;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  background: #f8f9fa;
+}
+
+.gif-item-container:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(79,140,255,0.2);
+}
+
+.gif-item-masonry {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
+  transition: opacity 0.3s;
+}
+
+.gif-item-container.loading .gif-item-masonry {
+  opacity: 0.3;
+}
+
+.gif-item-container.loaded .gif-item-masonry {
+  opacity: 1;
+}
+
+/* Loading States */
+.gif-loading-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gif-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #4f8cff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Skeleton Loading */
+.gif-skeleton-masonry {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f3f3f3 25%, #e9e9e9 50%, #f3f3f3 75%);
+  background-size: 200% 100%;
+  animation: gif-skeleton-loading 1.2s infinite linear;
+  margin-bottom: 0.5rem;
+  break-inside: avoid;
+}
+
+@keyframes gif-skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* No Results */
+.no-gifs {
+  text-align: center;
+  color: #666;
+  padding: 2rem;
+  font-size: 1.1rem;
+  grid-column: 1 / -1;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 600px) {
+  .gif-picker-modal {
+    max-width: 98vw;
+    max-height: 85vh;
+    padding: 0.5rem 0.3rem 0.7rem 0.3rem;
+  }
+  
+  .gif-masonry-grid {
+    columns: 2;
+    column-gap: 0.3rem;
+    max-height: 60vh;
+  }
+  
+  .gif-item-container {
+    margin-bottom: 0.3rem;
+  }
+  
+  .gif-search-row {
+    gap: 0.2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .gif-search-input {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .gif-trending-btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 400px) {
+  .gif-masonry-grid {
+    columns: 1;
+  }
+}
+
+/* Remove focus outline from buttons */
+.gif-provider-toggle button:focus,
+.done-gif-picker-modal:focus,
+.gif-trending-btn:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }
