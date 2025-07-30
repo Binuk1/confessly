@@ -36,6 +36,28 @@
   width: 100%;
 }
 
+/* Disable textarea resize completely */
+.confession-form textarea {
+  resize: none !important;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Character counter styling (updated from word-counter) */
+.word-counter {
+  font-size: 0.8rem;
+  color: #666;
+  text-align: right;
+  margin-top: 0.25rem;
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.word-counter.over-limit {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
 @media (max-width: 600px) {
   .confession-form {
     max-width: 100vw;
@@ -77,7 +99,13 @@
     align-self: center;
     box-sizing: border-box;
   }
+
+  .word-counter {
+    font-size: 0.75rem;
+    margin-top: 0.2rem;
+  }
 }
+
 /* Remove focus outline from all action buttons */
 .action-button:focus,
 .action-button:active,
@@ -102,4 +130,10 @@
 
 .submit-button:focus {
   background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Disabled state for over limit */
+.submit-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

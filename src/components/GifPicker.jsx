@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './GifPicker.css';
 
 const GIPHY_API_KEY = 'tLRGmg6oGtDwRGJSN7Fscds41a2vEhKt';
@@ -14,177 +14,296 @@ function GifPicker({ onSelect, onClose }) {
   const [query, setQuery] = useState('');
   const [gifs, setGifs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [loadedImages, setLoadedImages] = useState(new Set());
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [imageCache] = useState(new Map());
+  
   const debounceRef = useRef();
   const abortControllerRef = useRef();
+  const observerRef = useRef();
+  const loadMoreTriggerRef = useRef();
 
-  // Preload images for better UX
+  // Ultra-fast image preloader with cache
   const preloadImage = useCallback((src, gifId) => {
-    if (loadedImages.has(gifId)) return;
+    if (imageCache.has(gifId)) return Promise.resolve();
     
-    const img = new Image();
-    img.onload = () => {
-      setLoadedImages(prev => new Set([...prev, gifId]));
-    };
-    img.src = src;
-  }, [loadedImages]);
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        imageCache.set(gifId, true);
+        resolve();
+      };
+      img.onerror = resolve; // Don't fail on image errors
+      img.src = src;
+    });
+  }, [imageCache]);
 
-  // Batch preload images
+  // Batch preload with immediate execution - using originalId for consistency
   const batchPreloadImages = useCallback((gifList) => {
-    gifList.forEach((gif, index) => {
-      // Stagger the preloading to avoid overwhelming the browser
-      setTimeout(() => {
-        preloadImage(gif.thumb, gif.id);
-      }, index * 50); // 50ms delay between each preload
+    // Preload all visible images immediately
+    const promises = gifList.slice(0, 50).map(gif => 
+      preloadImage(gif.thumb, gif.originalId)
+    );
+    
+    // Background preload for the rest
+    Promise.allSettled(promises).then(() => {
+      gifList.slice(50).forEach((gif, index) => {
+        setTimeout(() => preloadImage(gif.thumb, gif.originalId), index * 10);
+      });
     });
   }, [preloadImage]);
 
+  // Intersection Observer for infinite scroll
   useEffect(() => {
+    if (!loadMoreTriggerRef.current) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loading && !loadingMore) {
+          loadMoreGifs();
+        }
+      },
+      { threshold: 0.1, rootMargin: '200px' }
+    );
+
+    observerRef.current.observe(loadMoreTriggerRef.current);
+
+    return () => observerRef.current?.disconnect();
+  }, [hasMore, loading, loadingMore, provider, query]);
+
+  // Reset and fetch on provider/query change
+  useEffect(() => {
+    setGifs([]);
+    setOffset(0);
+    setHasMore(true);
+    
     if (!query.trim()) {
-      fetchTrending();
+      fetchTrending(true);
     } else {
-      // Debounced search
+      // Instant search - no debounce!
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
-        searchGifs(query);
-      }, 400);
+        searchGifs(query, true);
+      }, 50); // Super fast response
     }
     
-    // Cleanup function
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
+    return () => abortControllerRef.current?.abort();
   }, [provider, query]);
 
-  const fetchTrending = async () => {
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+  const processGiphyData = useCallback((data, currentOffset) => {
+    return data.map((gif, index) => ({
+      id: `${gif.id}-${currentOffset}-${index}`,
+      originalId: gif.id,
+      url: gif.images.original.url,
+      // Use smaller, faster loading images
+      thumb: gif.images.preview_gif?.url || gif.images.fixed_height_small.url,
+      title: gif.title || 'GIF',
+    }));
+  }, []);
+
+  const processTenorData = useCallback((results, currentOffset) => {
+    return results.map((gif, index) => {
+      const gifMedia = gif.media_formats?.gif || Object.values(gif.media_formats)[0];
+      const thumbMedia = gif.media_formats?.preview || gif.media_formats?.tinygif || gifMedia;
+      return {
+        id: `${gif.id}-${currentOffset}-${index}`,
+        originalId: gif.id,
+        url: gifMedia.url,
+        thumb: thumbMedia.url,
+        title: gif.content_description || 'GIF',
+      };
+    });
+  }, []);
+
+  const fetchTrending = async (isNewSearch = false) => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+    
+    const currentOffset = isNewSearch ? 0 : offset;
+    
+    if (isNewSearch) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
     }
     
-    abortControllerRef.current = new AbortController();
-    setLoading(true);
-    setLoadedImages(new Set()); // Reset loaded images
-    
     try {
-      let url;
+      const limit = 50; // Increased for better performance
+      let url, processedGifs, hasMoreResults, nextOffset;
+      
       if (provider === 'giphy') {
-        url = `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=50`;
+        url = `https://api.giphy.com/v1/gifs/trending?api_key=${GIPHY_API_KEY}&limit=${limit}&offset=${currentOffset}`;
         const res = await fetch(url, { signal: abortControllerRef.current.signal });
-        const { data } = await res.json();
-        const processedGifs = data.map(gif => ({
-          id: gif.id,
-          url: gif.images.original.url,
-          thumb: gif.images.fixed_height_small.url,
-          title: gif.title,
-          width: gif.images.fixed_height_small.width,
-          height: gif.images.fixed_height_small.height
-        }));
-        setGifs(processedGifs);
-        batchPreloadImages(processedGifs);
+        const { data, pagination } = await res.json();
+        
+        processedGifs = processGiphyData(data, currentOffset);
+        hasMoreResults = pagination.total_count > currentOffset + limit;
+        nextOffset = currentOffset + limit;
       } else {
-        url = `https://tenor.googleapis.com/v2/featured?key=${TENOR_API_KEY}&limit=50&media_filter=gif`;
+        const pos = isNewSearch ? '' : `&pos=${currentOffset}`;
+        url = `https://tenor.googleapis.com/v2/featured?key=${TENOR_API_KEY}&limit=${limit}&media_filter=gif${pos}`;
         const res = await fetch(url, { signal: abortControllerRef.current.signal });
-        const { results } = await res.json();
-        const processedGifs = results.map(gif => {
-          const gifMedia = gif.media_formats?.gif || Object.values(gif.media_formats)[0];
-          const thumbMedia = gif.media_formats?.tinygif || gifMedia;
-          return {
-            id: gif.id,
-            url: gifMedia.url,
-            thumb: thumbMedia.url,
-            title: gif.content_description,
-            width: thumbMedia.dims?.[0] || 200,
-            height: thumbMedia.dims?.[1] || 200
-          };
-        });
-        setGifs(processedGifs);
-        batchPreloadImages(processedGifs);
+        const { results, next } = await res.json();
+        
+        processedGifs = processTenorData(results, currentOffset);
+        hasMoreResults = !!next;
+        nextOffset = next || 0;
       }
+      
+      if (isNewSearch) {
+        setGifs(processedGifs);
+      } else {
+        setGifs(prev => [...prev, ...processedGifs]);
+      }
+      
+      setHasMore(hasMoreResults);
+      setOffset(nextOffset);
+      batchPreloadImages(processedGifs);
+      
     } catch (err) {
       if (err.name !== 'AbortError') {
-        setGifs([]);
+        console.warn('Fetch error:', err);
+        if (isNewSearch) setGifs([]);
+        setHasMore(false);
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  const searchGifs = async (searchTerm) => {
+  const searchGifs = async (searchTerm, isNewSearch = false) => {
     if (!searchTerm.trim()) return;
     
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
+    if (abortControllerRef.current) abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+    
+    const currentOffset = isNewSearch ? 0 : offset;
+    
+    if (isNewSearch) {
+      setLoading(true);
+    } else {
+      setLoadingMore(true);
     }
     
-    abortControllerRef.current = new AbortController();
-    setLoading(true);
-    setLoadedImages(new Set()); // Reset loaded images
-    
     try {
-      let url;
+      const limit = 50;
+      let url, processedGifs, hasMoreResults, nextOffset;
+      
       if (provider === 'giphy') {
-        url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(searchTerm)}&limit=50`;
+        url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(searchTerm)}&limit=${limit}&offset=${currentOffset}`;
         const res = await fetch(url, { signal: abortControllerRef.current.signal });
-        const { data } = await res.json();
-        const processedGifs = data.map(gif => ({
-          id: gif.id,
-          url: gif.images.original.url,
-          thumb: gif.images.fixed_height_small.url,
-          title: gif.title,
-          width: gif.images.fixed_height_small.width,
-          height: gif.images.fixed_height_small.height
-        }));
-        setGifs(processedGifs);
-        batchPreloadImages(processedGifs);
+        const { data, pagination } = await res.json();
+        
+        processedGifs = processGiphyData(data, currentOffset);
+        hasMoreResults = pagination.total_count > currentOffset + limit;
+        nextOffset = currentOffset + limit;
       } else {
-        url = `https://tenor.googleapis.com/v2/search?key=${TENOR_API_KEY}&q=${encodeURIComponent(searchTerm)}&limit=50&media_filter=gif`;
+        const pos = isNewSearch ? '' : `&pos=${currentOffset}`;
+        url = `https://tenor.googleapis.com/v2/search?key=${TENOR_API_KEY}&q=${encodeURIComponent(searchTerm)}&limit=${limit}&media_filter=gif${pos}`;
         const res = await fetch(url, { signal: abortControllerRef.current.signal });
-        const { results } = await res.json();
-        const processedGifs = results.map(gif => {
-          const gifMedia = gif.media_formats?.gif || Object.values(gif.media_formats)[0];
-          const thumbMedia = gif.media_formats?.tinygif || gifMedia;
-          return {
-            id: gif.id,
-            url: gifMedia.url,
-            thumb: thumbMedia.url,
-            title: gif.content_description,
-            width: thumbMedia.dims?.[0] || 200,
-            height: thumbMedia.dims?.[1] || 200
-          };
-        });
-        setGifs(processedGifs);
-        batchPreloadImages(processedGifs);
+        const { results, next } = await res.json();
+        
+        processedGifs = processTenorData(results, currentOffset);
+        hasMoreResults = !!next;
+        nextOffset = next || 0;
       }
+      
+      if (isNewSearch) {
+        setGifs(processedGifs);
+      } else {
+        setGifs(prev => [...prev, ...processedGifs]);
+      }
+      
+      setHasMore(hasMoreResults);
+      setOffset(nextOffset);
+      batchPreloadImages(processedGifs);
+      
     } catch (err) {
       if (err.name !== 'AbortError') {
-        setGifs([]);
+        console.warn('Search error:', err);
+        if (isNewSearch) setGifs([]);
+        setHasMore(false);
       }
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
+  const loadMoreGifs = useCallback(() => {
+    if (!query.trim()) {
+      fetchTrending(false);
+    } else {
+      searchGifs(query, false);
+    }
+  }, [query]);
+
+  const handleProviderChange = useCallback((e, newProvider) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setProvider(newProvider);
+  }, []);
+
+  const handleTrendingClick = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setQuery('');
+  }, []);
+
+  const handleClose = useCallback((e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    onClose();
+  }, [onClose]);
+
+  const handleOverlayClick = useCallback((e) => {
+    if (e.target === e.currentTarget) {
+      handleClose(e);
+    }
+  }, [handleClose]);
+
+  const handleGifSelect = useCallback((e, gifUrl) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSelect(gifUrl);
+  }, [onSelect]);
+
+  // Memoized skeleton loading
+  const skeletonItems = useMemo(() => 
+    Array.from({ length: 21 }, (_, i) => (
+      <div key={`skeleton-${i}`} className="gif-skeleton" />
+    )), []
+  );
+
   return (
-    <div className="gif-picker-overlay">
-      <div className="gif-picker-modal gif-picker-modern">
+    <div className="gif-picker-overlay" onClick={handleOverlayClick}>
+      <div className="gif-picker-modal" onClick={e => e.stopPropagation()}>
         <div className="gif-picker-header">
           <div className="gif-provider-toggle">
             {PROVIDERS.map(opt => (
               <button
                 key={opt.value}
+                type="button"
                 className={provider === opt.value ? 'active' : ''}
-                onClick={() => setProvider(opt.value)}
+                onClick={(e) => handleProviderChange(e, opt.value)}
               >
                 {opt.name}
               </button>
             ))}
           </div>
-          <button onClick={onClose} className="done-gif-picker-modal">Done</button>
+          <button 
+            type="button"
+            onClick={handleClose} 
+            className="done-gif-picker-modal"
+          >
+            Done
+          </button>
         </div>
+        
         <div className="gif-search-row">
           <input
             type="text"
@@ -194,42 +313,53 @@ function GifPicker({ onSelect, onClose }) {
             className="gif-search-input"
             autoFocus
           />
-          <button onClick={fetchTrending} disabled={loading} className="gif-trending-btn" title="Show trending GIFs">
+          <button 
+            type="button"
+            onClick={handleTrendingClick} 
+            disabled={loading} 
+            className="gif-trending-btn"
+            title="Show trending GIFs"
+          >
             🔥
           </button>
         </div>
-        <div className="gif-masonry-grid">
-          {loading
-            ? Array.from({ length: 20 }).map((_, i) => (
-                <div key={i} className="gif-skeleton-masonry" />
-              ))
-            : gifs.map((gif) => (
-                <div
-                  key={gif.id}
-                  className={`gif-item-container ${loadedImages.has(gif.id) ? 'loaded' : 'loading'}`}
-                  onClick={() => onSelect(gif.url)}
-                >
-                  <img
-                    src={gif.thumb}
-                    alt={gif.title}
-                    className="gif-item-masonry"
-                    loading="lazy"
-                    style={{
-                      aspectRatio: `${gif.width}/${gif.height}`,
-                      width: '100%',
-                      height: 'auto'
-                    }}
-                  />
-                  {!loadedImages.has(gif.id) && (
-                    <div className="gif-loading-overlay">
-                      <div className="gif-spinner"></div>
-                    </div>
-                  )}
-                </div>
-              ))}
-          {!loading && gifs.length === 0 && (
-            <div className="no-gifs">No GIFs found.</div>
-          )}
+        
+        <div className="gif-grid-container">
+          <div className="gif-flex-grid">
+            {gifs.map((gif) => (
+              <div
+                key={gif.id}
+                className="gif-item-container loaded"
+                onClick={(e) => handleGifSelect(e, gif.url)}
+              >
+                <img
+                  src={gif.thumb}
+                  alt={gif.title}
+                  className="gif-item-image"
+                  loading="eager"
+                  decoding="async"
+                />
+              </div>
+            ))}
+            
+            {/* Always show skeletons when loading */}
+            {loading && skeletonItems}
+            
+            {/* Load more trigger */}
+            {hasMore && gifs.length > 0 && (
+              <div ref={loadMoreTriggerRef} className="load-more-trigger">
+                {loadingMore && (
+                  <div className="loading-more-indicator">
+                    <div className="loading-more-spinner"></div>
+                    <span>Loading...</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Show skeleton instead of "No GIFs found" */}
+            {!loading && !loadingMore && gifs.length === 0 && skeletonItems}
+          </div>
         </div>
       </div>
     </div>

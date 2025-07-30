@@ -1,15 +1,26 @@
 import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, where, Timestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import ConfessionItem from './ConfessionItem';
-import SkeletonItem from './SkeletonItem'; // ADDED
+import SkeletonItem from './SkeletonItem';
 
 function TrendingConfessions() {
   const [trending, setTrending] = useState([]);
-  const [loading, setLoading] = useState(true); // Added for consistency
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'confessions'), orderBy('createdAt', 'desc'));
+    // Get timestamp for 24 hours ago
+    const twentyFourHoursAgo = new Date();
+    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+    const timestamp24hAgo = Timestamp.fromDate(twentyFourHoursAgo);
+
+    // Query confessions from last 24 hours
+    const q = query(
+      collection(db, 'confessions'), 
+      where('createdAt', '>=', timestamp24hAgo),
+      orderBy('createdAt', 'desc')
+    );
+
     const unsub = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map((doc) => {
         const data = doc.data();
@@ -20,12 +31,16 @@ function TrendingConfessions() {
         return { id: doc.id, ...data, totalReactions };
       });
 
+      // Sort by total reactions (trending = most reacted in last 24h)
       const sorted = items
         .sort((a, b) => b.totalReactions - a.totalReactions)
         .slice(0, 5);
 
       setTrending(sorted);
-      setLoading(false); // Set loading false after fetch
+      setLoading(false);
+    }, (error) => {
+      console.error("Error fetching trending confessions:", error);
+      setLoading(false);
     });
 
     return () => unsub();
@@ -33,13 +48,14 @@ function TrendingConfessions() {
 
   return (
     <div className="trending-wrapper">
-      {/* UPDATED: Loading logic */}
       {trending.length === 0 && loading ? (
-        <>
-          <SkeletonItem />
-          <SkeletonItem />
-          <SkeletonItem />
-        </>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+          <SkeletonItem size={50} />
+        </div>
+      ) : trending.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+          No trending confessions in the last 24 hours
+        </div>
       ) : (
         trending.map((conf, index) => (
           <ConfessionItem key={conf.id} confession={conf} rank={index + 1} />

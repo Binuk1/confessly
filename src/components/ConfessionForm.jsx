@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { db } from '../firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import GifPicker from './GifPicker';
-import EmojiPicker from './EmojiPicker';
+import SimpleEmojiPicker from './SimpleEmojiPicker';
 import SkeletonItem from './SkeletonItem';
 import { MdOutlineEmojiEmotions } from 'react-icons/md';
 import { HiGif } from 'react-icons/hi2';
@@ -16,20 +16,44 @@ function ConfessionForm() {
   const [error, setError] = useState('');
   const emojiButtonRef = useRef(null);
 
+  const MAX_CHARACTERS = 3500;
+
+  // Count characters in text (emojis count as 1 character)
+  const getCharacterCount = (text) => {
+    // Use Array.from to properly count Unicode characters (emojis as 1 char)
+    return Array.from(text).length;
+  };
+
+  const characterCount = getCharacterCount(text);
+  const isOverLimit = characterCount > MAX_CHARACTERS;
+
   // Auto-dismiss error popup after 2.5s
   const showError = (msg) => {
     setError(msg);
     setTimeout(() => setError(''), 2500);
   };
 
+  const handleTextChange = (e) => {
+    const newText = e.target.value;
+    setText(newText);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Require at least one word (not just emoji or whitespace)
-    const hasWord = /[a-zA-Z0-9]/.test(text.trim());
-    if (!hasWord) {
-      showError('Please enter at least one word in your confession.');
+    
+    // Check if over character limit
+    if (isOverLimit) {
+      showError(`Please keep your confession under ${MAX_CHARACTERS} characters. Current: ${characterCount} characters.`);
       return;
     }
+    
+    // Require at least one alphanumeric character (confessions MUST have words)
+    const hasContent = /[a-zA-Z0-9]/.test(text.trim());
+    if (!hasContent) {
+      showError('Confessions must contain at least some text, not just emojis or GIFs.');
+      return;
+    }
+    
     setLoading(true);
     try {
       await addDoc(collection(db, 'confessions'), {
@@ -37,6 +61,7 @@ function ConfessionForm() {
         gifUrl: gifUrl || null,
         createdAt: serverTimestamp(),
         reactions: {},
+        replyCount: 0,
       });
       setText('');
       setGifUrl('');
@@ -55,10 +80,24 @@ function ConfessionForm() {
         <div className="textarea-wrapper">
           <textarea
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTextChange}
             placeholder="Share your confession..."
             rows={4}
+            style={{ resize: 'none' }} // Disable resize
           />
+          
+          {/* Character counter */}
+          <div className="word-counter" style={{
+            fontSize: '0.8rem',
+            color: isOverLimit ? '#e74c3c' : '#666',
+            textAlign: 'right',
+            marginTop: '0.25rem',
+            fontWeight: isOverLimit ? 'bold' : 'normal'
+          }}>
+            {characterCount}/{MAX_CHARACTERS} characters
+            {isOverLimit && <span style={{ color: '#e74c3c', marginLeft: '0.5rem' }}>⚠️ Over limit</span>}
+          </div>
+
           <div className="form-actions" style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
@@ -89,39 +128,24 @@ function ConfessionForm() {
               <button
                 type="submit"
                 className="submit-button"
-                disabled={loading || (!text.trim() && !gifUrl)}
+                disabled={loading || (!text.trim() && !gifUrl) || isOverLimit}
+                style={{
+                  opacity: isOverLimit ? 0.5 : 1,
+                  cursor: isOverLimit ? 'not-allowed' : 'pointer'
+                }}
               >
                 {loading ? 'Posting...' : 'Confess'}
               </button>
             </div>
           </div>
           {showEmojiPicker && (
-            <div className="emoji-picker-overlay" onClick={() => setShowEmojiPicker(false)}>
-              <div
-                className="emoji-picker-modal"
-                onClick={e => e.stopPropagation()}
-              >
-                <div className="emoji-picker-header">
-                  <span className="emoji-picker-title">Select Emoji</span>
-                  <button className="close-emoji-picker-modal" onClick={() => setShowEmojiPicker(false)}>
-                    Done
-                  </button>
-                </div>
-                <EmojiPicker
-                  onEmojiClick={(emojiData) => {
-                    setText(prev => prev + emojiData.emoji);
-                    setShowEmojiPicker(false);
-                  }}
-                  width={320}
-                  height={350}
-                  previewConfig={{ showPreview: false }}
-                  searchPlaceholder="Search emojis..."
-                  skinTonesDisabled
-                  lazyLoadEmojis
-                  className="minimal-emoji-picker"
-                />
-              </div>
-            </div>
+            <SimpleEmojiPicker
+              onEmojiClick={(emojiData) => {
+                setText(prev => prev + emojiData.emoji);
+                setShowEmojiPicker(false);
+              }}
+              onClose={() => setShowEmojiPicker(false)}
+            />
           )}
         </div>
         {gifUrl && (

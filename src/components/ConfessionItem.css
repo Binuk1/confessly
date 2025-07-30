@@ -27,6 +27,94 @@
   align-items: flex-start;
 }
 
+/* Disable textarea resize completely */
+.reply-form textarea {
+  resize: none !important;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* See more/less button styling */
+.see-more-btn {
+  background: none;
+  border: none;
+  color: #3498db;
+  cursor: pointer;
+  font-size: 0.9rem;
+  text-decoration: underline;
+  padding: 0.25rem 0;
+  margin-top: 0.25rem;
+  transition: color 0.2s ease;
+}
+
+.see-more-btn:hover {
+  color: #2980b9;
+}
+
+.see-more-btn:focus {
+  outline: 1px solid #3498db;
+  outline-offset: 2px;
+}
+
+/* Error message styling */
+.error-message {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+  padding: 0.5rem;
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Reaction bar improvements */
+.reaction-bar button {
+  transition: transform 0.1s ease, background-color 0.2s ease;
+}
+
+.reaction-bar button:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.reaction-bar button.selected {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+  font-weight: bold;
+}
+
+.reaction-bar button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Reply item styling */
+.reply-item {
+  background-color: #f8f9fa;
+  border-left: 3px solid #dee2e6;
+  padding: 0.75rem;
+  margin: 0.5rem 0;
+  border-radius: 0 6px 6px 0;
+}
+
+.reply-meta {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 0.5rem;
+}
+
+.reply-gif {
+  max-width: 200px;
+  height: auto;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+}
+
 @media (max-width: 600px) {
   .reply-actions {
     justify-content: space-between !important;
@@ -61,7 +149,21 @@
     align-self: center;
     box-sizing: border-box;
   }
+
+  .see-more-btn {
+    font-size: 0.85rem;
+  }
+
+  .reply-item {
+    padding: 0.5rem;
+    margin: 0.3rem 0;
+  }
+
+  .reply-gif {
+    max-width: 150px;
+  }
 }
+
 /* Remove focus outline from all action buttons */
 .action-button:focus,
 .action-button:active,
@@ -86,4 +188,25 @@
 
 .submit-button:focus {
   background-color: rgba(0, 0, 0, 0.1);
+}
+
+/* Toggle replies button styling */
+.toggle-replies-btn {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.toggle-replies-btn:hover:not(:disabled) {
+  color: #333;
+}
+
+.toggle-replies-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

@@ -1,33 +1,228 @@
-.red-close {
-  background: #ef4444 !important;
-  color: #fff !important;
-  border: none !important;
-  border-radius: 8px !important;
-  padding: 0.5rem 1.2rem !important;
-  font-weight: 600;
-  font-size: 1rem;
-  cursor: pointer;
-  margin-top: 1.5rem;
-  box-shadow: 0 2px 8px rgba(239,68,68,0.10);
-  transition: background 0.2s, color 0.2s;
-}
-.red-close:hover, .red-close:focus {
-  background: #b91c1c !important;
-  color: #fff !important;
-  outline: none;
+/* Settings Modal */
+.settings-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: modalFadeIn 0.4s ease-out;
 }
 
-.settings-content h3 {
+.settings-content {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  animation: modalSlideIn 0.5s ease-out;
+  position: relative;
+}
+
+/* Dark mode for settings modal */
+body.dark-mode .settings-content {
+  background: #1e1b2e;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #ffffff;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.settings-header h3 {
   font-size: 2.1rem;
   font-weight: 800;
-  color: inherit;
-  margin-bottom: 2rem;
+  color: #6d28d9;
+  margin: 0;
   letter-spacing: 0.5px;
 }
 
+body.dark-mode .settings-header h3 {
+  color: #a855f7;
+}
+
+.close-settings {
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  transition: all 0.3s ease;
+}
+
+.close-settings:hover {
+  background: #dc2626;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+}
+
+.theme-section h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #4c1d95;
+  margin-bottom: 1rem;
+}
+
+body.dark-mode .theme-section h4 {
+  color: #c4b5fd;
+}
+
+/* Theme Toggle */
+.theme-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.theme-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-background {
+  width: 80px;
+  height: 40px;
+  border-radius: 25px;
+  position: relative;
+  transition: all 0.4s ease;
+  overflow: hidden;
+}
+
+.toggle-background.light {
+  background: linear-gradient(135deg, #60a5fa, #3b82f6);
+  box-shadow: inset 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.toggle-background.dark {
+  background: linear-gradient(135deg, #1e1b2e, #0f0c1a);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.stars {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.toggle-background.dark .stars {
+  opacity: 1;
+}
+
+.star {
+  position: absolute;
+  color: #fbbf24;
+  font-size: 8px;
+  animation: twinkle 2s infinite;
+}
+
+.star-1 {
+  top: 6px;
+  left: 15px;
+  animation-delay: 0s;
+}
+
+.star-2 {
+  top: 25px;
+  left: 25px;
+  animation-delay: 0.7s;
+}
+
+.star-3 {
+  top: 12px;
+  right: 20px;
+  animation-delay: 1.4s;
+}
+
+.toggle-slider {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  position: absolute;
+  top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.toggle-slider.light {
+  left: 4px;
+  background: #fbbf24;
+  color: #f59e0b;
+  transform: rotate(0deg);
+}
+
+.toggle-slider.dark {
+  left: 44px;
+  background: #e5e7eb;
+  color: #6b7280;
+  transform: rotate(360deg);
+}
+
+.theme-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4c1d95;
+  transition: color 0.3s ease;
+}
+
+body.dark-mode .theme-label {
+  color: #c4b5fd;
+}
+
+/* Animations */
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalSlideIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(-50px) scale(0.9); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0) scale(1); 
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Mobile Responsive */
 @media (max-width: 600px) {
-  .settings-content h3 {
-    margin-left: 2.5rem;
-    font-size: 1.2rem;
+  .settings-content {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+  
+  .settings-header h3 {
+    font-size: 1.6rem;
+  }
+  
+  .close-settings {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
   }
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import ConfessionItem from './ConfessionItem';
-import SkeletonItem from './SkeletonItem'; // ADDED
+import SkeletonItem from './SkeletonItem';
 
 function ConfessionList() {
   const [confessions, setConfessions] = useState([]);
@@ -12,9 +12,12 @@ function ConfessionList() {
 
   useEffect(() => {
     setLoading(true);
+    
+    // This query will use the index: confessions (createdAt DESC, __name__ ASC)
     const q = query(
       collection(db, 'confessions'),
-      orderBy('createdAt', 'desc'),
+      orderBy('createdAt', 'desc'), // Uses index - newest first
+      orderBy('__name__', 'asc'),   // Explicit tiebreaker for consistent pagination
       limit(page * 10)
     );
 
@@ -28,6 +31,10 @@ function ConfessionList() {
       setConfessions(items);
       setLoading(false);
       setHasMore(items.length >= page * 10);
+    }, (error) => {
+      console.error("Error fetching confessions:", error);
+      setLoading(false);
+      // Handle error gracefully - could show error message to user
     });
 
     return () => unsub();
@@ -35,13 +42,10 @@ function ConfessionList() {
 
   return (
     <div className="confession-list">
-      {/* UPDATED: Loading logic */}
       {confessions.length === 0 && loading ? (
-        <>
-          <SkeletonItem />
-          <SkeletonItem />
-          <SkeletonItem />
-        </>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+          <SkeletonItem size={50} />
+        </div>
       ) : (
         confessions.map((conf) => (
           <ConfessionItem key={conf.id} confession={conf} />

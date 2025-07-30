@@ -105,90 +105,96 @@
   background: #e6e6e6;
 }
 
-/* Masonry Grid Layout - Better for Full-Form GIFs */
-.gif-masonry-grid {
-  display: columns;
-  columns: 3;
-  column-gap: 0.5rem;
+/* ULTRA FAST FLEXBOX GRID - NO MORE MASONRY! */
+.gif-grid-container {
   overflow-y: auto;
   overflow-x: hidden;
-  max-height: 50vh;
+  max-height: 60vh;
   padding-right: 4px;
+  scroll-behavior: smooth;
+}
+
+.gif-flex-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-content: flex-start;
 }
 
 .gif-item-container {
   position: relative;
-  width: 100%;
-  margin-bottom: 0.5rem;
-  break-inside: avoid;
+  width: calc(33.333% - 0.27rem);
+  aspect-ratio: 1;
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.1s ease-out;
   background: #f8f9fa;
+  will-change: transform;
+  contain: layout style paint;
 }
 
 .gif-item-container:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(79,140,255,0.2);
+  transform: scale(1.05);
+  z-index: 10;
 }
 
-.gif-item-masonry {
+.gif-item-image {
   width: 100%;
-  height: auto;
-  display: block;
+  height: 100%;
   object-fit: cover;
-  transition: opacity 0.3s;
+  display: block;
+  border-radius: 8px;
 }
 
-.gif-item-container.loading .gif-item-masonry {
-  opacity: 0.3;
+/* Remove all loading states - instant display */
+
+/* Remove the loading overlay completely - not needed anymore */
+
+/* Infinite Scroll Load More */
+.load-more-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  margin-top: 0.5rem;
 }
 
-.gif-item-container.loaded .gif-item-masonry {
-  opacity: 1;
-}
-
-/* Loading States */
-.gif-loading-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.loading-more-indicator {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
 }
 
-.gif-spinner {
-  width: 20px;
-  height: 20px;
+.loading-more-spinner {
+  width: 16px;
+  height: 16px;
   border: 2px solid #f3f3f3;
   border-top: 2px solid #4f8cff;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
+  animation: spin-ultra-fast 0.4s linear infinite;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Skeleton Loading */
-.gif-skeleton-masonry {
-  width: 100%;
-  height: 120px;
+/* Ultra-fast skeleton loading */
+.gif-skeleton {
+  width: calc(33.333% - 0.27rem);
+  aspect-ratio: 1;
   border-radius: 8px;
-  background: linear-gradient(90deg, #f3f3f3 25%, #e9e9e9 50%, #f3f3f3 75%);
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
   background-size: 200% 100%;
-  animation: gif-skeleton-loading 1.2s infinite linear;
-  margin-bottom: 0.5rem;
-  break-inside: avoid;
+  animation: skeleton-wave 1.2s ease-in-out infinite;
 }
 
-@keyframes gif-skeleton-loading {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+@keyframes skeleton-wave {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin-ultra-fast {
+  to { transform: rotate(360deg); }
 }
 
 /* No Results */
@@ -197,7 +203,21 @@
   color: #666;
   padding: 2rem;
   font-size: 1.1rem;
-  grid-column: 1 / -1;
+  width: 100%;
+}
+
+/* Optimized Scrollbar */
+.gif-grid-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.gif-grid-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gif-grid-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
 }
 
 /* Mobile Optimizations */
@@ -208,42 +228,46 @@
     padding: 0.5rem 0.3rem 0.7rem 0.3rem;
   }
   
-  .gif-masonry-grid {
-    columns: 2;
-    column-gap: 0.3rem;
-    max-height: 60vh;
+  .gif-grid-container {
+    max-height: 65vh;
   }
   
   .gif-item-container {
-    margin-bottom: 0.3rem;
+    width: calc(50% - 0.2rem);
   }
   
-  .gif-search-row {
-    gap: 0.2rem;
-    margin-bottom: 0.5rem;
+  .gif-skeleton {
+    width: calc(50% - 0.2rem);
   }
   
-  .gif-search-input {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.9rem;
-  }
-  
-  .gif-trending-btn {
-    padding: 0.3rem 0.5rem;
-    font-size: 1rem;
+  .gif-flex-grid {
+    gap: 0.3rem;
   }
 }
 
 @media (max-width: 400px) {
-  .gif-masonry-grid {
-    columns: 1;
+  .gif-item-container {
+    width: calc(50% - 0.15rem);
+  }
+  
+  .gif-skeleton {
+    width: calc(50% - 0.15rem);
+  }
+  
+  .gif-flex-grid {
+    gap: 0.2rem;
   }
 }
 
-/* Remove focus outline from buttons */
-.gif-provider-toggle button:focus,
-.done-gif-picker-modal:focus,
-.gif-trending-btn:focus {
+/* Remove all focus outlines */
+button:focus,
+input:focus {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Performance boost */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

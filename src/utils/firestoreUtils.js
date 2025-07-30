@@ -1,4 +1,4 @@
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, addDoc, collection, serverTimestamp, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
 export function getUserId() {
@@ -24,4 +24,40 @@ export const handleReactionToggle = async (confessionId, emojiKey) => {
   await updateDoc(ref, {
     [`reactions.${emojiKey}`]: newArr,
   });
+
+  return { hasReacted: !has, count: newArr.length };
+};
+
+export const addReply = async (confessionId, text, gifUrl = null) => {
+  await addDoc(collection(db, 'confessions', confessionId, 'replies'), {
+    text: text.trim(),
+    gifUrl,
+    createdAt: serverTimestamp()
+  });
+};
+
+export const subscribeToReplies = (confessionId, callback) => {
+  const q = query(
+    collection(db, 'confessions', confessionId, 'replies'),
+    orderBy('createdAt', 'asc')
+  );
+  return onSnapshot(q, (snapshot) => {
+    const replies = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    callback(replies);
+  });
+};
+
+export const getUserReaction = (reactions, userId) => {
+  if (!reactions || !userId) return null;
+  for (const [emoji, users] of Object.entries(reactions)) {
+    if (users.includes(userId)) return emoji;
+  }
+  return null;
+};
+
+export const getReactionCount = (reactions, emoji) => {
+  return reactions?.[emoji]?.length || 0;
 };

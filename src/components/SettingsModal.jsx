@@ -1,7 +1,5 @@
-
-import { FaSun, FaMoon } from 'react-icons/fa';
+import { FaSun, FaMoon, FaStar } from 'react-icons/fa';
 import './SettingsModal.css';
-
 
 function SettingsModal({ darkMode, setDarkMode, onClose }) {
   // Close modal if click is outside the content
@@ -13,32 +11,33 @@ function SettingsModal({ darkMode, setDarkMode, onClose }) {
 
   return (
     <div className="settings-modal" onClick={handleOverlayClick}>
-      <div className="settings-content" style={{ direction: 'ltr' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-            <h3 style={{ margin: 0, fontSize: '2.1rem', fontWeight: 800, letterSpacing: '0.5px', textAlign: 'left' }}>Settings</h3>
-          </div>
-          <button 
-            className="close-settings red-close"
-            onClick={onClose}
-            style={{ marginLeft: '1rem', marginTop: 0 }}
-          >
+      <div className="settings-content">
+        <div className="settings-header">
+          <h3>Settings</h3>
+          <button className="close-settings" onClick={onClose}>
             Close
           </button>
         </div>
-        <div className="theme-switch">
-          <button
-            onClick={() => setDarkMode(false)}
-            className={!darkMode ? 'active' : ''}
-          >
-            <FaSun /> Light Mode
-          </button>
-          <button
-            onClick={() => setDarkMode(true)}
-            className={darkMode ? 'active' : ''}
-          >
-            <FaMoon /> Dark Mode
-          </button>
+        
+        <div className="theme-section">
+          <h4>Theme</h4>
+          <div className="theme-toggle-container">
+            <div className="theme-toggle" onClick={() => setDarkMode(!darkMode)}>
+              <div className={`toggle-background ${darkMode ? 'dark' : 'light'}`}>
+                <div className="stars">
+                  <FaStar className="star star-1" />
+                  <FaStar className="star star-2" />
+                  <FaStar className="star star-3" />
+                </div>
+                <div className={`toggle-slider ${darkMode ? 'dark' : 'light'}`}>
+                  {darkMode ? <FaMoon /> : <FaSun />}
+                </div>
+              </div>
+            </div>
+            <span className="theme-label">
+              {darkMode ? 'Dark Mode' : 'Light Mode'}
+            </span>
+          </div>
         </div>
       </div>
     </div>
