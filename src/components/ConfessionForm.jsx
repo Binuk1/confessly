@@ -7,7 +7,7 @@ import SkeletonItem from './SkeletonItem';
 import { MdOutlineEmojiEmotions } from 'react-icons/md';
 import { HiGif } from 'react-icons/hi2';
 
-function ConfessionForm() {
+function ConfessionForm({ onOptimisticConfession }) {
   const [text, setText] = useState('');
   const [gifUrl, setGifUrl] = useState('');
   const [showGifPicker, setShowGifPicker] = useState(false);
@@ -55,19 +55,57 @@ function ConfessionForm() {
     }
     
     setLoading(true);
+    
+    // Create optimistic confession for immediate UI feedback
+    const optimisticConfession = {
+      id: `temp-${Date.now()}`,
+      text: text.trim(),
+      gifUrl: gifUrl || null,
+      createdAt: new Date(),
+      reactions: {},
+      replyCount: 0,
+      totalReactions: 0,
+      isOptimistic: true
+    };
+    
+    // Store form data before clearing
+    const submittedText = text.trim();
+    const submittedGifUrl = gifUrl;
+    
+    // Clear form immediately for better UX
+    setText('');
+    setGifUrl('');
+    setShowGifPicker(false);
+    setShowEmojiPicker(false);
+    
+    // Send optimistic confession to parent component
+    if (onOptimisticConfession) {
+      onOptimisticConfession(optimisticConfession);
+    }
+    
     try {
       await addDoc(collection(db, 'confessions'), {
-        text: text.trim(),
-        gifUrl: gifUrl || null,
+        text: submittedText,
+        gifUrl: submittedGifUrl || null,
         createdAt: serverTimestamp(),
         reactions: {},
         replyCount: 0,
       });
-      setText('');
-      setGifUrl('');
+      
+      // Success! The real confession will come through the Firestore listener
+      
     } catch (err) {
       showError('Something went wrong. Please try again.');
       console.error("Error:", err);
+      
+      // Restore form data on error
+      setText(submittedText);
+      setGifUrl(submittedGifUrl);
+      
+      // Remove optimistic confession on error
+      if (onOptimisticConfession) {
+        onOptimisticConfession(null, true); // Pass error flag
+      }
     } finally {
       setLoading(false);
     }
@@ -84,6 +122,7 @@ function ConfessionForm() {
             placeholder="Share your confession..."
             rows={4}
             style={{ resize: 'none' }} // Disable resize
+            disabled={loading}
           />
           
           {/* Character counter */}
@@ -111,6 +150,7 @@ function ConfessionForm() {
                 onClick={() => setShowGifPicker(!showGifPicker)}
                 className="action-button gif-button"
                 aria-label="Add GIF"
+                disabled={loading}
               >
                 <HiGif size={24} />
               </button>
@@ -120,6 +160,7 @@ function ConfessionForm() {
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 className="action-button emoji-action"
                 aria-label="Add emoji"
+                disabled={loading}
               >
                 <MdOutlineEmojiEmotions size={24} />
               </button>
@@ -151,10 +192,16 @@ function ConfessionForm() {
         {gifUrl && (
           <div className="gif-preview-container">
             <img src={gifUrl} alt="GIF Preview" className="gif-preview" />
-            <button type="button" onClick={() => setGifUrl('')} className="remove-gif">Remove</button>
+            <button 
+              type="button" 
+              onClick={() => setGifUrl('')} 
+              className="remove-gif"
+              disabled={loading}
+            >
+              Remove
+            </button>
           </div>
         )}
-        {loading && <SkeletonItem />}
         {showGifPicker && (
           <GifPicker
             onSelect={(url) => {

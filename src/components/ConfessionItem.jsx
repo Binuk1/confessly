@@ -4,6 +4,7 @@ import { db } from '../firebase';
 import SkeletonItem from './SkeletonItem';
 import GifPicker from './GifPicker';
 import SimpleEmojiPicker from './SimpleEmojiPicker';
+import ReportButton from './ReportButton';
 import { HiGif } from 'react-icons/hi2';
 import { MdOutlineEmojiEmotions } from 'react-icons/md';
 import './ConfessionItem.css';
@@ -26,11 +27,12 @@ function ConfessionItem({ confession, rank }) {
   const [replies, setReplies] = useState([]);
   const [showFullText, setShowFullText] = useState(false);
   const [submittingReply, setSubmittingReply] = useState(false);
+  const [optimisticReply, setOptimisticReply] = useState(null);
   
   const textareaRef = useRef(null);
   const emojiPickerRef = useRef(null);
 
-  const TRUNCATE_LIMIT = 200; // characters limit for truncation
+  const TRUNCATE_LIMIT = 200;
   const shouldTruncate = confession.text.length > TRUNCATE_LIMIT;
   const displayText = shouldTruncate && !showFullText 
     ? confession.text.substring(0, TRUNCATE_LIMIT) + '...'
@@ -62,6 +64,7 @@ function ConfessionItem({ confession, rank }) {
   useEffect(() => {
     if (!showReplies) {
       setReplies([]);
+      setOptimisticReply(null);
       return;
     }
 
@@ -69,11 +72,9 @@ function ConfessionItem({ confession, rank }) {
     setError(null);
     
     try {
-      // Simplified query to avoid index requirement
       const repliesQuery = query(
         collection(db, 'replies'),
         where('confessionId', '==', confession.id)
-        // Removed orderBy to avoid index requirement - we'll sort in memory
       );
 
       const unsubscribe = onSnapshot(repliesQuery, (snapshot) => {
@@ -93,6 +94,13 @@ function ConfessionItem({ confession, rank }) {
           setReplies(sortedReplies);
           setReplyCount(sortedReplies.length);
           setLoading(false);
+
+          // Clear optimistic reply once we get the real data
+          if (optimisticReply && sortedReplies.some(reply => 
+            reply.text === optimisticReply.text && reply.gifUrl === optimisticReply.gifUrl
+          )) {
+            setOptimisticReply(null);
+          }
         } catch (err) {
           console.error("Error processing replies:", err);
           setLoading(false);
@@ -114,7 +122,7 @@ function ConfessionItem({ confession, rank }) {
       setReplies([]);
       setLoading(false);
     }
-  }, [showReplies, confession.id]);
+  }, [showReplies, confession.id, optimisticReply]);
 
   async function toggleReaction(emoji) {
     try {
@@ -172,12 +180,35 @@ function ConfessionItem({ confession, rank }) {
     }
 
     setSubmittingReply(true);
+    
+    // Create optimistic reply for immediate UI feedback
+    const tempReply = {
+      id: `temp-${Date.now()}`,
+      confessionId: confession.id,
+      text: replyText.trim(),
+      gifUrl: replyGifUrl || null,
+      createdAt: new Date(),
+      isOptimistic: true
+    };
+    
+    setOptimisticReply(tempReply);
+    
+    // Store form data before clearing
+    const submittedText = replyText.trim();
+    const submittedGifUrl = replyGifUrl;
+    
+    // Clear form immediately for better UX
+    setReplyText('');
+    setReplyGifUrl('');
+    setShowGifPicker(false);
+    setShowEmojiPicker(false);
+
     try {
       // Add reply to replies collection
       await addDoc(collection(db, 'replies'), {
         confessionId: confession.id,
-        text: replyText.trim(),
-        gifUrl: replyGifUrl || null,
+        text: submittedText,
+        gifUrl: submittedGifUrl || null,
         createdAt: serverTimestamp(),
       });
 
@@ -191,12 +222,6 @@ function ConfessionItem({ confession, rank }) {
       // Update local reply count immediately
       setReplyCount(newReplyCount);
 
-      // Clear form but keep replies visible
-      setReplyText('');
-      setReplyGifUrl('');
-      setShowGifPicker(false);
-      setShowEmojiPicker(false);
-
       // Focus back to textarea for easier follow-up replies
       setTimeout(() => {
         if (textareaRef.current) {
@@ -207,13 +232,35 @@ function ConfessionItem({ confession, rank }) {
     } catch (err) {
       console.error("Error submitting reply:", err);
       showError("Failed to submit reply. Please try again.");
+      
+      // Restore form data on error
+      setReplyText(submittedText);
+      setReplyGifUrl(submittedGifUrl);
+      
+      // Clear optimistic reply on error
+      setOptimisticReply(null);
     } finally {
       setSubmittingReply(false);
     }
   }
 
+  // Combine real replies with optimistic reply for display
+  const displayReplies = [...replies];
+  if (optimisticReply) {
+    displayReplies.push(optimisticReply);
+  }
+
   return (
-    <div className={`confession-item rank-${rank || ''}`}>
+    <div className={`confession-item rank-${rank || ''}`} style={{ position: 'relative' }}>
+      {/* Report Button - only show for real confessions (not optimistic) */}
+      {!confession.isOptimistic && (
+        <ReportButton 
+          contentId={confession.id}
+          contentType="confession"
+          contentText={confession.text}
+        />
+      )}
+      
       {rank && <div className="rank-badge">{getBadge()}</div>}
       
       <p>{displayText}</p>
@@ -305,7 +352,7 @@ function ConfessionItem({ confession, rank }) {
                   placeholder="Write your reply..."
                   rows={2}
                   disabled={submittingReply}
-                  style={{ resize: 'none' }} // Disable resize
+                  style={{ resize: 'none' }}
                 />
                 <div className="reply-actions" style={{ 
                   display: 'flex', 
@@ -394,14 +441,30 @@ function ConfessionItem({ confession, rank }) {
               />
             )}
 
-            {loading && replies.length === 0 && (
+            {loading && replies.length === 0 && !optimisticReply && (
               <div style={{ padding: '1rem', textAlign: 'center', color: '#666' }}>
                 Loading replies...
               </div>
             )}
 
-            {replies.map((reply) => (
-              <div key={reply.id} className="reply-item">
+            {displayReplies.map((reply) => (
+              <div 
+                key={reply.id} 
+                className={`reply-item ${reply.isOptimistic ? 'optimistic-reply' : ''}`}
+                style={{ 
+                  position: 'relative',
+                  ...(reply.isOptimistic ? { opacity: 0.8 } : {})
+                }}
+              >
+                {/* Report Button for Replies - only show for real replies */}
+                {!reply.isOptimistic && (
+                  <ReportButton 
+                    contentId={reply.id}
+                    contentType="reply"
+                    contentText={reply.text || 'GIF reply'}
+                  />
+                )}
+                
                 {reply.text && <p>{reply.text}</p>}
                 {reply.gifUrl && (
                   <div className="media-container">
@@ -415,33 +478,17 @@ function ConfessionItem({ confession, rank }) {
                 )}
                 <div className="reply-meta">
                   <span>
-                    {reply.createdAt?.toDate 
-                      ? new Date(reply.createdAt.toDate()).toLocaleString() 
-                      : 'Just now'
-                    }
+                    {reply.isOptimistic ? (
+                      <span className="posting-indicator">Posting...</span>
+                    ) : (
+                      reply.createdAt?.toDate 
+                        ? new Date(reply.createdAt.toDate()).toLocaleString() 
+                        : 'Just now'
+                    )}
                   </span>
                 </div>
               </div>
             ))}
-
-            {submittingReply && (
-              <div className="reply-item" style={{ opacity: 0.7 }}>
-                <p>{replyText || <em>Posting reply...</em>}</p>
-                {replyGifUrl && (
-                  <div className="media-container">
-                    <img 
-                      src={replyGifUrl} 
-                      alt="Reply GIF preview" 
-                      className="reply-gif" 
-                      loading="lazy" 
-                    />
-                  </div>
-                )}
-                <div className="reply-meta">
-                  <span>Posting...</span>
-                </div>
-              </div>
-            )}
           </div>
         )}
       </div>
