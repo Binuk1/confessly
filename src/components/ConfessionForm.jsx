@@ -4,9 +4,10 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import GifPicker from './GifPicker';
 import SimpleEmojiPicker from './SimpleEmojiPicker';
 import SkeletonItem from './SkeletonItem';
+import { ContentModerationService } from '../services/contentModerationService'; // Add this import
 import { MdOutlineEmojiEmotions } from 'react-icons/md';
 import { HiGif } from 'react-icons/hi2';
-
+ 
 function ConfessionForm({ onOptimisticConfession }) {
   const [text, setText] = useState('');
   const [gifUrl, setGifUrl] = useState('');
@@ -14,6 +15,7 @@ function ConfessionForm({ onOptimisticConfession }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [moderating, setModerating] = useState(false); // Add moderation loading state
   const emojiButtonRef = useRef(null);
 
   const MAX_CHARACTERS = 3500;
@@ -54,6 +56,27 @@ function ConfessionForm({ onOptimisticConfession }) {
       return;
     }
     
+    // CONTENT MODERATION - Check text content before submitting
+    if (text.trim()) {
+      setModerating(true);
+      try {
+        const moderationResult = await ContentModerationService.moderateContent(text.trim(), 'confession');
+        
+        if (!moderationResult.isClean) {
+          const errorMsg = ContentModerationService.getErrorMessage(moderationResult.issues);
+          showError(errorMsg || 'Your message contains inappropriate content. Please revise and try again.');
+          setModerating(false);
+          return;
+        }
+      } catch (moderationError) {
+        console.error('Moderation failed:', moderationError);
+        // Continue with submission if moderation service fails (fail open approach)
+        // In production, you might want to fail closed for safety
+      } finally {
+        setModerating(false);
+      }
+    }
+    
     setLoading(true);
     
     // Create optimistic confession for immediate UI feedback
@@ -90,6 +113,9 @@ function ConfessionForm({ onOptimisticConfession }) {
         createdAt: serverTimestamp(),
         reactions: {},
         replyCount: 0,
+        // Optional: Store moderation metadata
+        moderated: true,
+        moderatedAt: serverTimestamp()
       });
       
       // Success! The real confession will come through the Firestore listener
@@ -122,7 +148,7 @@ function ConfessionForm({ onOptimisticConfession }) {
             placeholder="Share your confession..."
             rows={4}
             style={{ resize: 'none' }} // Disable resize
-            disabled={loading}
+            disabled={loading || moderating}
           />
           
           {/* Character counter */}
@@ -135,6 +161,7 @@ function ConfessionForm({ onOptimisticConfession }) {
           }}>
             {characterCount}/{MAX_CHARACTERS} characters
             {isOverLimit && <span style={{ color: '#e74c3c', marginLeft: '0.5rem' }}>⚠️ Over limit</span>}
+            {moderating && <span style={{ color: '#ffc107', marginLeft: '0.5rem' }}>🔍 Checking...</span>}
           </div>
 
           <div className="form-actions" style={{ 
@@ -150,7 +177,7 @@ function ConfessionForm({ onOptimisticConfession }) {
                 onClick={() => setShowGifPicker(!showGifPicker)}
                 className="action-button gif-button"
                 aria-label="Add GIF"
-                disabled={loading}
+                disabled={loading || moderating}
               >
                 <HiGif size={24} />
               </button>
@@ -160,7 +187,7 @@ function ConfessionForm({ onOptimisticConfession }) {
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 className="action-button emoji-action"
                 aria-label="Add emoji"
-                disabled={loading}
+                disabled={loading || moderating}
               >
                 <MdOutlineEmojiEmotions size={24} />
               </button>
@@ -169,13 +196,13 @@ function ConfessionForm({ onOptimisticConfession }) {
               <button
                 type="submit"
                 className="submit-button"
-                disabled={loading || (!text.trim() && !gifUrl) || isOverLimit}
+                disabled={loading || moderating || (!text.trim() && !gifUrl) || isOverLimit}
                 style={{
-                  opacity: isOverLimit ? 0.5 : 1,
-                  cursor: isOverLimit ? 'not-allowed' : 'pointer'
+                  opacity: (isOverLimit || moderating) ? 0.5 : 1,
+                  cursor: (isOverLimit || moderating) ? 'not-allowed' : 'pointer'
                 }}
               >
-                {loading ? 'Posting...' : 'Confess'}
+                {moderating ? 'Checking...' : loading ? 'Posting...' : 'Confess'}
               </button>
             </div>
           </div>
@@ -196,7 +223,7 @@ function ConfessionForm({ onOptimisticConfession }) {
               type="button" 
               onClick={() => setGifUrl('')} 
               className="remove-gif"
-              disabled={loading}
+              disabled={loading || moderating}
             >
               Remove
             </button>

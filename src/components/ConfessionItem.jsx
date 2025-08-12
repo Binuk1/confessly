@@ -5,6 +5,7 @@ import SkeletonItem from './SkeletonItem';
 import GifPicker from './GifPicker';
 import SimpleEmojiPicker from './SimpleEmojiPicker';
 import ReportButton from './ReportButton';
+import { ContentModerationService } from '../services/contentModerationService'; // Add this import
 import { HiGif } from 'react-icons/hi2';
 import { MdOutlineEmojiEmotions } from 'react-icons/md';
 import './ConfessionItem.css';
@@ -27,6 +28,7 @@ function ConfessionItem({ confession, rank }) {
   const [replies, setReplies] = useState([]);
   const [showFullText, setShowFullText] = useState(false);
   const [submittingReply, setSubmittingReply] = useState(false);
+  const [moderatingReply, setModeratingReply] = useState(false); // Add moderation state
   const [optimisticReply, setOptimisticReply] = useState(null);
   
   const textareaRef = useRef(null);
@@ -179,6 +181,26 @@ function ConfessionItem({ confession, rank }) {
       return;
     }
 
+    // CONTENT MODERATION - Check reply text before submitting
+    if (hasText) {
+      setModeratingReply(true);
+      try {
+        const moderationResult = await ContentModerationService.moderateContent(replyText.trim(), 'reply');
+        
+        if (!moderationResult.isClean) {
+          const errorMsg = ContentModerationService.getErrorMessage(moderationResult.issues);
+          showError(errorMsg || 'Your reply contains inappropriate content. Please revise and try again.');
+          setModeratingReply(false);
+          return;
+        }
+      } catch (moderationError) {
+        console.error('Reply moderation failed:', moderationError);
+        // Continue with submission if moderation service fails (fail open approach)
+      } finally {
+        setModeratingReply(false);
+      }
+    }
+
     setSubmittingReply(true);
     
     // Create optimistic reply for immediate UI feedback
@@ -210,6 +232,9 @@ function ConfessionItem({ confession, rank }) {
         text: submittedText,
         gifUrl: submittedGifUrl || null,
         createdAt: serverTimestamp(),
+        // Optional: Store moderation metadata
+        moderated: true,
+        moderatedAt: serverTimestamp()
       });
 
       // Update confession reply count in the parent document
@@ -351,7 +376,7 @@ function ConfessionItem({ confession, rank }) {
                   onChange={(e) => setReplyText(e.target.value)}
                   placeholder="Write your reply..."
                   rows={2}
-                  disabled={submittingReply}
+                  disabled={submittingReply || moderatingReply}
                   style={{ resize: 'none' }}
                 />
                 <div className="reply-actions" style={{ 
@@ -367,7 +392,7 @@ function ConfessionItem({ confession, rank }) {
                       onClick={() => setShowGifPicker(!showGifPicker)}
                       className="action-button gif-button"
                       aria-label="Add GIF"
-                      disabled={submittingReply}
+                      disabled={submittingReply || moderatingReply}
                     >
                       <HiGif size={24} />
                     </button>
@@ -377,7 +402,7 @@ function ConfessionItem({ confession, rank }) {
                       onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                       className="action-button emoji-action"
                       aria-label="Add emoji"
-                      disabled={submittingReply}
+                      disabled={submittingReply || moderatingReply}
                     >
                       <MdOutlineEmojiEmotions size={24} />
                     </button>
@@ -386,16 +411,17 @@ function ConfessionItem({ confession, rank }) {
                     <button
                       type="submit"
                       className="submit-button"
-                      disabled={submittingReply || (!replyText.trim() && !replyGifUrl)}
+                      disabled={submittingReply || moderatingReply || (!replyText.trim() && !replyGifUrl)}
                       style={{ 
                         width: 'auto',
                         minWidth: 'unset',
                         paddingLeft: '1.1em',
                         paddingRight: '1.1em',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        opacity: moderatingReply ? 0.7 : 1
                       }}
                     >
-                      {submittingReply ? 'Posting...' : 'Reply'}
+                      {moderatingReply ? 'Checking...' : submittingReply ? 'Posting...' : 'Reply'}
                     </button>
                   </div>
                 </div>
@@ -424,7 +450,7 @@ function ConfessionItem({ confession, rank }) {
                   type="button" 
                   onClick={() => setReplyGifUrl('')} 
                   className="remove-gif"
-                  disabled={submittingReply}
+                  disabled={submittingReply || moderatingReply}
                 >
                   Remove
                 </button>
