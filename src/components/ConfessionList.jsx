@@ -47,6 +47,7 @@ function ConfessionList({ optimisticConfession, onOptimisticCleared }) {
       setLoading(false);
       setHasMore(items.length >= page * 10);
 
+
       // Clear optimistic confession if the real one arrived
       if (optimisticConfession && items.some(item => 
         item.text === optimisticConfession.text && 

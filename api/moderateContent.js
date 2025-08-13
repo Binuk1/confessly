@@ -19,7 +19,7 @@ export default async function handler(req, res) {
         'Ocp-Apim-Subscription-Key': process.env.TISANE_API_KEY,
       },
       body: JSON.stringify({
-        language: 'en',
+        language: 'auto',
         content: text,
         settings: {
           abuse: true,

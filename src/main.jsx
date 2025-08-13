@@ -8,6 +8,15 @@ import ManageStaff from "./components/staff/ManageStaff.jsx";
 import ReportsManagement from './components/staff/ReportsManagement';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
+// Expose a small helper to hide the initial inline splash
+function hideInitialSplash() {
+  const splash = document.getElementById('initial-splash');
+  if (!splash) return;
+  splash.classList.add('hide');
+  // Remove from DOM after transition to avoid overlay intercepting clicks
+  setTimeout(() => splash.remove(), 450);
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
@@ -22,3 +31,9 @@ createRoot(document.getElementById('root')).render(
     </BrowserRouter>
   </StrictMode>
 );
+
+// Safety: hide splash after a short delay in case app never signals
+setTimeout(hideInitialSplash, 2000);
+
+// Export for app code to call when first data is ready
+export { hideInitialSplash };

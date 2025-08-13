@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { FaCog } from 'react-icons/fa';
 import ConfessionForm from './components/ConfessionForm';
 import ConfessionList from './components/ConfessionList';
+import { hideInitialSplash } from './main';
 import TrendingConfessions from './components/TrendingConfessions';
 import SettingsModal from './components/SettingsModal';
 import './App.css';
@@ -25,6 +26,11 @@ function App() {
       localStorage.setItem('darkMode', 'false');
     }
   }, [darkMode]);
+
+  // Hide inline splash as soon as app mounts
+  useEffect(() => {
+    hideInitialSplash();
+  }, []);
 
   return (
     <div className="App">

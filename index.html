@@ -12,8 +12,33 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
     <title>Confessly App</title>
+    <!-- Preload Inter so splash and app use the same font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800&display=swap" rel="stylesheet">
+    <style>
+      /* Minimal, dark, orange/black splash */
+      #initial-splash { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0b0b0b, #161616); transition: opacity .35s ease; font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+      #initial-splash.hide { opacity: 0; pointer-events: none; }
+      #initial-splash .content { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; position: relative; }
+      #initial-splash .badge { position: absolute; top: -18px; right: -22px; background: #ff8c00; color: #0b0b0b; font-weight: 800; font-size: 11px; letter-spacing: .6px; padding: 4px 8px; border-radius: 999px; box-shadow: 0 6px 16px rgba(255, 140, 0, .25); }
+      #initial-splash .logo { width: 70px; height: 70px; border-radius: 14px; box-shadow: 0 8px 28px rgba(0,0,0,.35); }
+      #initial-splash h1 { margin: 6px 0 2px; font-size: 22px; font-weight: 800; color: #ff8c00; text-shadow: 0 1px 10px rgba(255,140,0,.08); }
+      #initial-splash .subtitle { color: #d6d6d6; opacity: .85; font-size: 13px; }
+      #initial-splash .spinner { width: 42px; height: 42px; border-radius: 50%; border: 3.5px solid rgba(255,140,0,.18); border-top-color: #ff8c00; animation: s .8s linear infinite; }
+      @keyframes s { to { transform: rotate(360deg); } }
+    </style>
   </head>
   <body>
+    <div id="initial-splash" role="status" aria-live="polite">
+      <div class="content">
+        <span class="badge">BETA</span>
+        <img src="/android-chrome-192x192.png" alt="Confessly logo" class="logo" draggable="false" />
+        <h1>Confessly</h1>
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="subtitle">Loading your wall…</div>
+      </div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
