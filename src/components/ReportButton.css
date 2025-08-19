@@ -1,4 +1,4 @@
-/* ReportButton.css*/
+/* ReportButton.css */
 .report-button {
   background: none;
   border: none;
@@ -23,6 +23,12 @@
 .report-button:focus {
   outline: 2px solid #dc3545;
   outline-offset: 2px;
+}
+
+/* Ensures the flag icon has consistent outline appearance */
+.report-button svg {
+  stroke: #dc3545;
+  stroke-width: 1.5px;
 }
 
 /* Dark mode */

@@ -1,21 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { collection, query, onSnapshot, orderBy, addDoc, serverTimestamp, doc, updateDoc, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import SkeletonItem from './SkeletonItem';
 import GifPicker from './GifPicker';
 import SimpleEmojiPicker from './SimpleEmojiPicker';
 import ReportButton from './ReportButton';
-import { ContentModerationService } from '../services/contentModerationService'; // Add this import
+import ReactionBar from './ReactionBar';
+import { ContentModerationService } from '../services/contentModerationService';
+import { subscribeToReactions, toggleReaction, removePreviousReaction, getUserReaction } from '../services/reactionService';
 import { HiGif } from 'react-icons/hi2';
 import { MdOutlineEmojiEmotions } from 'react-icons/md';
+import { TbCircleNumber1Filled, TbCircleNumber2Filled, TbCircleNumber3Filled, TbCircleNumber4Filled, TbCircleNumber5Filled } from 'react-icons/tb';
 import './ConfessionItem.css';
 
-const emojis = ['❤️', '😂', '😢', '😡', '👍'];
-
 function ConfessionItem({ confession, rank }) {
-  const [selectedEmoji, setSelectedEmoji] = useState(() => 
-    localStorage.getItem(`reaction-${confession.id}`) || null
-  );
+  const [selectedEmoji, setSelectedEmoji] = useState(null);
   const [localReactions, setLocalReactions] = useState(confession.reactions || {});
   const [loading, setLoading] = useState(false);
   const [showReplies, setShowReplies] = useState(false);
@@ -27,18 +26,59 @@ function ConfessionItem({ confession, rank }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [replies, setReplies] = useState([]);
   const [showFullText, setShowFullText] = useState(false);
+  const [expandedReplies, setExpandedReplies] = useState(new Set());
   const [submittingReply, setSubmittingReply] = useState(false);
-  const [moderatingReply, setModeratingReply] = useState(false); // Add moderation state
+  const [moderatingReply, setModeratingReply] = useState(false);
   const [optimisticReply, setOptimisticReply] = useState(null);
   
   const textareaRef = useRef(null);
   const emojiPickerRef = useRef(null);
+
+  // Real-time reaction listener
+  useEffect(() => {
+    const unsubscribe = subscribeToReactions(confession.id, (reactions) => {
+      setLocalReactions(reactions);
+    });
+
+    // Get user's current reaction
+    getUserReaction(confession.id).then((userReaction) => {
+      setSelectedEmoji(userReaction);
+    });
+
+    return unsubscribe;
+  }, [confession.id]);
 
   const TRUNCATE_LIMIT = 200;
   const shouldTruncate = confession.text.length > TRUNCATE_LIMIT;
   const displayText = shouldTruncate && !showFullText 
     ? confession.text.substring(0, TRUNCATE_LIMIT) + '...'
     : confession.text;
+
+  // Helper function to check if reply should be truncated
+  const shouldTruncateReply = (text) => text && text.length > TRUNCATE_LIMIT;
+  
+  // Helper function to get display text for reply
+  const getReplyDisplayText = (reply) => {
+    if (!reply.text) return '';
+    const shouldTruncate = shouldTruncateReply(reply.text);
+    const isExpanded = expandedReplies.has(reply.id);
+    return shouldTruncate && !isExpanded 
+      ? reply.text.substring(0, TRUNCATE_LIMIT) + '...'
+      : reply.text;
+  };
+
+  // Helper function to toggle reply expansion
+  const toggleReplyExpansion = (replyId) => {
+    setExpandedReplies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(replyId)) {
+        newSet.delete(replyId);
+      } else {
+        newSet.add(replyId);
+      }
+      return newSet;
+    });
+  };
 
   // Auto-dismiss error popup after 3s
   const showError = (msg) => {
@@ -47,16 +87,70 @@ function ConfessionItem({ confession, rank }) {
   };
 
   function getBadge() {
+    const badgeStyle = {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '40px',
+      height: '40px',
+      borderRadius: '50%',
+      marginBottom: '0.8rem',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      transition: 'all 0.3s ease',
+      transform: 'scale(1)',
+    };
+
     switch (rank) {
       case 1: 
-        return '🥇';
+        return (
+          <div style={{
+            ...badgeStyle,
+            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+            border: '2px solid #FF8C00'
+          }}>
+            <TbCircleNumber1Filled size={24} color="#8B4513" />
+          </div>
+        );
       case 2: 
-        return '🥈';
+        return (
+          <div style={{
+            ...badgeStyle,
+            background: 'linear-gradient(135deg, #C0C0C0, #A9A9A9)',
+            border: '2px solid #696969'
+          }}>
+            <TbCircleNumber2Filled size={22} color="#2F4F4F" />
+          </div>
+        );
       case 3: 
-        return '🥉';
+        return (
+          <div style={{
+            ...badgeStyle,
+            background: 'linear-gradient(135deg, #CD7F32, #B8860B)',
+            border: '2px solid #8B6914'
+          }}>
+            <TbCircleNumber3Filled size={20} color="#654321" />
+          </div>
+        );
       case 4:
+        return (
+          <div style={{
+            ...badgeStyle,
+            background: 'linear-gradient(135deg, #87CEEB, #4682B4)',
+            border: '2px solid #4169E1'
+          }}>
+            <TbCircleNumber4Filled size={18} color="#1E3A8A" />
+          </div>
+        );
       case 5: 
-        return '🏅';
+        return (
+          <div style={{
+            ...badgeStyle,
+            background: 'linear-gradient(135deg, #98FB98, #32CD32)',
+            border: '2px solid #228B22'
+          }}>
+            <TbCircleNumber5Filled size={16} color="#006400" />
+          </div>
+        );
       default: 
         return null;
     }
@@ -126,46 +220,24 @@ function ConfessionItem({ confession, rank }) {
     }
   }, [showReplies, confession.id, optimisticReply]);
 
-  async function toggleReaction(emoji) {
+  async function handleReactionToggle(emoji) {
+    // Don't block UI, just handle the reaction gracefully
     try {
-      const newReactions = { ...localReactions };
-      
       if (selectedEmoji === emoji) {
-        // Remove reaction
-        newReactions[emoji] = Math.max((newReactions[emoji] || 1) - 1, 0);
-        if (newReactions[emoji] === 0) {
-          delete newReactions[emoji];
-        }
+        // Remove current reaction
+        await toggleReaction(confession.id, emoji);
         setSelectedEmoji(null);
-        localStorage.removeItem(`reaction-${confession.id}`);
       } else {
-        // Add new reaction, remove old one if exists
+        // Remove previous reaction if exists, then add new one
         if (selectedEmoji) {
-          newReactions[selectedEmoji] = Math.max((newReactions[selectedEmoji] || 1) - 1, 0);
-          if (newReactions[selectedEmoji] === 0) {
-            delete newReactions[selectedEmoji];
-          }
+          await removePreviousReaction(confession.id, emoji);
         }
-        newReactions[emoji] = (newReactions[emoji] || 0) + 1;
+        await toggleReaction(confession.id, emoji);
         setSelectedEmoji(emoji);
-        localStorage.setItem(`reaction-${confession.id}`, emoji);
       }
-      
-      // Update local state immediately for responsive UI
-      setLocalReactions(newReactions);
-      
-      // Update Firestore
-      const confessionRef = doc(db, 'confessions', confession.id);
-      await updateDoc(confessionRef, {
-        reactions: newReactions
-      });
-      
     } catch (err) {
       console.error("Error updating reaction:", err);
       showError("Failed to update reaction. Please try again.");
-      // Revert local state on error
-      setLocalReactions(confession.reactions || {});
-      setSelectedEmoji(localStorage.getItem(`reaction-${confession.id}`) || null);
     }
   }
 
@@ -300,7 +372,6 @@ function ConfessionItem({ confession, rank }) {
             color: '#3498db',
             cursor: 'pointer',
             fontSize: '0.9rem',
-            textDecoration: 'underline',
             padding: '0.25rem 0',
             marginTop: '0.25rem'
           }}
@@ -330,7 +401,7 @@ function ConfessionItem({ confession, rank }) {
       )}
 
       {confession.gifUrl && !confession.mediaUrl && (
-        <div className="media-container">
+        <div className="gif-container">
           <img 
             src={confession.gifUrl} 
             alt="Confession GIF" 
@@ -340,19 +411,11 @@ function ConfessionItem({ confession, rank }) {
         </div>
       )}
 
-      <div className="reaction-bar">
-        {emojis.map((emoji) => (
-          <button
-            key={emoji}
-            className={selectedEmoji === emoji ? 'selected' : ''}
-            onClick={() => toggleReaction(emoji)}
-            disabled={loading}
-            aria-label={`React with ${emoji}`}
-          >
-            {emoji} {localReactions[emoji] || 0}
-          </button>
-        ))}
-      </div>
+              <ReactionBar
+          selectedEmoji={selectedEmoji}
+          localReactions={localReactions}
+          onReactionToggle={handleReactionToggle}
+        />
 
       <div className="reply-section">
         <button
@@ -491,9 +554,30 @@ function ConfessionItem({ confession, rank }) {
                   />
                 )}
                 
-                {reply.text && <p>{reply.text}</p>}
+                {reply.text && (
+                  <p>
+                    {getReplyDisplayText(reply)}
+                    {shouldTruncateReply(reply.text) && (
+                      <button 
+                        className="see-more-btn"
+                        onClick={() => toggleReplyExpansion(reply.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#3498db',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          padding: '0.25rem 0',
+                          marginTop: '0.25rem'
+                        }}
+                      >
+                        {expandedReplies.has(reply.id) ? 'See less' : 'See more'}
+                      </button>
+                    )}
+                  </p>
+                )}
                 {reply.gifUrl && (
-                  <div className="media-container">
+                  <div className="gif-container">
                     <img 
                       src={reply.gifUrl} 
                       alt="Reply GIF" 
@@ -522,4 +606,4 @@ function ConfessionItem({ confession, rank }) {
   );
 }
 
-export default ConfessionItem;
+export default memo(ConfessionItem);

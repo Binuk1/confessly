@@ -1,0 +1,238 @@
+/* Reaction Bar Component Styles */
+
+.reaction-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+
+/* Desktop reaction buttons */
+.desktop-reactions {
+  display: none;
+}
+
+.desktop-reactions button {
+  background: var(--bg-color);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: transform 0.1s ease, background-color 0.2s ease, border-color 0.2s ease;
+  color: var(--text-color);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+.desktop-reactions button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  background-color: rgba(47, 107, 255, 0.12);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  box-shadow: 0 4px 8px rgba(47, 107, 255, 0.25);
+}
+
+.desktop-reactions button.selected {
+  border-color: var(--accent-color);
+  background: rgba(255, 162, 77, 0.15);
+  color: var(--accent-color);
+  font-weight: 600;
+}
+
+/* Remove disabled state styling to prevent cursor issues */
+.desktop-reactions button:disabled {
+  opacity: 1;
+  cursor: pointer;
+}
+
+/* Mobile reaction interface */
+.mobile-reactions {
+  display: block;
+  position: relative;
+}
+
+.mobile-reaction-btn {
+  background: var(--card-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 25px;
+  padding: 0.6rem 1.2rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  min-width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  outline: none;
+}
+
+.mobile-reaction-btn:hover {
+  border-color: var(--primary-color);
+  background: rgba(47, 107, 255, 0.08);
+}
+
+.mobile-reaction-btn:active {
+  transform: scale(0.95);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-reaction-btn.holding {
+  transform: scale(0.95);
+  background: rgba(47, 107, 255, 0.15);
+  border-color: var(--primary-color);
+}
+
+.mobile-reaction-btn.has-reaction {
+  background: rgba(255, 162, 77, 0.15);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.selected-reaction {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.reaction-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  color: var(--text-color);
+}
+
+.mobile-reaction-popup {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.8rem;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  z-index: 100;
+  animation: popupSlideUp 0.2s ease-out;
+  flex-direction: row;
+}
+
+.mobile-reaction-option {
+  background: none;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  min-width: 50px;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  outline: none;
+}
+
+.mobile-reaction-option:hover {
+  background: rgba(47, 107, 255, 0.1);
+  transform: scale(1.1);
+}
+
+.mobile-reaction-option:active {
+  transform: scale(0.95);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-reaction-option.selected {
+  background: rgba(255, 162, 77, 0.2);
+  color: var(--accent-color);
+}
+
+.reaction-emoji {
+  font-size: 1.3rem;
+}
+
+.reaction-count {
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+@keyframes popupSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .desktop-reactions {
+    display: none;
+  }
+  
+  .mobile-reactions {
+    display: block;
+  }
+  
+  .reaction-bar {
+    justify-content: flex-start;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-reactions {
+    display: none;
+  }
+  
+  .desktop-reactions {
+    display: flex;
+  }
+}
+
+/* Dark mode support */
+.dark-mode .mobile-reaction-btn {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.dark-mode .mobile-reaction-popup {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+.dark-mode .mobile-reaction-option:hover {
+  background: rgba(47, 107, 255, 0.15);
+}
+
+.dark-mode .mobile-reaction-option.selected {
+  background: rgba(255, 194, 122, 0.2);
+}

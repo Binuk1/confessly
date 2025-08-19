@@ -1,0 +1,105 @@
+.go-to-top-button {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  transition: all 0.3s ease;
+  z-index: 1000;
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slideInUp 0.3s ease forwards;
+}
+
+.go-to-top-button:hover {
+  background: linear-gradient(135deg, #2980b9, #1f5f8b);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(52, 152, 219, 0.4);
+}
+
+.go-to-top-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.3);
+}
+
+.go-to-top-button:focus {
+  outline: none;
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3), 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Desktop styles - hide on larger screens */
+@media (min-width: 768px) {
+  .go-to-top-button {
+    display: none;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+  .go-to-top-button {
+    bottom: 25px;
+    right: 25px;
+    width: 55px;
+    height: 55px;
+    font-size: 22px;
+  }
+  
+  /* Ensure it's above other elements on mobile */
+  .go-to-top-button {
+    z-index: 9999;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .go-to-top-button {
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    box-shadow: 0 4px 12px rgba(44, 62, 80, 0.3);
+  }
+  
+  .go-to-top-button:hover {
+    background: linear-gradient(135deg, #34495e, #2c3e50);
+    box-shadow: 0 6px 16px rgba(44, 62, 80, 0.4);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .go-to-top-button {
+    border: 2px solid #000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .go-to-top-button {
+    transition: none;
+    animation: none;
+  }
+  
+  .go-to-top-button:hover {
+    transform: none;
+  }
+}

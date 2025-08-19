@@ -270,68 +270,74 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
-/* Theme Variables - Red & Yellow Palette */
+/* Theme Variables - Refreshed Blue/Orange/Grey/Light-Green Palette */
 :root {
   /* Light Mode */
-  --bg-color: #FFFDE7; /* Light Yellow Background */
-  --text-color: #333333; /* Dark Grey Text */
-  --card-bg: #FFF9C4; /* Lighter Yellow Card Background */
-  --border-color: #FFD54F; /* Amber Border */
-  --primary-color: #ffa600; /* Vibrant Orange-Yellow (Primary) */
-  --primary-hover: #FF8F00; /* Darker Orange-Yellow on Hover */
-  --accent-color: #D32F2F; /* Deep Red Accent */
-  --accent-hover: #C62828; /* Darker Deep Red */
-  --error-bg: #FFEBEE; /* Light Red for Errors */
-  --error-text: #D32F2F; /* Deep Red Error Text */
-  --toggle-active-shadow: rgba(255, 171, 0, 0.4); /* Shadow for active toggles */
-  
-  /* Rank Colors (kept in warm tones for consistency) */
-  --rank-1-bg: #FFFDE7; /* Gold - Lightest Yellow */
-  --rank-1-border: #FFEA00; /* Bright Yellow */
-  --rank-2-bg: #FFF9C4; /* Silver - Medium Yellow */
-  --rank-2-border: #FFC107; /* Amber */
-  --rank-3-bg: #FFECB3; /* Bronze - Darker Yellow */
-  --rank-3-border: #FFB300; /* Dark Amber */
-  --rank-4-5-bg: #FFEBEE; /* Red-ish tones for lower ranks */
-  --rank-4-5-border: #EF9A9A; /* Light Red */
-  
-  --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); /* Slightly stronger shadow */
-  --modal-shadow: 0 8px 30px rgba(0,0,0,0.25); /* Stronger modal shadow */
-  
+  --bg-color: #F3F6FB; /* soft blue-ish background */
+  --text-color: #1F2937; /* slate-800 */
+  --card-bg: #FFFFFF; /* white cards */
+  --border-color: #E5E7EB; /* gray-200 */
+  --primary-color: #2F6BFF; /* darker blue */
+  --primary-hover: #1E56F0; /* deeper blue on hover */
+  --accent-color: #FFA24D; /* soft orange */
+  --accent-hover: #FF9800; /* deeper orange */
+  --success-color: #7ED957; /* grass green (light, vivid) */
+  --sea-color: #2EC5CE; /* sea blue */
+  --sea-hover: #22B8C7; /* sea blue hover */
+  --error-bg: #FEECEE; /* very light red */
+  --error-text: #D14343; /* soft red */
+  --toggle-active-shadow: rgba(47, 107, 255, 0.35);
+
+  /* Rank Colors (soft variants from palette) */
+  --rank-1-bg: #E6F0FF; /* pale blue */
+  --rank-1-border: #9CC2FF; /* blue border */
+  --rank-2-bg: #E8FFF3; /* pale green */
+  --rank-2-border: #A7EBC7; /* green border */
+  --rank-3-bg: #FFF4E6; /* pale orange */
+  --rank-3-border: #FFD199; /* orange border */
+  --rank-4-5-bg: #F3F4F6; /* light grey */
+  --rank-4-5-border: #CBD5E1; /* grey border */
+
+  --card-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  --modal-shadow: 0 8px 30px rgba(0,0,0,0.22);
+
   --transition-fast: 0.2s;
   --transition-normal: 0.3s;
-  
+
   --section-spacing: 1.5rem;
 }
 
 /* Dark Mode - Inverted Red & Yellow Palette */
 .dark-mode {
-  --bg-color: #1A1A1A; /* Dark Background */
-  --text-color: #F0F0F0; /* Light Text */
-  --card-bg: #2B2B2B; /* Darker Grey Card Background */
-  --border-color: #616161; /* Medium Grey Border */
-  --primary-color: #FFECB3; /* Light Yellow (Primary in Dark Mode) */
-  --primary-hover: #FFD54F; /* Amber on Hover */
-  --accent-color: #EF5350; /* Bright Red Accent */
-  --accent-hover: #E53935; /* Darker Bright Red */
-  --error-bg: #420A0A; /* Dark Red for Errors */
-  --error-text: #FF8A80; /* Light Red Error Text */
-  --toggle-active-shadow: rgba(255, 236, 179, 0.2); /* Shadow for active toggles */
+  --bg-color: #0F172A; /* slate-900 */
+  --text-color: #E5E7EB; /* gray-200 */
+  --card-bg: #1F2937; /* slate-800 */
+  --border-color: #374151; /* slate-700 */
+  --primary-color: #3E7BFF; /* darker blue in dark */
+  --primary-hover: #2F6BFF; /* deeper blue */
+  --accent-color: #FFC27A; /* soft orange */
+  --accent-hover: #FFB04A; /* deeper orange */
+  --success-color: #8EEB75; /* grass green variant */
+  --sea-color: #4ADDE3; /* sea blue in dark */
+  --sea-hover: #2EC5CE; /* sea blue hover */
+  --error-bg: #3B1114; /* dark red background */
+  --error-text: #FF9AA2; /* light red text */
+  --toggle-active-shadow: rgba(144, 194, 255, 0.22);
 
   /* Dark Mode Rank Colors */
-  --rank-1-bg: #3A331A; /* Dark Gold */
-  --rank-1-border: #FFEA00; /* Bright Yellow */
-  --rank-2-bg: #33332B; /* Dark Silver */
-  --rank-2-border: #FFC107; /* Amber */
-  --rank-3-bg: #332B1A; /* Dark Bronze */
-  --rank-3-border: #FFB300; /* Dark Amber */
-  --rank-4-5-bg: #2B1A1A; /* Darker Red-ish for lower ranks */
-  --rank-4-5-border: #D32F2F; /* Deep Red */
+  --rank-1-bg: #102036; /* deep blue */
+  --rank-1-border: #4D88FF;
+  --rank-2-bg: #0F2A20; /* deep green */
+  --rank-2-border: #3CCB9E;
+  --rank-3-bg: #2A1E0F; /* deep orange-brown */
+  --rank-3-border: #FFB46B;
+  --rank-4-5-bg: #111827; /* deep grey */
+  --rank-4-5-border: #475569;
 }
 
 body {
-  font-family: 'Inter', sans-serif; /* Using Inter font as per instructions */
-  background: linear-gradient(to right, #FFD54F, #FFC107); /* Warm Yellow Gradient */
+  font-family: 'Inter', sans-serif; /* Using Inter font */
+  background: linear-gradient(to right, #EAF2FF, #F2FFF7); /* Soft blue to soft green */
   min-height: 100vh;
   display: flex;
   justify-content: center;
@@ -342,8 +348,8 @@ body {
   overflow-y: auto; /* Allow scrolling if content overflows */
 }
 
-.dark-mode body {
-  background: linear-gradient(to right, #1A1A1A, #0A0A0A); /* Dark Grey Gradient */
+body.dark-mode {
+  background: linear-gradient(to right, #0B1222, #0A101A); /* Dark slate gradient */
 }
 
 .App {
@@ -477,14 +483,14 @@ body {
 
 .theme-switch button.active {
   border-color: var(--primary-color);
-  background: rgba(255, 171, 0, 0.1); /* Primary color tint */
+  background: rgba(111, 168, 255, 0.12);
   color: var(--primary-color);
   box-shadow: 0 2px 8px var(--toggle-active-shadow);
   transform: translateY(-3px); /* Slight lift */
 }
 
 .theme-switch button:hover:not(.active) {
-  background: rgba(255, 171, 0, 0.05); /* Light hover effect */
+  background: rgba(111, 168, 255, 0.06);
   border-color: var(--primary-hover);
 }
 
@@ -511,7 +517,7 @@ body {
   padding: 0.8rem 2.2rem; /* More padding */
   font-size: 1.05rem;
   border-radius: 8px; /* More rounded */
-  border: 2px solid var(--accent-color); /* Use accent color for toggle */
+  border: 2px solid #0f172a; /* default dark slate border */
   background: var(--bg-color);
   color: var(--accent-color);
   cursor: pointer;
@@ -520,30 +526,60 @@ body {
   position: relative;
   overflow: hidden;
   box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .toggle-bar button.active {
-  background: var(--accent-color); /* Fill with accent color */
-  color: white;
-  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.4); /* Accent shadow */
-  transform: translateY(-2px); /* Slight lift */
+  background: var(--success-color);
+  color: #0a2b0f; /* readable on light green */
+  box-shadow: 0 4px 12px rgba(126, 217, 87, 0.35);
+  border-color: #065f46; /* deep green border when active */
+  transform: translateY(-2px);
 }
 
 .toggle-bar button:not(.active):hover {
-  background: rgba(211, 47, 47, 0.1); /* Accent tint on hover */
+  background: rgba(255, 162, 77, 0.12);
   border-color: var(--accent-hover);
 }
 
 .dark-mode .toggle-bar button:not(.active) {
   background: rgba(255, 255, 255, 0.05);
-  border-color: var(--accent-color);
+  border-color: #111827; /* dark slate */
   color: var(--accent-color);
 }
 
 .dark-mode .toggle-bar button.active {
-  background: var(--accent-color);
-  color: white;
-  box-shadow: 0 4px 12px rgba(239, 83, 80, 0.4);
+  background: var(--success-color);
+  color: #05240e;
+  box-shadow: 0 4px 12px rgba(142, 235, 117, 0.3);
+  border-color: #064e3b;
+}
+
+/* Smooth view fade */
+.views-stack {
+  position: relative;
+}
+.view-panel {
+  opacity: 0;
+  transition: opacity 220ms ease;
+  pointer-events: none;
+  position: relative; /* active participates in layout */
+  will-change: opacity;
+}
+.view-panel.active {
+  opacity: 1;
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
+}
+.view-panel.inactive {
+  position: absolute; /* inactive overlays and is removed from flow */
+  inset: 0;
+  z-index: 1;
+  max-height: 0;
+  overflow: hidden;
 }
 
 .confession-form,
@@ -631,7 +667,7 @@ body {
 }
 .action-button:hover {
   opacity: 1;
-  background: rgba(255, 171, 0, 0.1); /* Primary color hover */
+  background: rgba(47, 107, 255, 0.12);
   color: var(--primary-color);
   transform: scale(1.1);
 }
@@ -646,13 +682,13 @@ body {
   font-weight: 700; /* Bolder text */
   cursor: pointer;
   transition: background var(--transition-normal), transform var(--transition-fast);
-  box-shadow: 0 4px 10px rgba(255, 171, 0, 0.3); /* Subtle shadow */
+  box-shadow: 0 4px 10px rgba(47, 107, 255, 0.28);
 }
 
 .submit-button:hover {
   background: var(--primary-hover);
   transform: translateY(-2px); /* Slight lift */
-  box-shadow: 0 6px 15px rgba(255, 143, 0, 0.4);
+  box-shadow: 0 6px 15px rgba(47, 107, 255, 0.4);
 }
 
 .submit-button:disabled {
@@ -672,7 +708,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1.2rem; /* More space between items */
+  transition: opacity 150ms ease-in-out, transform 150ms ease-in-out;
 }
+.confession-list.fading { opacity: 0.12; transform: translateY(6px); }
 
 .confession-item {
   background: var(--card-bg);
@@ -728,19 +766,20 @@ body {
 .dark-mode .reaction-bar button { background: rgba(255,255,255,0.08); border-color: var(--border-color); } /* Dark mode subtle background */
 .reaction-bar button:hover { 
   transform: translateY(-3px); /* Stronger lift */
-  background-color: rgba(255, 171, 0, 0.15); /* Primary color tint on hover */
+  background-color: rgba(47, 107, 255, 0.12); /* dark blue tint */
   border-color: var(--primary-color);
-  box-shadow: 0 4px 8px rgba(255, 171, 0, 0.2);
+  color: var(--primary-color);
+  box-shadow: 0 4px 8px rgba(47, 107, 255, 0.25);
 }
 .reaction-bar button.selected { 
-  border-color: var(--accent-color); /* Accent color for selected */
-  background: rgba(211, 47, 47, 0.15); /* Accent color tint */
-  color: var(--accent-color); /* Accent text color */
+  border-color: var(--accent-color);
+  background: rgba(255, 162, 77, 0.15);
+  color: var(--accent-color);
   font-weight: 600;
 }
 
 .dark-mode .reaction-bar button.selected {
-  background: rgba(239, 83, 80, 0.2);
+  background: rgba(255, 194, 122, 0.2);
   border-color: var(--accent-color);
   color: var(--accent-color);
 }
@@ -754,7 +793,7 @@ body {
 .toggle-replies-btn {
   background: none;
   border: none;
-  color: var(--primary-color);
+  color: var(--sea-color);
   cursor: pointer;
   font-size: 0.9rem; /* Slightly larger text */
   padding: 0.3rem 0;
@@ -763,8 +802,8 @@ body {
   transition: color var(--transition-fast);
 }
 .toggle-replies-btn:hover {
-  color: var(--primary-hover);
-  text-decoration: underline;
+  color: var(--sea-hover);
+  text-decoration: none;
 }
 
 .reply-item {
@@ -790,15 +829,15 @@ body {
 .media-container {
   position: relative;
   max-width: 100%;
-  max-height: 350px; /* Taller media container */
+  max-height: 250px; /* Reduced from 350px to make GIFs smaller */
   margin: 1rem 0;
-  background: rgba(0,0,0,0.05);
+  background: transparent; /* Remove background box */
   border-radius: 10px;
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center; /* Center media vertically */
-  border: 1px solid var(--border-color);
+  border: none; /* Remove border */
 }
 
 .confession-media, .reply-media, .confession-gif, .reply-gif {
@@ -807,6 +846,35 @@ body {
   border-radius: 8px;
   object-fit: contain; /* Ensure entire image is visible */
   display: block;
+}
+
+/* Specific styles for GIFs to make them smaller */
+.confession-gif, .reply-gif {
+  max-width: 300px; /* Limit GIF width */
+  max-height: 200px; /* Limit GIF height */
+  object-fit: contain;
+  border-radius: 8px;
+  background: transparent; /* Remove any background */
+}
+
+/* Make reply GIFs even smaller */
+.reply-gif {
+  max-width: 250px;
+  max-height: 150px;
+}
+
+/* GIF container with left-to-right layout */
+.gif-container {
+  display: flex;
+  justify-content: flex-start; /* Left align */
+  align-items: flex-start;
+  margin: 1rem 0;
+  width: 100%;
+}
+
+.gif-container img {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .gif-preview-container {
@@ -972,6 +1040,40 @@ textarea, input, button {
   font-size: 1.1rem;
 }
 
+/* Pagination */
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+.page-btn {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+.page-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: rgba(47, 107, 255, 0.08);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+.page-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.page-btn.active {
+  background: var(--success-color);
+  color: #0a2b0f;
+  border-color: #065f46;
+  box-shadow: 0 2px 10px rgba(126, 217, 87, 0.25);
+}
+
 /* Keyframe Animations */
 @keyframes modal-fade-in {
   from { opacity: 0; }
@@ -1018,12 +1120,14 @@ textarea, input, button {
 
   .toggle-bar { 
     margin: 1rem 0 1.5rem; 
-    flex-direction: column; /* Stack buttons vertically */
-    gap: 0.8rem;
+    flex-direction: row; /* Side-by-side on mobile */
+    gap: 0.6rem;
+    flex-wrap: wrap;
   }
   .toggle-bar button { 
-    padding: 0.8rem 1.5rem; 
-    width: 100%; /* Full width buttons */
+    padding: 0.7rem 1rem; 
+    width: auto; /* Don't force full width */
+    flex: 1 1 auto; /* Let buttons share available space */
     text-align: center; 
   }
 

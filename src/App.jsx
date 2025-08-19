@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { FaCog } from 'react-icons/fa';
+import { MdFiberNew } from 'react-icons/md';
+import { BsFire } from 'react-icons/bs';
 import ConfessionForm from './components/ConfessionForm';
 import ConfessionList from './components/ConfessionList';
 import { hideInitialSplash } from './main';
 import TrendingConfessions from './components/TrendingConfessions';
 import SettingsModal from './components/SettingsModal';
+import GoToTop from './components/GoToTop';
 import './App.css';
 
 function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [viewTrending, setViewTrending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [isFading, setIsFading] = useState(false);
 
   useEffect(() => {
     const savedMode = localStorage.getItem('darkMode') === 'true';
@@ -31,6 +35,11 @@ function App() {
   useEffect(() => {
     hideInitialSplash();
   }, []);
+
+  const handleSwitchView = (toTrending) => {
+    if (viewTrending === toTrending) return;
+    setViewTrending(toTrending);
+  };
 
   return (
     <div className="App">
@@ -58,19 +67,33 @@ function App() {
       <div className="toggle-bar">
         <button
           className={!viewTrending ? 'active' : ''}
-          onClick={() => setViewTrending(false)}
+          onClick={() => handleSwitchView(false)}
         >
-          🆕 Latest
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <MdFiberNew style={{ color: '#E53935', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.2))' }} size={24} />
+          </span>
+          <span>Latest</span>
         </button>
         <button
           className={viewTrending ? 'active' : ''}
-          onClick={() => setViewTrending(true)}
+          onClick={() => handleSwitchView(true)}
         >
-          🔥 Trending
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+            <BsFire style={{ color: '#FFC94D', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.2))' }} size={22} />
+          </span>
+          <span>Trending</span>
         </button>
       </div>
-
-      {viewTrending ? <TrendingConfessions /> : <ConfessionList />}
+      <div className="views-stack">
+        <div className={`view-panel ${!viewTrending ? 'active' : 'inactive'}`} aria-hidden={viewTrending}>
+          <ConfessionList isActive={!viewTrending} />
+        </div>
+        <div className={`view-panel ${viewTrending ? 'active' : 'inactive'}`} aria-hidden={!viewTrending}>
+          <TrendingConfessions isActive={viewTrending} />
+        </div>
+      </div>
+      
+      <GoToTop />
     </div>
   );
 }

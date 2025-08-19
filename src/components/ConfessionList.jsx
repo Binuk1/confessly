@@ -3,37 +3,31 @@ import { collection, query, onSnapshot, orderBy, limit } from 'firebase/firestor
 import { db } from '../firebase';
 import ConfessionItem from './ConfessionItem';
 import SkeletonItem from './SkeletonItem';
+import { subscribeToReactions } from '../services/reactionService';
 
-function ConfessionList({ optimisticConfession, onOptimisticCleared }) {
+function ConfessionList({ optimisticConfession, onOptimisticCleared, isActive = true }) {
   const [confessions, setConfessions] = useState([]);
-  const [page, setPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
   const optimisticRef = useRef(null);
+  const listTopRef = useRef(null);
+  const [isFading, setIsFading] = useState(false);
+  const PAGE_SIZE = 10;
+  const MAX_DOCS = 200; // cap for local numeric pagination
 
-  // Auto-scroll to optimistic confession when it appears
+  // Auto-scroll removed to avoid jank when switching views
+
   useEffect(() => {
-    if (optimisticConfession && optimisticRef.current) {
-      // Wait longer for the confession to fully render and animate
-      setTimeout(() => {
-        optimisticRef.current?.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center', // Changed from 'start' to 'center' for better positioning
-          inline: 'nearest'
-        });
-      }, 600); // Increased from 100ms to 600ms to allow animation to complete
+    if (!isActive) {
+      return;
     }
-  }, [optimisticConfession]);
-
-  useEffect(() => {
     setLoading(true);
-    
-    // This query will use the index: confessions (createdAt DESC, __name__ ASC)
+
     const q = query(
       collection(db, 'confessions'),
-      orderBy('createdAt', 'desc'), // Uses index - newest first
-      orderBy('__name__', 'asc'),   // Explicit tiebreaker for consistent pagination
-      limit(page * 10)
+      orderBy('createdAt', 'desc'),
+      orderBy('__name__', 'asc'),
+      limit(MAX_DOCS)
     );
 
     const unsub = onSnapshot(q, (snapshot) => {
@@ -42,13 +36,10 @@ function ConfessionList({ optimisticConfession, onOptimisticCleared }) {
         ...doc.data(),
         totalReactions: Object.values(doc.data().reactions || {}).reduce((a, b) => a + b, 0)
       }));
-      
+
       setConfessions(items);
       setLoading(false);
-      setHasMore(items.length >= page * 10);
 
-
-      // Clear optimistic confession if the real one arrived
       if (optimisticConfession && items.some(item => 
         item.text === optimisticConfession.text && 
         item.gifUrl === optimisticConfession.gifUrl
@@ -60,21 +51,38 @@ function ConfessionList({ optimisticConfession, onOptimisticCleared }) {
     }, (error) => {
       console.error("Error fetching confessions:", error);
       setLoading(false);
-      // Handle error gracefully - could show error message to user
     });
 
     return () => unsub();
-  }, [page, optimisticConfession, onOptimisticCleared]);
+  }, [isActive, optimisticConfession, onOptimisticCleared]);
 
-  // Combine optimistic confession with real confessions for display
+  const totalPages = Math.max(1, Math.ceil(confessions.length / PAGE_SIZE));
+  const clampedPage = Math.min(currentPage, totalPages);
+  const startIndex = (clampedPage - 1) * PAGE_SIZE;
+  const pageItems = confessions.slice(startIndex, startIndex + PAGE_SIZE);
+
+  // Combine optimistic confession on page 1 only
   const displayConfessions = [];
-  if (optimisticConfession) {
+  if (optimisticConfession && clampedPage === 1) {
     displayConfessions.push(optimisticConfession);
   }
-  displayConfessions.push(...confessions);
+  displayConfessions.push(...pageItems);
+
+  const goToPage = (pageNum) => {
+    if (pageNum < 1 || pageNum > totalPages || pageNum === clampedPage) return;
+    if (listTopRef.current) {
+      listTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    setIsFading(true);
+    setTimeout(() => {
+      setCurrentPage(pageNum);
+      setTimeout(() => setIsFading(false), 30);
+    }, 150);
+  };
 
   return (
-    <div className="confession-list">
+    <div className={`confession-list ${isFading ? 'fading' : ''}`}>
+      <div ref={listTopRef} />
       {displayConfessions.length === 0 && loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
           <SkeletonItem size={50} />
@@ -93,19 +101,25 @@ function ConfessionList({ optimisticConfession, onOptimisticCleared }) {
           </div>
         ))
       )}
-      
-      {hasMore && !loading && confessions.length > 0 && (
-        <button
-          onClick={() => setPage(page + 1)}
-          disabled={loading}
-          className="load-more-btn"
-        >
-          {loading ? 'Loading...' : 'Load More'}
-        </button>
-      )}
-      {!hasMore && confessions.length > 0 && (
-        <div className="end-message">
-          You've reached the end! 🎉
+
+      {confessions.length > 0 && (
+        <div className="pagination">
+          <button className="page-btn" onClick={() => goToPage(clampedPage - 1)} disabled={clampedPage === 1 || loading}>
+            Prev
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+            <button
+              key={p}
+              className={`page-btn ${p === clampedPage ? 'active' : ''}`}
+              onClick={() => goToPage(p)}
+              disabled={loading}
+            >
+              {p}
+            </button>
+          ))}
+          <button className="page-btn" onClick={() => goToPage(clampedPage + 1)} disabled={clampedPage === totalPages || loading}>
+            Next
+          </button>
         </div>
       )}
     </div>

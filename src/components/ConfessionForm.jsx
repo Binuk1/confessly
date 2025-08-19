@@ -4,7 +4,7 @@ import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import GifPicker from './GifPicker';
 import SimpleEmojiPicker from './SimpleEmojiPicker';
 import SkeletonItem from './SkeletonItem';
-import { ContentModerationService } from '../services/contentModerationService'; // Add this import
+import { ContentModerationService } from '../services/contentModerationService';
 import { MdOutlineEmojiEmotions } from 'react-icons/md';
 import { HiGif } from 'react-icons/hi2';
  
@@ -15,7 +15,7 @@ function ConfessionForm({ onOptimisticConfession }) {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [moderating, setModerating] = useState(false); // Add moderation loading state
+  const [moderating, setModerating] = useState(false);
   const emojiButtonRef = useRef(null);
 
   const MAX_CHARACTERS = 3500;
@@ -40,6 +40,21 @@ function ConfessionForm({ onOptimisticConfession }) {
     setText(newText);
   };
 
+  // Updated function to check for meaningful content (supports all languages)
+  const hasMeaningfulContent = (text) => {
+    const trimmedText = text.trim();
+    
+    // If text is empty, return false
+    if (!trimmedText) return false;
+    
+    // Check if text contains any letters (including international characters) or numbers
+    // \p{L} matches any Unicode letter (including Chinese, Arabic, etc.)
+    // \p{N} matches any Unicode number
+    const meaningfulContentRegex = /[\p{L}\p{N}]/u;
+    
+    return meaningfulContentRegex.test(trimmedText);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -49,10 +64,9 @@ function ConfessionForm({ onOptimisticConfession }) {
       return;
     }
     
-    // Require at least one alphanumeric character (confessions MUST have words)
-    const hasContent = /[a-zA-Z0-9]/.test(text.trim());
-    if (!hasContent) {
-      showError('Confessions must contain at least some text, not just emojis or GIFs.');
+    // FOR CONFESSIONS: Require meaningful text content, GIF alone is not enough
+    if (!hasMeaningfulContent(text)) {
+      showError('Confessions must contain meaningful text content, not just emojis, symbols, or GIFs.');
       return;
     }
     
@@ -196,7 +210,7 @@ function ConfessionForm({ onOptimisticConfession }) {
               <button
                 type="submit"
                 className="submit-button"
-                disabled={loading || moderating || (!text.trim() && !gifUrl) || isOverLimit}
+                disabled={loading || moderating || !hasMeaningfulContent(text) || isOverLimit}
                 style={{
                   opacity: (isOverLimit || moderating) ? 0.5 : 1,
                   cursor: (isOverLimit || moderating) ? 'not-allowed' : 'pointer'

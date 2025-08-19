@@ -1,14 +1,20 @@
-import { useEffect, useState } from 'react';
-import { collection, onSnapshot, query, orderBy, where, Timestamp } from 'firebase/firestore';
+import { useEffect, useMemo, useState } from 'react';
+import { collection, onSnapshot, query, orderBy, where, Timestamp, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import ConfessionItem from './ConfessionItem';
 import SkeletonItem from './SkeletonItem';
+import { subscribeToReactions } from '../services/reactionService';
 
-function TrendingConfessions() {
+function TrendingConfessions({ isActive = true }) {
   const [trending, setTrending] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [recentItems, setRecentItems] = useState([]);
+  const LIMIT_RECENT = 100; // cap how many docs we process client-side
 
   useEffect(() => {
+    if (!isActive) {
+      return;
+    }
     // Get timestamp for 24 hours ago
     const twentyFourHoursAgo = new Date();
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
@@ -18,7 +24,8 @@ function TrendingConfessions() {
     const q = query(
       collection(db, 'confessions'), 
       where('createdAt', '>=', timestamp24hAgo),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      limit(LIMIT_RECENT)
     );
 
     const unsub = onSnapshot(q, (snapshot) => {
@@ -31,12 +38,7 @@ function TrendingConfessions() {
         return { id: doc.id, ...data, totalReactions };
       });
 
-      // Sort by total reactions (trending = most reacted in last 24h)
-      const sorted = items
-        .sort((a, b) => b.totalReactions - a.totalReactions)
-        .slice(0, 5);
-
-      setTrending(sorted);
+      setRecentItems(items);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching trending confessions:", error);
@@ -44,7 +46,17 @@ function TrendingConfessions() {
     });
 
     return () => unsub();
-  }, []);
+  }, [isActive]);
+
+  const topFive = useMemo(() => {
+    if (!recentItems || recentItems.length === 0) return [];
+    const sorted = [...recentItems].sort((a, b) => b.totalReactions - a.totalReactions);
+    return sorted.slice(0, 5);
+  }, [recentItems]);
+
+  useEffect(() => {
+    setTrending(topFive);
+  }, [topFive]);
 
   return (
     <div className="trending-wrapper">
