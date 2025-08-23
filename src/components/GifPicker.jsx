@@ -9,6 +9,10 @@ const PROVIDERS = [
   { name: 'Tenor', value: 'tenor' },
 ];
 
+// Global cache for GIF data across component instances
+const gifCache = new Map();
+const imageCacheGlobal = new Map();
+
 function GifPicker({ onSelect, onClose }) {
   const [provider, setProvider] = useState('giphy');
   const [query, setQuery] = useState('');
@@ -17,7 +21,7 @@ function GifPicker({ onSelect, onClose }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
-  const [imageCache] = useState(new Map());
+  const [imageCache] = useState(imageCacheGlobal);
   
   const debounceRef = useRef();
   const abortControllerRef = useRef();
@@ -72,8 +76,21 @@ function GifPicker({ onSelect, onClose }) {
     return () => observerRef.current?.disconnect();
   }, [hasMore, loading, loadingMore, provider, query]);
 
-  // Reset and fetch on provider/query change
+  // Reset and fetch on provider/query change with caching
   useEffect(() => {
+    const cacheKey = `${provider}-${query.trim() || 'trending'}`;
+    
+    // Check if we have cached data
+    if (gifCache.has(cacheKey)) {
+      const cachedData = gifCache.get(cacheKey);
+      setGifs(cachedData.gifs);
+      setOffset(cachedData.offset);
+      setHasMore(cachedData.hasMore);
+      setLoading(false);
+      return;
+    }
+    
+    // No cache, fetch fresh data
     setGifs([]);
     setOffset(0);
     setHasMore(true);
@@ -151,6 +168,8 @@ function GifPicker({ onSelect, onClose }) {
         nextOffset = next || 0;
       }
       
+      const newGifs = isNewSearch ? processedGifs : [...gifs, ...processedGifs];
+      
       if (isNewSearch) {
         setGifs(processedGifs);
       } else {
@@ -160,6 +179,16 @@ function GifPicker({ onSelect, onClose }) {
       setHasMore(hasMoreResults);
       setOffset(nextOffset);
       batchPreloadImages(processedGifs);
+      
+      // Cache the trending results
+      if (isNewSearch) {
+        const cacheKey = `${provider}-trending`;
+        gifCache.set(cacheKey, {
+          gifs: newGifs,
+          offset: nextOffset,
+          hasMore: hasMoreResults
+        });
+      }
       
     } catch (err) {
       if (err.name !== 'AbortError') {
@@ -210,6 +239,8 @@ function GifPicker({ onSelect, onClose }) {
         nextOffset = next || 0;
       }
       
+      const newGifs = isNewSearch ? processedGifs : [...gifs, ...processedGifs];
+      
       if (isNewSearch) {
         setGifs(processedGifs);
       } else {
@@ -219,6 +250,16 @@ function GifPicker({ onSelect, onClose }) {
       setHasMore(hasMoreResults);
       setOffset(nextOffset);
       batchPreloadImages(processedGifs);
+      
+      // Cache the search results
+      if (isNewSearch) {
+        const cacheKey = `${provider}-${searchTerm}`;
+        gifCache.set(cacheKey, {
+          gifs: newGifs,
+          offset: nextOffset,
+          hasMore: hasMoreResults
+        });
+      }
       
     } catch (err) {
       if (err.name !== 'AbortError') {

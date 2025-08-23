@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
-import { FaCog } from 'react-icons/fa';
 import { MdFiberNew } from 'react-icons/md';
 import { BsFire } from 'react-icons/bs';
+import { IoMdSettings } from 'react-icons/io';
+import { FaCog } from 'react-icons/fa';
 import ConfessionForm from './components/ConfessionForm';
 import ConfessionList from './components/ConfessionList';
 import { hideInitialSplash } from './main';
 import TrendingConfessions from './components/TrendingConfessions';
 import SettingsModal from './components/SettingsModal';
 import GoToTop from './components/GoToTop';
+import ConnectionStatus from './components/ConnectionStatus';
+import './utils/consoleWarning';
 import './App.css';
 
 function App() {
@@ -22,13 +25,17 @@ function App() {
   }, []);
 
   useEffect(() => {
+    // Apply dark mode class to document
     if (darkMode) {
-      document.body.classList.add('dark-mode');
-      localStorage.setItem('darkMode', 'true');
+      document.documentElement.classList.add('dark-mode');
     } else {
-      document.body.classList.remove('dark-mode');
-      localStorage.setItem('darkMode', 'false');
+      document.documentElement.classList.remove('dark-mode');
     }
+
+    // Hide the initial splash screen
+    hideInitialSplash();
+
+    // Console warning is auto-initialized via import
   }, [darkMode]);
 
   // Hide inline splash as soon as app mounts
@@ -94,6 +101,7 @@ function App() {
       </div>
       
       <GoToTop />
+      <ConnectionStatus />
     </div>
   );
 }

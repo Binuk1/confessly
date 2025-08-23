@@ -221,23 +221,70 @@ function ConfessionItem({ confession, rank }) {
   }, [showReplies, confession.id, optimisticReply]);
 
   async function handleReactionToggle(emoji) {
-    // Don't block UI, just handle the reaction gracefully
+    const previousEmoji = selectedEmoji;
+    
+    // Optimistic UI update - instant feedback
+    if (selectedEmoji === emoji) {
+      // Removing current reaction
+      setSelectedEmoji(null);
+      setLocalReactions(prev => ({
+        ...prev,
+        [emoji]: Math.max(0, (prev[emoji] || 0) - 1)
+      }));
+    } else {
+      // Adding new reaction
+      setSelectedEmoji(emoji);
+      setLocalReactions(prev => {
+        const newReactions = { ...prev };
+        // Remove count from previous emoji if exists
+        if (previousEmoji) {
+          newReactions[previousEmoji] = Math.max(0, (newReactions[previousEmoji] || 0) - 1);
+        }
+        // Add count to new emoji
+        newReactions[emoji] = (newReactions[emoji] || 0) + 1;
+        return newReactions;
+      });
+    }
+    
+    // Background server update - don't await, handle errors gracefully
     try {
       if (selectedEmoji === emoji) {
-        // Remove current reaction
-        await toggleReaction(confession.id, emoji);
-        setSelectedEmoji(null);
+        // Was removing reaction
+        toggleReaction(confession.id, emoji).catch(err => {
+          console.error("Error removing reaction:", err);
+          // Revert optimistic update on error
+          setSelectedEmoji(emoji);
+          setLocalReactions(prev => ({
+            ...prev,
+            [emoji]: (prev[emoji] || 0) + 1
+          }));
+        });
       } else {
-        // Remove previous reaction if exists, then add new one
-        if (selectedEmoji) {
-          await removePreviousReaction(confession.id, emoji);
+        // Was adding new reaction
+        const promises = [];
+        if (previousEmoji) {
+          promises.push(removePreviousReaction(confession.id, emoji));
         }
-        await toggleReaction(confession.id, emoji);
-        setSelectedEmoji(emoji);
+        promises.push(toggleReaction(confession.id, emoji));
+        
+        Promise.all(promises).catch(err => {
+          console.error("Error updating reaction:", err);
+          // Revert optimistic update on error
+          setSelectedEmoji(previousEmoji);
+          setLocalReactions(prev => {
+            const revertedReactions = { ...prev };
+            // Revert new emoji
+            revertedReactions[emoji] = Math.max(0, (revertedReactions[emoji] || 0) - 1);
+            // Restore previous emoji if it existed
+            if (previousEmoji) {
+              revertedReactions[previousEmoji] = (revertedReactions[previousEmoji] || 0) + 1;
+            }
+            return revertedReactions;
+          });
+        });
       }
     } catch (err) {
-      console.error("Error updating reaction:", err);
-      showError("Failed to update reaction. Please try again.");
+      console.error("Error in reaction handler:", err);
     }
   }
 

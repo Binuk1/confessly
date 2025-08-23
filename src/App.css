@@ -514,47 +514,57 @@ body.dark-mode {
 }
 
 .toggle-bar button {
-  padding: 0.8rem 2.2rem; /* More padding */
-  font-size: 1.05rem;
-  border-radius: 8px; /* More rounded */
-  border: 2px solid #0f172a; /* default dark slate border */
-  background: var(--bg-color);
-  color: var(--accent-color);
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: 50px; /* Pill shape */
+  border: 2px solid #3b82f6; /* Blue border for inactive */
+  background: transparent;
+  color: #3b82f6;
   cursor: pointer;
   transition: all var(--transition-normal);
   font-weight: 600;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  box-shadow: none;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  min-width: 120px;
+  justify-content: center;
+  flex: 0 0 auto;
 }
 
 .toggle-bar button.active {
-  background: var(--success-color);
-  color: #0a2b0f; /* readable on light green */
-  box-shadow: 0 4px 12px rgba(126, 217, 87, 0.35);
-  border-color: #065f46; /* deep green border when active */
-  transform: translateY(-2px);
+  background: #3b82f6; /* Blue fill for active */
+  color: white;
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  transform: translateY(-1px);
 }
 
 .toggle-bar button:not(.active):hover {
-  background: rgba(255, 162, 77, 0.12);
-  border-color: var(--accent-hover);
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #2563eb;
+  transform: translateY(-1px);
 }
 
 .dark-mode .toggle-bar button:not(.active) {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: #111827; /* dark slate */
-  color: var(--accent-color);
+  background: transparent;
+  border-color: #ef4444; /* Coral border for dark mode */
+  color: #ef4444;
 }
 
 .dark-mode .toggle-bar button.active {
-  background: var(--success-color);
-  color: #05240e;
-  box-shadow: 0 4px 12px rgba(142, 235, 117, 0.3);
-  border-color: #064e3b;
+  background: #ef4444; /* Coral fill for dark mode active */
+  color: white;
+  border-color: #ef4444;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.dark-mode .toggle-bar button:not(.active):hover {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #dc2626;
+  transform: translateY(-1px);
 }
 
 /* Smooth view fade */
@@ -714,7 +724,7 @@ body.dark-mode {
 
 .confession-item {
   background: var(--card-bg);
-  padding: 1.5rem; /* More padding */
+  padding: 1.5rem 3rem 1.5rem 1.5rem; /* Added extra right padding for report button */
   border-radius: 12px; /* More rounded */
   box-shadow: var(--card-shadow);
   transition: all var(--transition-normal) ease;
@@ -1125,9 +1135,10 @@ textarea, input, button {
     flex-wrap: wrap;
   }
   .toggle-bar button { 
-    padding: 0.7rem 1rem; 
-    width: auto; /* Don't force full width */
-    flex: 1 1 auto; /* Let buttons share available space */
+    padding: 0.65rem 1.2rem; 
+    font-size: 0.9rem;
+    min-width: 100px;
+    flex: 1 1 auto; /* Equal width on mobile */
     text-align: center; 
   }
 
@@ -1151,7 +1162,7 @@ textarea, input, button {
   }
 
   .confession-item {
-    padding: 1rem;
+    padding: 1rem 2.5rem 1rem 1rem; /* Adjusted right padding for mobile */
     border-left-width: 6px;
   }
 
