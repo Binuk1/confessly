@@ -60,7 +60,7 @@ export class ContentModerationService {
           offset: abuseItem.offset,
           length: abuseItem.length,
           text: abuseItem.text,
-          explanation: abuseItem.explanation
+          explanation: abuseItem.explanation || null
         });
       });
     }
@@ -78,7 +78,8 @@ export class ContentModerationService {
       'explicit_content',
       'sexual_explicit',
       'pornographic',
-      'nudity'
+      'nudity',
+      'profanity' // Add profanity as NSFW content
     ];
     
     return issues.some(issue => 
