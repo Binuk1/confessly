@@ -188,6 +188,104 @@ body.dark-mode .theme-label {
   color: #c4b5fd;
 }
 
+/* NSFW Filter Section */
+.nsfw-section {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+body.dark-mode .nsfw-section {
+  border-top: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.nsfw-section h4 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #4c1d95;
+  margin-bottom: 1rem;
+}
+
+body.dark-mode .nsfw-section h4 {
+  color: #c4b5fd;
+}
+
+.nsfw-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.nsfw-toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.nsfw-toggle .toggle-background {
+  width: 80px;
+  height: 40px;
+  border-radius: 25px;
+  position: relative;
+  transition: all 0.4s ease;
+  overflow: hidden;
+}
+
+.nsfw-toggle .toggle-background.on {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: inset 0 2px 8px rgba(16, 185, 129, 0.3);
+}
+
+.nsfw-toggle .toggle-background.off {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: inset 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.nsfw-toggle .toggle-slider {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  position: absolute;
+  top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: #ffffff;
+}
+
+.nsfw-toggle .toggle-slider.on {
+  left: 44px;
+}
+
+.nsfw-toggle .toggle-slider.off {
+  left: 4px;
+}
+
+.nsfw-label {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #4c1d95;
+  transition: color 0.3s ease;
+}
+
+body.dark-mode .nsfw-label {
+  color: #c4b5fd;
+}
+
+.nsfw-description {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.4;
+}
+
+body.dark-mode .nsfw-description {
+  color: #9ca3af;
+}
+
 /* Animations */
 @keyframes modalFadeIn {
   from { opacity: 0; }

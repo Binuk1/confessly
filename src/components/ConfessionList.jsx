@@ -5,7 +5,7 @@ import ConfessionItem from './ConfessionItem';
 import SkeletonItem from './SkeletonItem';
 import { subscribeToReactions } from '../services/reactionService';
 
-function ConfessionList({ optimisticConfession, onOptimisticCleared, isActive = true }) {
+function ConfessionList({ optimisticConfession, onOptimisticCleared, isActive = true, onOpenSettings }) {
   const [confessions, setConfessions] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -97,6 +97,7 @@ function ConfessionList({ optimisticConfession, onOptimisticCleared, isActive = 
             <ConfessionItem 
               confession={conf} 
               rank={null} // Remove ranks for latest feed - ranks should only be for trending/top views
+              onOpenSettings={onOpenSettings}
             />
           </div>
         ))

@@ -31,6 +31,7 @@ export class ContentModerationService {
       return {
         isClean,
         issues,
+        isNSFW: this.isNSFWContent(issues),
         sentiment: result.sentiment,
         language: result.language
       };
@@ -58,6 +59,27 @@ export class ContentModerationService {
     }
 
     return issues;
+  }
+
+  static isNSFWContent(issues) {
+    if (!issues || issues.length === 0) return false;
+    
+    // Define NSFW-related abuse types
+    const nsfwTypes = [
+      'sexual_content',
+      'adult_content', 
+      'explicit_content',
+      'sexual_explicit',
+      'pornographic',
+      'nudity'
+    ];
+    
+    return issues.some(issue => 
+      nsfwTypes.some(nsfwType => 
+        issue.type.toLowerCase().includes(nsfwType) ||
+        issue.explanation?.toLowerCase().includes(nsfwType)
+      )
+    );
   }
 
   static getErrorMessage(issues) {

@@ -5,7 +5,7 @@ import ConfessionItem from './ConfessionItem';
 import SkeletonItem from './SkeletonItem';
 import { subscribeToReactions } from '../services/reactionService';
 
-function TrendingConfessions({ isActive = true }) {
+function TrendingConfessions({ isActive = true, onOpenSettings }) {
   const [trending, setTrending] = useState([]);
   const [loading, setLoading] = useState(true);
   const [recentItems, setRecentItems] = useState([]);
@@ -70,7 +70,7 @@ function TrendingConfessions({ isActive = true }) {
         </div>
       ) : (
         trending.map((conf, index) => (
-          <ConfessionItem key={conf.id} confession={conf} rank={index + 1} />
+          <ConfessionItem key={conf.id} confession={conf} rank={index + 1} onOpenSettings={onOpenSettings} />
         ))
       )}
     </div>

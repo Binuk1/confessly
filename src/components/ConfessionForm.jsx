@@ -70,22 +70,15 @@ function ConfessionForm({ onOptimisticConfession }) {
       return;
     }
     
-    // CONTENT MODERATION - Check text content before submitting
+    // CONTENT MODERATION - Check text content and store moderation result
+    let moderationResult = null;
     if (text.trim()) {
       setModerating(true);
       try {
-        const moderationResult = await ContentModerationService.moderateContent(text.trim(), 'confession');
-        
-        if (!moderationResult.isClean) {
-          const errorMsg = ContentModerationService.getErrorMessage(moderationResult.issues);
-          showError(errorMsg || 'Your message contains inappropriate content. Please revise and try again.');
-          setModerating(false);
-          return;
-        }
+        moderationResult = await ContentModerationService.moderateContent(text.trim(), 'confession');
       } catch (moderationError) {
         console.error('Moderation failed:', moderationError);
         // Continue with submission if moderation service fails (fail open approach)
-        // In production, you might want to fail closed for safety
       } finally {
         setModerating(false);
       }
@@ -127,9 +120,11 @@ function ConfessionForm({ onOptimisticConfession }) {
         createdAt: serverTimestamp(),
         reactions: {},
         replyCount: 0,
-        // Optional: Store moderation metadata
+        // Store moderation metadata
         moderated: true,
-        moderatedAt: serverTimestamp()
+        moderatedAt: serverTimestamp(),
+        isNSFW: moderationResult?.isNSFW || false,
+        moderationIssues: moderationResult?.issues || []
       });
       
       // Success! The real confession will come through the Firestore listener

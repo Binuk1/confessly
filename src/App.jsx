@@ -93,10 +93,10 @@ function App() {
       </div>
       <div className="views-stack">
         <div className={`view-panel ${!viewTrending ? 'active' : 'inactive'}`} aria-hidden={viewTrending}>
-          <ConfessionList isActive={!viewTrending} />
+          <ConfessionList isActive={!viewTrending} onOpenSettings={() => setShowSettings(true)} />
         </div>
         <div className={`view-panel ${viewTrending ? 'active' : 'inactive'}`} aria-hidden={!viewTrending}>
-          <TrendingConfessions isActive={viewTrending} />
+          <TrendingConfessions isActive={viewTrending} onOpenSettings={() => setShowSettings(true)} />
         </div>
       </div>
       
