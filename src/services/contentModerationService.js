@@ -69,25 +69,8 @@ export class ContentModerationService {
   }
 
   static isNSFWContent(issues) {
-    if (!issues || issues.length === 0) return false;
-    
-    // Define NSFW-related abuse types
-    const nsfwTypes = [
-      'sexual_content',
-      'adult_content', 
-      'explicit_content',
-      'sexual_explicit',
-      'pornographic',
-      'nudity',
-      'profanity' // Add profanity as NSFW content
-    ];
-    
-    return issues.some(issue => 
-      nsfwTypes.some(nsfwType => 
-        issue.type.toLowerCase().includes(nsfwType) ||
-        issue.explanation?.toLowerCase().includes(nsfwType)
-      )
-    );
+    // Blur ANY content that Tisane flags as problematic
+    return issues && issues.length > 0;
   }
 
   static getErrorMessage(issues) {

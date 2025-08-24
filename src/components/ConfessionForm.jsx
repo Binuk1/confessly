@@ -76,7 +76,6 @@ function ConfessionForm({ onOptimisticConfession }) {
       setModerating(true);
       try {
         moderationResult = await ContentModerationService.moderateContent(text.trim(), 'confession');
-        console.log('Moderation result:', moderationResult); // Debug log
       } catch (moderationError) {
         console.error('Moderation failed:', moderationError);
         // Continue with submission if moderation service fails (fail open approach)
@@ -128,31 +127,26 @@ function ConfessionForm({ onOptimisticConfession }) {
         moderationIssues: moderationResult ? (moderationResult.issues || []) : []
       };
       
-      console.log('Document data before saving:', JSON.stringify(docData, null, 2)); // Debug log
-      
-      // Deep check for undefined values
-      const checkForUndefined = (obj, path = '') => {
+      // Clean undefined values
+      const cleanUndefined = (obj) => {
         for (const [key, value] of Object.entries(obj)) {
-          const currentPath = path ? `${path}.${key}` : key;
           if (value === undefined) {
-            console.error(`Undefined value found at: ${currentPath}`);
-            obj[key] = null; // Replace undefined with null
+            obj[key] = null;
           } else if (value && typeof value === 'object' && !Array.isArray(value) && value.constructor === Object) {
-            checkForUndefined(value, currentPath);
+            cleanUndefined(value);
           } else if (Array.isArray(value)) {
             value.forEach((item, index) => {
               if (item === undefined) {
-                console.error(`Undefined value found at: ${currentPath}[${index}]`);
                 value[index] = null;
               } else if (item && typeof item === 'object') {
-                checkForUndefined(item, `${currentPath}[${index}]`);
+                cleanUndefined(item);
               }
             });
           }
         }
       };
       
-      checkForUndefined(docData);
+      cleanUndefined(docData);
       
       await addDoc(collection(db, 'confessions'), docData);
       

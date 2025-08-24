@@ -31,8 +31,6 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
   const [moderatingReply, setModeratingReply] = useState(false);
   const [optimisticReply, setOptimisticReply] = useState(null);
   const [nsfwFilter, setNsfwFilter] = useState(true);
-  const [showNsfwContent, setShowNsfwContent] = useState(false);
-  const [showNsfwReplies, setShowNsfwReplies] = useState(new Set());
   
   // Load NSFW filter setting from localStorage
   useEffect(() => {
@@ -51,31 +49,22 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       }
     };
     
+    // Listen for custom event for immediate updates
+    const handleNsfwToggle = (event) => {
+      setNsfwFilter(event.detail.nsfwFilter);
+    };
+    
     window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener('nsfwToggle', handleNsfwToggle);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('nsfwToggle', handleNsfwToggle);
+    };
   }, []);
 
   // Helper function to check if content should be blurred
   const shouldBlurContent = (isNSFW) => {
     return nsfwFilter && isNSFW;
-  };
-
-  // Helper function to toggle NSFW content visibility
-  const toggleNsfwContent = () => {
-    setShowNsfwContent(!showNsfwContent);
-  };
-
-  // Helper function to toggle NSFW reply visibility
-  const toggleNsfwReply = (replyId) => {
-    setShowNsfwReplies(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(replyId)) {
-        newSet.delete(replyId);
-      } else {
-        newSet.add(replyId);
-      }
-      return newSet;
-    });
   };
   
   const textareaRef = useRef(null);
@@ -432,34 +421,17 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
   }
 
   // Combine real replies with optimistic reply for display
-  const displayReplies = [...replies];
-  if (optimisticReply) {
-    displayReplies.push(optimisticReply);
-  }
+  const displayReplies = optimisticReply 
+    ? [...replies, optimisticReply]
+    : replies;
 
   return (
-    <div className={`confession-item rank-${rank || ''}`} style={{ position: 'relative' }}>
-      {/* Report Button - only show for real confessions (not optimistic) */}
-      {!confession.isOptimistic && (
-        <ReportButton 
-          contentId={confession.id}
-          contentType="confession"
-          contentText={confession.text}
-        />
-      )}
-      
-      {rank && <div className="rank-badge">{getBadge()}</div>}
-      
-      <div className="confession-content" style={{ position: 'relative' }}>
-        <p style={{
-          filter: shouldBlurContent(confession.isNSFW) && !showNsfwContent ? 'blur(8px)' : 'none',
-          transition: 'filter 0.3s ease'
-        }}>
-          {displayText}
-        </p>
-        
-        {shouldBlurContent(confession.isNSFW) && !showNsfwContent && (
-          <div className="nsfw-overlay" style={{
+    <div className="confession-container">
+      <div className={`confession-item rank-${rank || ''}`} style={{ 
+        position: 'relative'
+      }}>
+        {shouldBlurContent(confession.isNSFW) && (
+          <div className="nsfw-blur-overlay" style={{
             position: 'absolute',
             top: 0,
             left: 0,
@@ -469,22 +441,24 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
             alignItems: 'center',
             justifyContent: 'center',
             background: 'rgba(0, 0, 0, 0.1)',
-            borderRadius: '8px',
-            cursor: 'pointer'
-          }} onClick={toggleNsfwContent}>
+            borderRadius: '12px',
+            zIndex: 10,
+            pointerEvents: 'auto'
+          }}>
             <div style={{
               background: 'rgba(255, 255, 255, 0.95)',
               padding: '1rem',
-              borderRadius: '8px',
+              borderRadius: '12px',
               textAlign: 'center',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              maxWidth: '300px'
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+              maxWidth: '280px',
+              backdropFilter: 'blur(10px)'
             }}>
-              <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#333' }}>
-                This content contains NSFW material.
+              <p style={{ margin: '0 0 0.75rem 0', fontWeight: '600', color: '#333', fontSize: '0.95rem' }}>
+                🔒 Content filtered by NSFW detection
               </p>
-              <p style={{ margin: '0', fontSize: '0.9rem', color: '#666' }}>
-                You can disable the filter in{' '}
+              <p style={{ margin: '0', fontSize: '0.85rem', color: '#666', lineHeight: '1.4' }}>
+                Go to{' '}
                 <span 
                   style={{ 
                     color: '#3498db', 
@@ -498,15 +472,30 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                   }}
                 >
                   Settings
-                </span>.
+                </span>
+                {' '}and turn off NSFW filter to view this content.
               </p>
             </div>
           </div>
         )}
-      </div>
-      
-      {shouldTruncate && (
-        <button 
+        <div className="confession-content" style={{ 
+          filter: shouldBlurContent(confession.isNSFW) ? 'blur(8px)' : 'none',
+          transition: 'filter 0.3s ease',
+          pointerEvents: shouldBlurContent(confession.isNSFW) ? 'none' : 'auto'
+        }}>
+
+        <ReportButton 
+          contentId={confession.id}
+          contentType="confession"
+          contentText={confession.text}
+        />
+        
+        {rank && <div className="rank-badge">{getBadge()}</div>}
+        
+        <p>{displayText}</p>
+        
+        {shouldTruncate && (
+          <button 
           className="see-more-btn"
           onClick={() => setShowFullText(!showFullText)}
           style={{
@@ -524,17 +513,13 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       )}
 
       {confession.mediaUrl && (
-        <div className="media-container" style={{ position: 'relative' }}>
+        <div className="media-container">
           {confession.mediaType === 'image' ? (
             <img 
               src={confession.mediaUrl} 
               alt="Confession media" 
               className="confession-media" 
               loading="lazy" 
-              style={{
-                filter: shouldBlurContent(confession.isNSFW) && !showNsfwContent ? 'blur(8px)' : 'none',
-                transition: 'filter 0.3s ease'
-              }}
             />
           ) : (
             <video 
@@ -542,119 +527,19 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
               controls 
               className="confession-media" 
               loading="lazy" 
-              style={{
-                filter: shouldBlurContent(confession.isNSFW) && !showNsfwContent ? 'blur(8px)' : 'none',
-                transition: 'filter 0.3s ease'
-              }}
             />
-          )}
-          
-          {shouldBlurContent(confession.isNSFW) && !showNsfwContent && (
-            <div className="nsfw-overlay" style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(0, 0, 0, 0.1)',
-              borderRadius: '8px',
-              cursor: 'pointer'
-            }} onClick={toggleNsfwContent}>
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.95)',
-                padding: '1rem',
-                borderRadius: '8px',
-                textAlign: 'center',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                maxWidth: '300px'
-              }}>
-                <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#333' }}>
-                  This content contains NSFW material.
-                </p>
-                <p style={{ margin: '0', fontSize: '0.9rem', color: '#666' }}>
-                  You can disable the filter in{' '}
-                  <span 
-                    style={{ 
-                      color: '#3498db', 
-                      textDecoration: 'underline', 
-                      cursor: 'pointer',
-                      fontWeight: '600'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onOpenSettings) onOpenSettings();
-                    }}
-                  >
-                    Settings
-                  </span>.
-                </p>
-              </div>
-            </div>
           )}
         </div>
       )}
 
       {confession.gifUrl && !confession.mediaUrl && (
-        <div className="gif-container" style={{ position: 'relative' }}>
+        <div className="gif-container">
           <img 
             src={confession.gifUrl} 
             alt="Confession GIF" 
             className="confession-gif" 
             loading="lazy" 
-            style={{
-              filter: shouldBlurContent(confession.isNSFW) && !showNsfwContent ? 'blur(8px)' : 'none',
-              transition: 'filter 0.3s ease'
-            }}
           />
-          
-          {shouldBlurContent(confession.isNSFW) && !showNsfwContent && (
-            <div className="nsfw-overlay" style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              background: 'rgba(0, 0, 0, 0.1)',
-              borderRadius: '8px',
-              cursor: 'pointer'
-            }} onClick={toggleNsfwContent}>
-              <div style={{
-                background: 'rgba(255, 255, 255, 0.95)',
-                padding: '1rem',
-                borderRadius: '8px',
-                textAlign: 'center',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                maxWidth: '300px'
-              }}>
-                <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#333' }}>
-                  This content contains NSFW material.
-                </p>
-                <p style={{ margin: '0', fontSize: '0.9rem', color: '#666' }}>
-                  You can disable the filter in{' '}
-                  <span 
-                    style={{ 
-                      color: '#3498db', 
-                      textDecoration: 'underline', 
-                      cursor: 'pointer',
-                      fontWeight: '600'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onOpenSettings) onOpenSettings();
-                    }}
-                  >
-                    Settings
-                  </span>.
-                </p>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -792,21 +677,70 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                   ...(reply.isOptimistic ? { opacity: 0.8 } : {})
                 }}
               >
-                {/* Report Button for Replies - only show for real replies */}
-                {!reply.isOptimistic && (
-                  <ReportButton 
-                    contentId={reply.id}
-                    contentType="reply"
-                    contentText={reply.text || 'GIF reply'}
-                  />
-                )}
-                
-                {reply.text && (
-                  <div className="reply-content" style={{ position: 'relative' }}>
-                    <p style={{
-                      filter: shouldBlurContent(reply.isNSFW) && !showNsfwReplies.has(reply.id) ? 'blur(8px)' : 'none',
-                      transition: 'filter 0.3s ease'
+                {shouldBlurContent(reply.isNSFW) && (
+                  <div className="nsfw-blur-overlay" style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(0, 0, 0, 0.1)',
+                    borderRadius: '8px',
+                    zIndex: 10,
+                    pointerEvents: 'auto'
+                  }}>
+                    <div style={{
+                      background: 'rgba(255, 255, 255, 0.95)',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                      maxWidth: '220px',
+                      backdropFilter: 'blur(10px)'
                     }}>
+                      <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#333', fontSize: '0.85rem' }}>
+                        🔒 Reply filtered
+                      </p>
+                      <p style={{ margin: '0', fontSize: '0.75rem', color: '#666' }}>
+                        Turn off NSFW filter in{' '}
+                        <span 
+                          style={{ 
+                            color: '#3498db', 
+                            textDecoration: 'underline', 
+                            cursor: 'pointer',
+                            fontWeight: '600'
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onOpenSettings) onOpenSettings();
+                          }}
+                        >
+                          Settings
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="reply-content" style={{ 
+                  filter: shouldBlurContent(reply.isNSFW) ? 'blur(8px)' : 'none',
+                  transition: 'filter 0.3s ease',
+                  pointerEvents: shouldBlurContent(reply.isNSFW) ? 'none' : 'auto'
+                }}>
+                  {/* Report Button for Replies - only show for real replies */}
+                  {!reply.isOptimistic && (
+                    <ReportButton 
+                      contentId={reply.id}
+                      contentType="reply"
+                      contentText={reply.text || 'GIF reply'}
+                    />
+                  )}
+                  
+                  {reply.text && (
+                    <p>
                       {getReplyDisplayText(reply)}
                       {shouldTruncateReply(reply.text) && (
                         <button 
@@ -826,129 +760,35 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                         </button>
                       )}
                     </p>
-                    
-                    {shouldBlurContent(reply.isNSFW) && !showNsfwReplies.has(reply.id) && (
-                      <div className="nsfw-overlay" style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'rgba(0, 0, 0, 0.1)',
-                        borderRadius: '8px',
-                        cursor: 'pointer'
-                      }} onClick={() => toggleNsfwReply(reply.id)}>
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.95)',
-                          padding: '0.75rem',
-                          borderRadius: '8px',
-                          textAlign: 'center',
-                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                          maxWidth: '250px'
-                        }}>
-                          <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#333', fontSize: '0.9rem' }}>
-                            This reply contains NSFW material.
-                          </p>
-                          <p style={{ margin: '0', fontSize: '0.8rem', color: '#666' }}>
-                            You can disable the filter in{' '}
-                            <span 
-                              style={{ 
-                                color: '#3498db', 
-                                textDecoration: 'underline', 
-                                cursor: 'pointer',
-                                fontWeight: '600'
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (onOpenSettings) onOpenSettings();
-                              }}
-                            >
-                              Settings
-                            </span>.
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                  )}
+                  {reply.gifUrl && (
+                    <div className="gif-container">
+                      <img 
+                        src={reply.gifUrl} 
+                        alt="Reply GIF" 
+                        className="reply-gif" 
+                        loading="lazy" 
+                      />
+                    </div>
+                  )}
+                  <div className="reply-meta">
+                    <span>
+                      {reply.isOptimistic ? (
+                        <span className="posting-indicator">Posting...</span>
+                      ) : (
+                        reply.createdAt?.toDate 
+                          ? new Date(reply.createdAt.toDate()).toLocaleString() 
+                          : 'Just now'
+                      )}
+                    </span>
                   </div>
-                )}
-                {reply.gifUrl && (
-                  <div className="gif-container" style={{ position: 'relative' }}>
-                    <img 
-                      src={reply.gifUrl} 
-                      alt="Reply GIF" 
-                      className="reply-gif" 
-                      loading="lazy" 
-                      style={{
-                        filter: shouldBlurContent(reply.isNSFW) && !showNsfwReplies.has(reply.id) ? 'blur(8px)' : 'none',
-                        transition: 'filter 0.3s ease'
-                      }}
-                    />
-                    
-                    {shouldBlurContent(reply.isNSFW) && !showNsfwReplies.has(reply.id) && (
-                      <div className="nsfw-overlay" style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'rgba(0, 0, 0, 0.1)',
-                        borderRadius: '8px',
-                        cursor: 'pointer'
-                      }} onClick={() => toggleNsfwReply(reply.id)}>
-                        <div style={{
-                          background: 'rgba(255, 255, 255, 0.95)',
-                          padding: '0.75rem',
-                          borderRadius: '8px',
-                          textAlign: 'center',
-                          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                          maxWidth: '250px'
-                        }}>
-                          <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#333', fontSize: '0.9rem' }}>
-                            This reply contains NSFW material.
-                          </p>
-                          <p style={{ margin: '0', fontSize: '0.8rem', color: '#666' }}>
-                            You can disable the filter in{' '}
-                            <span 
-                              style={{ 
-                                color: '#3498db', 
-                                textDecoration: 'underline', 
-                                cursor: 'pointer',
-                                fontWeight: '600'
-                              }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (onOpenSettings) onOpenSettings();
-                              }}
-                            >
-                              Settings
-                            </span>.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <div className="reply-meta">
-                  <span>
-                    {reply.isOptimistic ? (
-                      <span className="posting-indicator">Posting...</span>
-                    ) : (
-                      reply.createdAt?.toDate 
-                        ? new Date(reply.createdAt.toDate()).toLocaleString() 
-                        : 'Just now'
-                    )}
-                  </span>
                 </div>
               </div>
             ))}
           </div>
         )}
+      </div>
+      </div>
       </div>
     </div>
   );
