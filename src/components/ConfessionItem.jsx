@@ -395,8 +395,8 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
         // Store moderation metadata
         moderated: true,
         moderatedAt: serverTimestamp(),
-        isNSFW: replyModerationResult?.isNSFW || false,
-        moderationIssues: replyModerationResult?.issues || []
+        isNSFW: replyModerationResult ? (replyModerationResult.isNSFW || false) : false,
+        moderationIssues: replyModerationResult ? (replyModerationResult.issues || []) : []
       });
 
       // Update confession reply count in the parent document

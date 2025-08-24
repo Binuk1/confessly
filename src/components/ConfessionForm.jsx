@@ -123,8 +123,8 @@ function ConfessionForm({ onOptimisticConfession }) {
         // Store moderation metadata
         moderated: true,
         moderatedAt: serverTimestamp(),
-        isNSFW: moderationResult?.isNSFW || false,
-        moderationIssues: moderationResult?.issues || []
+        isNSFW: moderationResult ? (moderationResult.isNSFW || false) : false,
+        moderationIssues: moderationResult ? (moderationResult.issues || []) : []
       });
       
       // Success! The real confession will come through the Firestore listener
