@@ -76,6 +76,7 @@ function ConfessionForm({ onOptimisticConfession }) {
       setModerating(true);
       try {
         moderationResult = await ContentModerationService.moderateContent(text.trim(), 'confession');
+        console.log('Moderation result:', moderationResult); // Debug log
       } catch (moderationError) {
         console.error('Moderation failed:', moderationError);
         // Continue with submission if moderation service fails (fail open approach)
@@ -114,7 +115,7 @@ function ConfessionForm({ onOptimisticConfession }) {
     }
     
     try {
-      await addDoc(collection(db, 'confessions'), {
+      const docData = {
         text: submittedText,
         gifUrl: submittedGifUrl || null,
         createdAt: serverTimestamp(),
@@ -125,7 +126,19 @@ function ConfessionForm({ onOptimisticConfession }) {
         moderatedAt: serverTimestamp(),
         isNSFW: moderationResult ? (moderationResult.isNSFW || false) : false,
         moderationIssues: moderationResult ? (moderationResult.issues || []) : []
+      };
+      
+      console.log('Document data before saving:', docData); // Debug log
+      
+      // Check for undefined values
+      Object.keys(docData).forEach(key => {
+        if (docData[key] === undefined) {
+          console.error(`Undefined value found for key: ${key}`);
+          docData[key] = null; // Replace undefined with null
+        }
       });
+      
+      await addDoc(collection(db, 'confessions'), docData);
       
       // Success! The real confession will come through the Firestore listener
       
