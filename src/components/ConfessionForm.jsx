@@ -128,15 +128,31 @@ function ConfessionForm({ onOptimisticConfession }) {
         moderationIssues: moderationResult ? (moderationResult.issues || []) : []
       };
       
-      console.log('Document data before saving:', docData); // Debug log
+      console.log('Document data before saving:', JSON.stringify(docData, null, 2)); // Debug log
       
-      // Check for undefined values
-      Object.keys(docData).forEach(key => {
-        if (docData[key] === undefined) {
-          console.error(`Undefined value found for key: ${key}`);
-          docData[key] = null; // Replace undefined with null
+      // Deep check for undefined values
+      const checkForUndefined = (obj, path = '') => {
+        for (const [key, value] of Object.entries(obj)) {
+          const currentPath = path ? `${path}.${key}` : key;
+          if (value === undefined) {
+            console.error(`Undefined value found at: ${currentPath}`);
+            obj[key] = null; // Replace undefined with null
+          } else if (value && typeof value === 'object' && !Array.isArray(value) && value.constructor === Object) {
+            checkForUndefined(value, currentPath);
+          } else if (Array.isArray(value)) {
+            value.forEach((item, index) => {
+              if (item === undefined) {
+                console.error(`Undefined value found at: ${currentPath}[${index}]`);
+                value[index] = null;
+              } else if (item && typeof item === 'object') {
+                checkForUndefined(item, `${currentPath}[${index}]`);
+              }
+            });
+          }
         }
-      });
+      };
+      
+      checkForUndefined(docData);
       
       await addDoc(collection(db, 'confessions'), docData);
       
