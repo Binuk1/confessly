@@ -6,12 +6,9 @@ import './SettingsModal.css';
 const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
   const [nsfwFilter, setNsfwFilter] = useState(true); // Default to enabled
   const [showTooltip, setShowTooltip] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-      return window.matchMedia('(max-width: 768px)').matches;
-    }
-    return false;
-  });
+  const tooltipId = 'nsfw-tooltip';
+  // Determine mobile at render time to avoid tooltip flicker
+  const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 600px)').matches;
 
   // Load NSFW filter setting from localStorage on mount
   useEffect(() => {
@@ -19,17 +16,6 @@ const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
     if (savedFilter !== null) {
       setNsfwFilter(JSON.parse(savedFilter));
     }
-  }, []);
-
-  // Determine if viewport is mobile for tooltip rendering
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 768px)');
-    const update = () => setIsMobile(mq.matches);
-    update();
-    mq.addEventListener ? mq.addEventListener('change', update) : mq.addListener(update);
-    return () => {
-      mq.removeEventListener ? mq.removeEventListener('change', update) : mq.removeListener(update);
-    };
   }, []);
 
   // Save NSFW filter setting to localStorage when it changes
@@ -42,6 +28,16 @@ const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
     window.dispatchEvent(new CustomEvent('nsfwToggle', {
       detail: { nsfwFilter: newValue }
     }));
+  };
+
+  // Accessibility: keyboard support for tooltip toggle
+  const handleTooltipKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setShowTooltip(prev => !prev);
+    } else if (e.key === 'Escape') {
+      setShowTooltip(false);
+    }
   };
 
   // Close modal if click is outside the content
@@ -64,7 +60,16 @@ const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
         <div className="theme-section">
           <h4>Theme</h4>
           <div className="theme-toggle-container">
-            <div className="theme-toggle" onClick={() => onToggleDarkMode(!darkMode)}>
+            <div
+              className="theme-toggle"
+              onClick={() => {
+                if (typeof onToggleDarkMode === 'function') {
+                  onToggleDarkMode(!darkMode);
+                } else {
+                  console.warn('onToggleDarkMode is not provided');
+                }
+              }}
+            >
               <div className={`toggle-background ${darkMode ? 'dark' : 'light'}`}>
                 <div className="stars">
                   <FaStar className="star star-1" />
@@ -83,72 +88,52 @@ const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
         </div>
         
         <div className="nsfw-section">
-          <div className="setting-item">
-            <div className="setting-info">
-              <div className="setting-header">
-                <h3>NSFW Content Filter</h3>
-                <div 
-                  className="info-icon-container"
-                  onMouseEnter={() => !isMobile && setShowTooltip(true)}
-                  onMouseLeave={() => !isMobile && setShowTooltip(false)}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowTooltip((v) => !v);
-                  }}
-                >
-                  <RiInformationLine className="info-icon" />
-                  {showTooltip && (
-                    isMobile ? (
-                      <div className="tooltip-backdrop" role="dialog" aria-modal="true" onClick={() => setShowTooltip(false)}>
-                        <div className="tooltip-mobile" onClick={(e) => e.stopPropagation()}>
-                          <div className="tooltip-content">
-                            <h4>🛡️ AI-Powered Content Moderation</h4>
-                            <p>Content is automatically flagged by our advanced AI system and reviewed by the Confessly security team to ensure a safe community experience.</p>
-                            <div className="tooltip-features">
-                              <span>✓ Real-time AI detection</span>
-                              <span>✓ Human oversight</span>
-                              <span>✓ Privacy-focused</span>
-                            </div>
-                            <div className="tooltip-disclaimer">
-                              <small>⚠️ AI systems may occasionally make mistakes</small>
-                            </div>
-                            <button className="tooltip-close" onClick={() => setShowTooltip(false)} aria-label="Close">Close</button>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="tooltip">
-                        <div className="tooltip-content">
-                          <h4>🛡️ AI-Powered Content Moderation</h4>
-                          <p>Content is automatically flagged by our advanced AI system and reviewed by the Confessly security team to ensure a safe community experience.</p>
-                          <div className="tooltip-features">
-                            <span>✓ Real-time AI detection</span>
-                            <span>✓ Human oversight</span>
-                            <span>✓ Privacy-focused</span>
-                          </div>
-                          <div className="tooltip-disclaimer">
-                            <small>⚠️ AI systems may occasionally make mistakes</small>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              </div>
-              <p>When enabled, any content flagged by our moderation system will be blurred.</p>
-            </div>
-            <div className="nsfw-toggle-container">
-              <div className="nsfw-toggle" onClick={handleNsfwToggle}>
-                <div className={`toggle-background ${nsfwFilter ? 'on' : 'off'}`}>
-                  <div className={`toggle-slider ${nsfwFilter ? 'on' : 'off'}`}>
-                    {nsfwFilter ? '🔒' : '🔓'}
+          <h4 className="section-title">
+            NSFW Content Filter
+            <span 
+              className="info-icon-container"
+              role="button"
+              tabIndex={0}
+              aria-label="About NSFW content filter"
+              aria-haspopup="dialog"
+              aria-expanded={showTooltip}
+              aria-controls={tooltipId}
+              onMouseEnter={() => setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+              onClick={() => setShowTooltip(!showTooltip)}
+              onKeyDown={handleTooltipKeyDown}
+            >
+              <RiInformationLine className="info-icon" />
+              {showTooltip && (
+                <div className={`tooltip ${isMobile ? 'mobile' : ''}`} role="tooltip" id={tooltipId}>
+                  <div className="tooltip-content">
+                    <h4>🛡️ AI-Powered Content Moderation</h4>
+                    <p>Content is automatically flagged by our advanced AI system and reviewed by the Confessly security team to ensure a safe community experience.</p>
+                    <div className="tooltip-features">
+                      <span>✓ Real-time AI detection</span>
+                      <span>✓ Human oversight</span>
+                      <span>✓ Privacy-focused</span>
+                    </div>
+                    <div className="tooltip-disclaimer">
+                      <small>⚠️ AI systems may occasionally make mistakes</small>
+                    </div>
                   </div>
                 </div>
+              )}
+            </span>
+          </h4>
+          <p className="nsfw-description">When enabled, any content flagged by our moderation system will be blurred.</p>
+          <div className="nsfw-toggle-row">
+            <div className="nsfw-toggle" onClick={handleNsfwToggle}>
+              <div className={`toggle-background ${nsfwFilter ? 'on' : 'off'}`}>
+                <div className={`toggle-slider ${nsfwFilter ? 'on' : 'off'}`}>
+                  {nsfwFilter ? '🔒' : '🔓'}
+                </div>
               </div>
-              <span className="nsfw-label">
-                {nsfwFilter ? 'NSFW Filter ON' : 'NSFW Filter OFF'}
-              </span>
             </div>
+            <span className="nsfw-label">
+              {nsfwFilter ? 'NSFW Filter ON' : 'NSFW Filter OFF'}
+            </span>
           </div>
         </div>
       </div>

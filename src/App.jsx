@@ -48,13 +48,8 @@ function App() {
     setViewTrending(toTrending);
   };
 
-  const handleToggleDarkMode = (newMode) => {
-    setDarkMode(newMode);
-    localStorage.setItem('darkMode', newMode.toString());
-  };
-
   return (
-    <div className={`App ${darkMode ? 'dark-mode' : ''}`}>
+    <div className="App">
       <header className="app-header">
         <h1>Anonymous Confession Wall</h1>
         <button 
@@ -68,9 +63,11 @@ function App() {
 
       {showSettings && (
         <SettingsModal 
-          isOpen={showSettings}
           darkMode={darkMode}
-          onToggleDarkMode={handleToggleDarkMode}
+          onToggleDarkMode={(next) => {
+            setDarkMode(next);
+            localStorage.setItem('darkMode', String(next));
+          }}
           onClose={() => setShowSettings(false)}
         />
       )}

@@ -425,12 +425,15 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
     ? [...replies, optimisticReply]
     : replies;
 
+  // Whether the main confession body is blurred by NSFW filter
+  const isConfessionBlurred = shouldBlurContent(confession.isNSFW);
+
   return (
     <div className="confession-container">
       <div className={`confession-item rank-${rank || ''}`} style={{ 
         position: 'relative'
       }}>
-        {shouldBlurContent(confession.isNSFW) && (
+        {isConfessionBlurred && (
           <div className="nsfw-blur-overlay" style={{
             position: 'absolute',
             top: 0,
@@ -440,9 +443,11 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'rgba(0, 0, 0, 0.1)',
+            background: 'rgba(255, 255, 255, 0.25)',
+            backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
             borderRadius: '12px',
-            zIndex: 10,
+            zIndex: 2,
             pointerEvents: 'auto'
           }}>
             <div style={{
@@ -457,7 +462,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
               <p style={{ margin: '0 0 0.75rem 0', fontWeight: '600', color: '#333', fontSize: '0.95rem' }}>
                 🔒 Content filtered by NSFW detection
               </p>
-              <p style={{ margin: '0', fontSize: '0.85rem', color: '#666', lineHeight: '1.4' }}>
+              <p style={{ margin: '0', fontSize: '0.85rem', color: '#333', lineHeight: '1.4' }}>
                 Go to{' '}
                 <span 
                   style={{ 
@@ -478,16 +483,12 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
             </div>
           </div>
         )}
-        <div className="confession-content" style={{ 
-          filter: shouldBlurContent(confession.isNSFW) ? 'blur(8px)' : 'none',
-          transition: 'filter 0.3s ease',
-          pointerEvents: shouldBlurContent(confession.isNSFW) ? 'none' : 'auto'
-        }}>
-
+        
         <ReportButton 
           contentId={confession.id}
           contentType="confession"
           contentText={confession.text}
+          disabled={isConfessionBlurred}
         />
         
         {rank && <div className="rank-badge">{getBadge()}</div>}
@@ -674,6 +675,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                 className={`reply-item ${reply.isOptimistic ? 'optimistic-reply' : ''}`}
                 style={{ 
                   position: 'relative',
+                  transition: 'opacity 0.3s ease',
                   ...(reply.isOptimistic ? { opacity: 0.8 } : {})
                 }}
               >
@@ -687,9 +689,11 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: 'rgba(0, 0, 0, 0.1)',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    backdropFilter: 'blur(8px)',
+                    WebkitBackdropFilter: 'blur(8px)',
                     borderRadius: '8px',
-                    zIndex: 10,
+                    zIndex: 2,
                     pointerEvents: 'auto'
                   }}>
                     <div style={{
@@ -724,70 +728,63 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                     </div>
                   </div>
                 )}
-
-                <div className="reply-content" style={{ 
-                  filter: shouldBlurContent(reply.isNSFW) ? 'blur(8px)' : 'none',
-                  transition: 'filter 0.3s ease',
-                  pointerEvents: shouldBlurContent(reply.isNSFW) ? 'none' : 'auto'
-                }}>
-                  {/* Report Button for Replies - only show for real replies */}
-                  {!reply.isOptimistic && (
-                    <ReportButton 
-                      contentId={reply.id}
-                      contentType="reply"
-                      contentText={reply.text || 'GIF reply'}
+                {/* Report Button for Replies - only show for real replies */}
+                {!reply.isOptimistic && (
+                  <ReportButton 
+                    contentId={reply.id}
+                    contentType="reply"
+                    contentText={reply.text || 'GIF reply'}
+                    disabled={shouldBlurContent(reply.isNSFW)}
+                  />
+                )}
+                
+                {reply.text && (
+                  <p>
+                    {getReplyDisplayText(reply)}
+                    {shouldTruncateReply(reply.text) && (
+                      <button 
+                        className="see-more-btn"
+                        onClick={() => toggleReplyExpansion(reply.id)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#3498db',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          padding: '0.25rem 0',
+                          marginTop: '0.25rem'
+                        }}
+                      >
+                        {expandedReplies.has(reply.id) ? 'See less' : 'See more'}
+                      </button>
+                    )}
+                  </p>
+                )}
+                {reply.gifUrl && (
+                  <div className="gif-container">
+                    <img 
+                      src={reply.gifUrl} 
+                      alt="Reply GIF" 
+                      className="reply-gif" 
+                      loading="lazy" 
                     />
-                  )}
-                  
-                  {reply.text && (
-                    <p>
-                      {getReplyDisplayText(reply)}
-                      {shouldTruncateReply(reply.text) && (
-                        <button 
-                          className="see-more-btn"
-                          onClick={() => toggleReplyExpansion(reply.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#3498db',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            padding: '0.25rem 0',
-                            marginTop: '0.25rem'
-                          }}
-                        >
-                          {expandedReplies.has(reply.id) ? 'See less' : 'See more'}
-                        </button>
-                      )}
-                    </p>
-                  )}
-                  {reply.gifUrl && (
-                    <div className="gif-container">
-                      <img 
-                        src={reply.gifUrl} 
-                        alt="Reply GIF" 
-                        className="reply-gif" 
-                        loading="lazy" 
-                      />
-                    </div>
-                  )}
-                  <div className="reply-meta">
-                    <span>
-                      {reply.isOptimistic ? (
-                        <span className="posting-indicator">Posting...</span>
-                      ) : (
-                        reply.createdAt?.toDate 
-                          ? new Date(reply.createdAt.toDate()).toLocaleString() 
-                          : 'Just now'
-                      )}
-                    </span>
                   </div>
+                )}
+                <div className="reply-meta">
+                  <span>
+                    {reply.isOptimistic ? (
+                      <span className="posting-indicator">Posting...</span>
+                    ) : (
+                      reply.createdAt?.toDate 
+                        ? new Date(reply.createdAt.toDate()).toLocaleString() 
+                        : 'Just now'
+                    )}
+                  </span>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </div>
       </div>
       </div>
     </div>

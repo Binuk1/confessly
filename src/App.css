@@ -346,12 +346,10 @@ body {
   color: var(--text-color);
   touch-action: manipulation;
   overflow-y: auto; /* Allow scrolling if content overflows */
-  transition: background 0.3s ease;
 }
 
 body.dark-mode {
   background: linear-gradient(to right, #0B1222, #0A101A); /* Dark slate gradient */
-  color: var(--text-color);
 }
 
 .App {
@@ -372,19 +370,6 @@ body.dark-mode {
   align-items: center;
   padding-bottom: 1rem; /* Padding below header */
   border-bottom: 1px solid var(--border-color); /* Subtle separator */
-}
-
-.app-header h1 {
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: var(--primary-color);
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
-  margin: 0;
-}
-
-.dark-mode .app-header h1 {
-  color: var(--primary-color);
-  text-shadow: 1px 1px 2px rgba(255,255,255,0.1);
 }
 
 .app-title {
@@ -411,16 +396,11 @@ body.dark-mode {
 }
 
 .settings-button:hover, .settings-button:focus {
-  background: rgba(47, 107, 255, 0.1) !important;
-  color: var(--primary-color);
+  background: transparent !important;
+  color: var(--text-color);
   box-shadow: none;
   outline: none;
-  transform: scale(1.1);
-}
-
-.dark-mode .settings-button:hover, .dark-mode .settings-button:focus {
-  background: rgba(62, 123, 255, 0.2) !important;
-  color: var(--primary-color);
+  transform: none;
 }
 
 .settings-button.open {
@@ -562,14 +542,17 @@ body.dark-mode {
   transform: translateY(-1px);
 }
 
+/* Ensure icons inside active buttons have sufficient contrast */
+.toggle-bar button.active svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  filter: none !important;
+}
+
 .toggle-bar button:not(.active):hover {
   background: rgba(59, 130, 246, 0.1);
   border-color: #2563eb;
   transform: translateY(-1px);
-}
-
-.toggle-bar button:not(.nsfw-blur-overlay) {
-  background: rgba(0, 0, 0, 0.1);
 }
 
 .dark-mode .toggle-bar button:not(.active) {
@@ -583,6 +566,23 @@ body.dark-mode {
   color: white;
   border-color: #ef4444;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Match icon color to white for dark mode active state as well */
+.dark-mode .toggle-bar button.active svg {
+  color: #ffffff !important;
+  fill: #ffffff !important;
+  filter: none !important;
+}
+
+/* Accessible focus styles for toggle buttons */
+.toggle-bar button:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+.dark-mode .toggle-bar button:focus-visible {
+  outline: 3px solid rgba(239, 68, 68, 0.55);
+  outline-offset: 2px;
 }
 
 .dark-mode .toggle-bar button:not(.active):hover {
@@ -624,18 +624,6 @@ body.dark-mode {
 
 .confession-form {
   margin-bottom: 1.5rem; /* More space below form */
-  background: var(--card-bg);
-  border-radius: 12px;
-  box-shadow: var(--card-shadow);
-  padding: 1.5rem;
-  border: 1px solid var(--border-color);
-  transition: all var(--transition-normal);
-}
-
-.dark-mode .confession-form {
-  background: var(--card-bg);
-  border-color: var(--border-color);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .textarea-wrapper {
@@ -1004,6 +992,8 @@ body.dark-mode {
   margin-top: 0;
   margin-bottom: 0.5rem;
 }
+
+/* Emoji Picker React overrides for dark mode - adapted to new palette */
 .dark-mode .emoji-picker-react { 
   background-color: var(--card-bg) !important; 
   border-color: var(--border-color) !important; 

@@ -31,6 +31,16 @@
   stroke-width: 1.5px;
 }
 
+/* Disabled state: blur and block interaction */
+.report-button.is-disabled,
+.report-button:disabled {
+  opacity: 0.35;
+  filter: blur(0.6px) saturate(0.85);
+  cursor: not-allowed;
+  pointer-events: none;
+  z-index: 1; /* under NSFW overlay (z-index: 2) */
+}
+
 /* Dark mode */
 .dark-mode .report-button:hover {
   background: rgba(220, 53, 69, 0.2);
