@@ -32,13 +32,20 @@ export class ContentModerationService {
         isClean,
         issues,
         isNSFW: this.isNSFWContent(issues),
-        sentiment: result.sentiment,
-        language: result.language
+        sentiment: result.sentiment || null,
+        language: result.language || null
       };
 
     } catch (error) {
       console.error('Content moderation error:', error);
-      return { isClean: true, issues: [], error: error.message };
+      return { 
+        isClean: true, 
+        issues: [], 
+        isNSFW: false,
+        sentiment: null,
+        language: null,
+        error: error.message 
+      };
     }
   }
 
