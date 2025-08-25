@@ -616,6 +616,21 @@ body.dark-mode {
   overflow: hidden;
 }
 
+/* Smooth trending updates */
+.trending-wrapper {
+  transition: opacity 180ms ease;
+}
+.trending-wrapper.updating {
+  opacity: 0.92;
+}
+/* Subtle motion on items during updates to reduce perceived jank */
+.trending-wrapper .confession-item {
+  transition: transform 180ms ease, opacity 180ms ease, background-color var(--transition-normal), border-color var(--transition-normal);
+}
+.trending-wrapper.updating .confession-item {
+  transform: translateY(2px);
+}
+
 .confession-form,
 .reply-form {
   display: flex;

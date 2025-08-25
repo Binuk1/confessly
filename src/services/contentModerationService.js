@@ -19,8 +19,11 @@ export class ContentModerationService {
 
       const result = await response.json();
 
-      const issues = this.processAbusiveContent(result);
-      const isClean = issues.length === 0;
+      // Prefer new Gemini-normalized fields if present
+      const hasGemini = Array.isArray(result.issues) || typeof result.isNSFW === 'boolean' || result.categories;
+      const issues = hasGemini ? this.normalizeGeminiIssues(result.issues) : this.processAbusiveContent(result);
+      const isNSFW = hasGemini ? Boolean(result.isNSFW) : this.isNSFWContent(issues);
+      const isClean = !isNSFW && issues.length === 0;
 
       console.log(`Content moderation for ${contentType}:`, {
         text: text.substring(0, 100) + '...',
@@ -31,7 +34,8 @@ export class ContentModerationService {
       return {
         isClean,
         issues,
-        isNSFW: this.isNSFWContent(issues),
+        isNSFW,
+        categories: result.categories || null,
         sentiment: result.sentiment || null,
         language: result.language || null
       };
@@ -66,6 +70,15 @@ export class ContentModerationService {
     }
 
     return issues;
+  }
+
+  static normalizeGeminiIssues(issues) {
+    if (!Array.isArray(issues)) return [];
+    return issues.map(it => ({
+      type: it.type || 'other',
+      severity: it.severity || 'low',
+      text: it.text || '',
+    }));
   }
 
   static isNSFWContent(issues) {

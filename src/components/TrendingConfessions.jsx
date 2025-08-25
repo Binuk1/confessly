@@ -9,6 +9,7 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
   const [trending, setTrending] = useState([]);
   const [loading, setLoading] = useState(true);
   const [recentItems, setRecentItems] = useState([]);
+  const [isUpdating, setIsUpdating] = useState(false);
   const LIMIT_RECENT = 100; // cap how many docs we process client-side
   const SUBSCRIBE_LIMIT = 25; // cap how many RTDB listeners we open
   const REACTIONS_WEIGHT = 3; // prioritize reactions over replies
@@ -17,6 +18,8 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
   const [repliesMap, setRepliesMap] = useState({}); // { [confessionId]: count }
   const reactionUnsubsRef = useRef({});
   const repliesUnsubRef = useRef(null);
+  // Keep previous order to make sorting stable and avoid brief rank flips
+  const prevOrderRef = useRef([]);
 
   useEffect(() => {
     if (!isActive) {
@@ -148,6 +151,8 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
       const score = (reactions * REACTIONS_WEIGHT) + replies;
       return { ...item, score, reactions, replies };
     });
+    // Stable sorting with previous order as final tie-breaker to avoid jitter
+    const prevIndex = new Map((prevOrderRef.current || []).map((id, idx) => [id, idx]));
     const sorted = withScores.sort((a, b) => {
       // Primary: more reactions first
       if (b.reactions !== a.reactions) return b.reactions - a.reactions;
@@ -156,13 +161,27 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
       // Tertiary: more recent
       const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
       const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-      return tb - ta;
+      if (tb !== ta) return tb - ta;
+      // Final: previous order to keep stability
+      const pia = prevIndex.has(a.id) ? prevIndex.get(a.id) : Number.MAX_SAFE_INTEGER;
+      const pib = prevIndex.has(b.id) ? prevIndex.get(b.id) : Number.MAX_SAFE_INTEGER;
+      return pia - pib;
     });
     return sorted.slice(0, 5);
   }, [recentItems, reactionsMap, repliesMap]);
 
   useEffect(() => {
-    setTrending(topFive);
+    // Debounce visual updates slightly to avoid flicker when data streams in
+    if (!topFive) return;
+    // Mark updating for a subtle crossfade
+    setIsUpdating(true);
+    const t = setTimeout(() => {
+      setTrending(topFive);
+      prevOrderRef.current = topFive.map(i => i.id);
+      // End updating shortly after DOM reorders
+      setTimeout(() => setIsUpdating(false), 120);
+    }, 120);
+    return () => clearTimeout(t);
   }, [topFive]);
 
   // Subscribe to union of Top 5 and candidate IDs (within SUBSCRIBE_LIMIT)
@@ -210,7 +229,7 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
   }, [subscribedIds, isActive]);
 
   return (
-    <div className="trending-wrapper">
+    <div className={`trending-wrapper ${isUpdating ? 'updating' : ''}`}>
       {trending.length === 0 && loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
           <SkeletonItem size={50} />
