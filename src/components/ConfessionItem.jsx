@@ -10,6 +10,7 @@ import { ContentModerationService } from '../services/contentModerationService';
 import { subscribeToReactions, toggleReaction, removePreviousReaction, getUserReaction } from '../services/reactionService';
 import { HiGif } from 'react-icons/hi2';
 import { MdOutlineEmojiEmotions } from 'react-icons/md';
+import { FaRegCommentDots } from 'react-icons/fa';
 import { TbCircleNumber1Filled, TbCircleNumber2Filled, TbCircleNumber3Filled, TbCircleNumber4Filled, TbCircleNumber5Filled } from 'react-icons/tb';
 import './ConfessionItem.css';
 
@@ -85,22 +86,47 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
   }, [confession.id]);
 
   const TRUNCATE_LIMIT = 200;
-  const shouldTruncate = confession.text.length > TRUNCATE_LIMIT;
-  const displayText = shouldTruncate && !showFullText 
-    ? confession.text.substring(0, TRUNCATE_LIMIT) + '...'
-    : confession.text;
+  const TRUNCATE_LINES = 5; // maximum number of visible lines before See more
+
+  const computeTruncation = (text, limitChars, limitLines, expanded) => {
+    const lines = (text || '').split(/\r?\n/);
+    const exceedsLines = lines.length > limitLines;
+    const exceedsChars = (text || '').length > limitChars;
+    const shouldTruncateNow = (exceedsLines || exceedsChars) && !expanded;
+
+    if (!shouldTruncateNow) return { text, truncated: exceedsLines || exceedsChars };
+
+    // Build by lines first
+    if (exceedsLines) {
+      const sliced = lines.slice(0, limitLines).join('\n');
+      return { text: sliced + '...', truncated: true };
+    }
+    // Fallback to character truncation
+    return { text: text.substring(0, limitChars) + '...', truncated: true };
+  };
+
+  const confessionDisplay = computeTruncation(confession.text, TRUNCATE_LIMIT, TRUNCATE_LINES, showFullText);
+  const displayText = confessionDisplay.text;
+  const shouldTruncate = confessionDisplay.truncated;
 
   // Helper function to check if reply should be truncated
-  const shouldTruncateReply = (text) => text && text.length > TRUNCATE_LIMIT;
+  const TRUNCATE_REPLY_LINES = 5;
+  const shouldTruncateReply = (text) => {
+    if (!text) return false;
+    const lines = text.split(/\r?\n/);
+    return lines.length > TRUNCATE_REPLY_LINES || text.length > TRUNCATE_LIMIT;
+  };
   
   // Helper function to get display text for reply
   const getReplyDisplayText = (reply) => {
     if (!reply.text) return '';
-    const shouldTruncate = shouldTruncateReply(reply.text);
+    const lines = reply.text.split(/\r?\n/);
+    const exceedsLines = lines.length > TRUNCATE_REPLY_LINES;
+    const exceedsChars = reply.text.length > TRUNCATE_LIMIT;
     const isExpanded = expandedReplies.has(reply.id);
-    return shouldTruncate && !isExpanded 
-      ? reply.text.substring(0, TRUNCATE_LIMIT) + '...'
-      : reply.text;
+    if (!(exceedsLines || exceedsChars) || isExpanded) return reply.text;
+    if (exceedsLines) return lines.slice(0, TRUNCATE_REPLY_LINES).join('\n') + '...';
+    return reply.text.substring(0, TRUNCATE_LIMIT) + '...';
   };
 
   // Helper function to toggle reply expansion
@@ -493,7 +519,14 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
         
         {rank && <div className="rank-badge">{getBadge()}</div>}
         
-        <p>{displayText}</p>
+        <p
+          className={isConfessionBlurred ? 'blurred-content' : ''}
+          style={{ whiteSpace: 'pre-line' }}
+          aria-hidden={isConfessionBlurred ? true : undefined}
+          onCopy={isConfessionBlurred ? (e) => e.preventDefault() : undefined}
+        >
+          {displayText}
+        </p>
         
         {shouldTruncate && (
           <button 
@@ -544,22 +577,34 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
         </div>
       )}
 
-              <ReactionBar
+      {/* Actions row: compact reaction + comment toggle */}
+      <div className="item-actions" style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.5rem',
+        marginTop: '0.5rem'
+      }}>
+        <ReactionBar
           selectedEmoji={selectedEmoji}
           localReactions={localReactions}
           onReactionToggle={handleReactionToggle}
+          compact={true}
         />
-
-      <div className="reply-section">
         <button
-          className="toggle-replies-btn"
+          type="button"
+          className={`comment-toggle-btn ${showReplies ? 'active' : ''}`}
           onClick={() => setShowReplies(!showReplies)}
           disabled={loading && !showReplies}
           aria-expanded={showReplies}
+          aria-label={showReplies ? 'Hide replies' : 'Show replies'}
         >
-          {showReplies ? 'Hide Replies' : `Show Replies (${replyCount})`}
+          <FaRegCommentDots size={18} />
+          <span className="comment-count">{replyCount}</span>
         </button>
+      
+      </div>
 
+      <div className="reply-section">
         {showReplies && (
           <div className="replies-container">
             {error && <div className="error-message">{error}</div>}
@@ -689,7 +734,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: 'rgba(255, 255, 255, 0.2)',
+                    background: 'rgba(255, 255, 255, 0.6)',
                     backdropFilter: 'blur(8px)',
                     WebkitBackdropFilter: 'blur(8px)',
                     borderRadius: '8px',
@@ -739,7 +784,12 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                 )}
                 
                 {reply.text && (
-                  <p>
+                  <p
+                    className={shouldBlurContent(reply.isNSFW) ? 'blurred-content' : ''}
+                    style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', wordBreak: 'break-word' }}
+                    aria-hidden={shouldBlurContent(reply.isNSFW) ? true : undefined}
+                    onCopy={shouldBlurContent(reply.isNSFW) ? (e) => e.preventDefault() : undefined}
+                  >
                     {getReplyDisplayText(reply)}
                     {shouldTruncateReply(reply.text) && (
                       <button 
@@ -761,7 +811,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                   </p>
                 )}
                 {reply.gifUrl && (
-                  <div className="gif-container">
+                  <div className={`gif-container ${shouldBlurContent(reply.isNSFW) ? 'blurred-content' : ''}`}>
                     <img 
                       src={reply.gifUrl} 
                       alt="Reply GIF" 

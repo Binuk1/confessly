@@ -45,7 +45,13 @@ function App() {
 
   const handleSwitchView = (toTrending) => {
     if (viewTrending === toTrending) return;
+    // Preserve current scroll position to avoid flicker/jump on first toggle
+    const y = window.scrollY;
     setViewTrending(toTrending);
+    // Restore scroll on next frame after DOM updates
+    requestAnimationFrame(() => {
+      window.scrollTo(0, y);
+    });
   };
 
   return (

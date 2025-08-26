@@ -296,3 +296,70 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* Compact comment toggle to match mobile reaction button */
+.comment-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background: var(--card-bg);
+  border: 1.5px solid var(--border-color);
+  border-radius: 25px;
+  padding: 0.5rem 0.9rem;
+  min-width: 56px;
+  min-height: 36px;
+  color: var(--text-color);
+  cursor: pointer;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.comment-toggle-btn:hover {
+  border-color: var(--primary-color);
+  background: rgba(47, 107, 255, 0.06);
+}
+
+.comment-toggle-btn:active {
+  transform: scale(0.97);
+}
+
+.comment-toggle-btn.active {
+  background: rgba(255, 162, 77, 0.15);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.comment-count {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+/* Ensure reply content fits card and supports blur */
+.replies-container .reply-item,
+.replies-container .reply-content,
+.replies-container .reply-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.replies-container p,
+.replies-container .reply-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Utility: apply blur to underlying content when NSFW */
+.blurred-content {
+  filter: blur(8px);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Also prevent selection on the overlay itself */
+.nsfw-blur-overlay {
+  user-select: none;
+  -webkit-user-select: none;
+}

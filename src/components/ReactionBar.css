@@ -7,6 +7,11 @@
   margin-top: 1.2rem;
 }
 
+/* In compact mode (used in ConfessionItem actions row), remove extra top margin for vertical alignment */
+.reaction-bar.compact {
+  margin-top: 0;
+}
+
 /* Desktop reaction buttons */
 .desktop-reactions {
   display: none;
@@ -60,18 +65,20 @@
 
 .mobile-reaction-btn {
   background: var(--card-bg);
-  border: 2px solid var(--border-color);
+  border: 1.5px solid var(--border-color);
   border-radius: 25px;
-  padding: 0.6rem 1.2rem;
+  padding: 0.5rem 0.9rem;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
-  min-width: 60px;
-  display: flex;
+  min-width: 56px;
+  min-height: 36px;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
+  gap: 0.35rem;
+  line-height: 1;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -84,7 +91,7 @@
 
 .mobile-reaction-btn:hover {
   border-color: var(--primary-color);
-  background: rgba(47, 107, 255, 0.08);
+  background: rgba(47, 107, 255, 0.06);
 }
 
 .mobile-reaction-btn:active {
@@ -105,8 +112,12 @@
 }
 
 .selected-reaction {
-  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.05rem;
   font-weight: 600;
+  line-height: 1;
 }
 
 .reaction-icon {
@@ -211,10 +222,17 @@
   .mobile-reactions {
     display: none;
   }
-  
   .desktop-reactions {
     display: flex;
   }
+}
+
+/* Compact mode overrides: force mobile-style UI on desktop */
+.reaction-bar.compact .desktop-reactions {
+  display: none !important;
+}
+.reaction-bar.compact .mobile-reactions {
+  display: block !important;
 }
 
 /* Dark mode support */

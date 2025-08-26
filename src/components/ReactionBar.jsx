@@ -7,7 +7,8 @@ const emojis = ['❤️', '😂', '😢', '😡', '👍'];
 function ReactionBar({ 
   selectedEmoji, 
   localReactions, 
-  onReactionToggle 
+  onReactionToggle,
+  compact = false,
 }) {
   const [showMobileReactions, setShowMobileReactions] = useState(false);
   const [isHoldingReaction, setIsHoldingReaction] = useState(false);
@@ -65,20 +66,22 @@ function ReactionBar({
   };
 
   return (
-    <div className="reaction-bar">
-      {/* Desktop reaction buttons */}
-      <div className="desktop-reactions">
-        {emojis.map((emoji) => (
-          <button
-            key={emoji}
-            className={selectedEmoji === emoji ? 'selected' : ''}
-            onClick={() => onReactionToggle(emoji)}
-            aria-label={`React with ${emoji}`}
-          >
-            {emoji} {localReactions[emoji] || 0}
-          </button>
-        ))}
-      </div>
+    <div className={`reaction-bar ${compact ? 'compact' : ''}`}>
+      {/* Desktop reaction buttons (hidden in compact mode) */}
+      {!compact && (
+        <div className="desktop-reactions">
+          {emojis.map((emoji) => (
+            <button
+              key={emoji}
+              className={selectedEmoji === emoji ? 'selected' : ''}
+              onClick={() => onReactionToggle(emoji)}
+              aria-label={`React with ${emoji}`}
+            >
+              {emoji} {localReactions[emoji] || 0}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Mobile reaction button */}
       <div className="mobile-reactions" ref={mobileReactionsRef}>

@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { collection, onSnapshot, query, orderBy, where, Timestamp, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 import ConfessionItem from './ConfessionItem';
 import SkeletonItem from './SkeletonItem';
-import { subscribeToReactions } from '../services/reactionService';
+import { subscribeToReactionsLast24h } from '../services/reactionService';
 
 function TrendingConfessions({ isActive = true, onOpenSettings }) {
   const [trending, setTrending] = useState([]);
@@ -12,28 +12,18 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const LIMIT_RECENT = 100; // cap how many docs we process client-side
   const SUBSCRIBE_LIMIT = 25; // cap how many RTDB listeners we open
-  const REACTIONS_WEIGHT = 3; // prioritize reactions over replies
   // Live maps
-  const [reactionsMap, setReactionsMap] = useState({}); // { [confessionId]: total }
-  const [repliesMap, setRepliesMap] = useState({}); // { [confessionId]: count }
+  const [reactionsMap, setReactionsMap] = useState({}); // { [confessionId]: total in last 24h }
   const reactionUnsubsRef = useRef({});
-  const repliesUnsubRef = useRef(null);
+  const reactionsLiveRef = useRef({}); // accumulate live counts without causing reorders every tick
+  const syncTimerRef = useRef(null); // throttle state sync
   // Keep previous order to make sorting stable and avoid brief rank flips
   const prevOrderRef = useRef([]);
 
   useEffect(() => {
-    if (!isActive) {
-      return;
-    }
-    // Get timestamp for 24 hours ago
-    const twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-    const timestamp24hAgo = Timestamp.fromDate(twentyFourHoursAgo);
-
-    // Query confessions from last 24 hours
+    // Always keep a Firestore listener so data is warm when user switches tabs
     const q = query(
-      collection(db, 'confessions'), 
-      where('createdAt', '>=', timestamp24hAgo),
+      collection(db, 'confessions'),
       orderBy('createdAt', 'desc'),
       limit(LIMIT_RECENT)
     );
@@ -54,19 +44,18 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
     });
 
     return () => unsub();
-  }, [isActive]);
+  }, []);
 
   // Determine candidate IDs to subscribe to (limit to SUBSCRIBE_LIMIT)
   const candidateIds = useMemo(() => {
     if (recentItems.length === 0) return [];
-    const scored = recentItems.map(item => {
-      const replies = repliesMap[item.id] || 0;
-      const coarse = item.coarseReactions || 0;
-      return { id: item.id, coarseScore: (coarse * REACTIONS_WEIGHT) + replies };
-    });
+    const scored = recentItems.map(item => ({
+      id: item.id,
+      coarseScore: item.coarseReactions || 0
+    }));
     scored.sort((a, b) => b.coarseScore - a.coarseScore);
     return scored.slice(0, SUBSCRIBE_LIMIT).map(s => s.id);
-  }, [recentItems, repliesMap]);
+  }, [recentItems]);
 
   // Visibility-based pause/resume for all RTDB subscriptions
   useEffect(() => {
@@ -88,43 +77,6 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
 
   // (moved) subscription effect placed after topFive to ensure Top 5 are always subscribed
 
-  // Live replies counter for last 24h, grouped by confessionId
-  useEffect(() => {
-    if (!isActive) return;
-    // 24h window
-    const twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-    const ts = Timestamp.fromDate(twentyFourHoursAgo);
-
-    // Listen to replies created in last 24h
-    const rq = query(
-      collection(db, 'replies'),
-      where('createdAt', '>=', ts)
-    );
-
-    const unsub = onSnapshot(rq, (snapshot) => {
-      const counts = {};
-      snapshot.forEach(docSnap => {
-        const data = docSnap.data();
-        const cid = data.confessionId;
-        if (!cid) return;
-        counts[cid] = (counts[cid] || 0) + 1;
-      });
-      setRepliesMap(counts);
-    }, (error) => {
-      console.error('Error listening to replies for trending:', error);
-      setRepliesMap({});
-    });
-
-    // store and cleanup
-    repliesUnsubRef.current?.();
-    repliesUnsubRef.current = unsub;
-    return () => {
-      repliesUnsubRef.current?.();
-      repliesUnsubRef.current = null;
-    };
-  }, [isActive]);
-
   // Hard cleanup when view becomes inactive
   useEffect(() => {
     if (!isActive) {
@@ -134,12 +86,8 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
         if (typeof fn === 'function') fn();
         delete reactionUnsubsRef.current[id];
       }
-      // Replies listener
-      repliesUnsubRef.current?.();
-      repliesUnsubRef.current = null;
       // Optionally reset maps to reduce memory
       setReactionsMap({});
-      setRepliesMap({});
     }
   }, [isActive]);
 
@@ -147,40 +95,39 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
     if (!recentItems || recentItems.length === 0) return [];
     const withScores = recentItems.map(item => {
       const reactions = reactionsMap[item.id] || 0;
-      const replies = repliesMap[item.id] || 0;
-      const score = (reactions * REACTIONS_WEIGHT) + replies;
-      return { ...item, score, reactions, replies };
+      return { ...item, reactions };
     });
     // Stable sorting with previous order as final tie-breaker to avoid jitter
     const prevIndex = new Map((prevOrderRef.current || []).map((id, idx) => [id, idx]));
     const sorted = withScores.sort((a, b) => {
       // Primary: more reactions first
       if (b.reactions !== a.reactions) return b.reactions - a.reactions;
-      // Secondary: higher weighted score
-      if (b.score !== a.score) return b.score - a.score;
-      // Tertiary: more recent
-      const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-      const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-      if (tb !== ta) return tb - ta;
-      // Final: previous order to keep stability
+      // Secondary: previous order to keep stability (avoid flipping on ties)
       const pia = prevIndex.has(a.id) ? prevIndex.get(a.id) : Number.MAX_SAFE_INTEGER;
       const pib = prevIndex.has(b.id) ? prevIndex.get(b.id) : Number.MAX_SAFE_INTEGER;
-      return pia - pib;
+      if (pia !== pib) return pia - pib;
+      // Final: more recent if both new to the list
+      const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+      const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+      return tb - ta;
     });
     return sorted.slice(0, 5);
-  }, [recentItems, reactionsMap, repliesMap]);
+  }, [recentItems, reactionsMap]);
 
   useEffect(() => {
     // Debounce visual updates slightly to avoid flicker when data streams in
     if (!topFive) return;
-    // Mark updating for a subtle crossfade
     setIsUpdating(true);
     const t = setTimeout(() => {
-      setTrending(topFive);
-      prevOrderRef.current = topFive.map(i => i.id);
+      const nextIds = topFive.map(i => i.id).join('|');
+      const prevIds = (prevOrderRef.current || []).join('|');
+      if (nextIds !== prevIds) {
+        setTrending(topFive);
+        prevOrderRef.current = topFive.map(i => i.id);
+      }
       // End updating shortly after DOM reorders
       setTimeout(() => setIsUpdating(false), 120);
-    }, 120);
+    }, 100);
     return () => clearTimeout(t);
   }, [topFive]);
 
@@ -210,9 +157,23 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
     // Subscribe missing ones
     subscribedIds.forEach(id => {
       if (reactionUnsubsRef.current[id]) return;
-      const unsub = subscribeToReactions(id, (reactions) => {
+      const unsub = subscribeToReactionsLast24h(id, (reactions) => {
         const total = Object.values(reactions || {}).reduce((a, b) => a + (b || 0), 0);
-        setReactionsMap(prev => ({ ...prev, [id]: total }));
+        // Write to ref only; state sync is interval-based to minimize reorders
+        reactionsLiveRef.current = { ...reactionsLiveRef.current, [id]: total };
+        // Throttle a state sync so UI updates within ~200ms
+        if (!syncTimerRef.current && isActive) {
+          syncTimerRef.current = setTimeout(() => {
+            setReactionsMap(prev => {
+              const next = reactionsLiveRef.current || {};
+              const a = Object.keys(prev).sort().join('|') + JSON.stringify(prev);
+              const b = Object.keys(next).sort().join('|') + JSON.stringify(next);
+              if (a === b) return prev;
+              return { ...next };
+            });
+            syncTimerRef.current = null;
+          }, 200);
+        }
       });
       reactionUnsubsRef.current[id] = unsub;
     });
@@ -228,6 +189,15 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
     };
   }, [subscribedIds, isActive]);
 
+  // Cleanup any pending throttle timers on unmount or when deactivating
+  useEffect(() => {
+    if (isActive) return;
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+      syncTimerRef.current = null;
+    }
+  }, [isActive]);
+
   return (
     <div className={`trending-wrapper ${isUpdating ? 'updating' : ''}`}>
       {trending.length === 0 && loading ? (
@@ -239,9 +209,19 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
           No trending confessions in the last 24 hours
         </div>
       ) : (
-        trending.map((conf, index) => (
-          <ConfessionItem key={conf.id} confession={conf} rank={index + 1} onOpenSettings={onOpenSettings} />
-        ))
+        <>
+          <div style={{
+            textAlign: 'center',
+            color: '#6b7280',
+            fontSize: '0.9rem',
+            marginBottom: '0.5rem'
+          }}>
+            Top 5 most reacted in the last 24 hours
+          </div>
+          {trending.map((conf, index) => (
+            <ConfessionItem key={conf.id} confession={conf} rank={index + 1} onOpenSettings={onOpenSettings} />
+          ))}
+        </>
       )}
     </div>
   );

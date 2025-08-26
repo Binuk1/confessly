@@ -41,6 +41,41 @@ export const subscribeToReactions = (confessionId, callback) => {
   };
 };
 
+// Subscribe to real-time reactions for the last 24 hours only
+export const subscribeToReactionsLast24h = (confessionId, callback) => {
+  const reactionsRef = ref(realtimeDb, `reactions/${confessionId}`);
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+
+  const unsubscribe = onValue(reactionsRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      const reactions = {};
+      Object.keys(data).forEach(emoji => {
+        const users = data[emoji];
+        if (users && typeof users === 'object') {
+          let count = 0;
+          Object.values(users).forEach(rec => {
+            const ts = typeof rec?.timestamp === 'number' ? rec.timestamp : 0;
+            if (ts >= cutoff) count += 1;
+          });
+          reactions[emoji] = count;
+        }
+      });
+      callback(reactions);
+    } else {
+      callback({});
+    }
+  }, (error) => {
+    console.error('Error listening to reactions (24h):', error);
+    callback({});
+  });
+
+  return () => {
+    off(reactionsRef);
+    unsubscribe();
+  };
+};
+
 // Toggle a reaction (add or remove)
 export const toggleReaction = async (confessionId, emoji) => {
   const userId = getUserId();
