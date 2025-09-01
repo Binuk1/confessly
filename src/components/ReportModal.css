@@ -1,37 +1,51 @@
-/* === Report Modal Redesign (Ultra-Compact) === */
+/* === Report Modal Redesign (Ultra-Compact with Fixed Dark Mode) === */
+
+/* --- CSS Variables for Better Theme Management --- */
+:root {
+  --report-modal-bg: #ffffff;
+  --report-modal-bg-gradient: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  --report-modal-header-bg: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  --report-modal-footer-bg: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  --report-modal-text: #212529;
+  --report-modal-text-secondary: #6c757d;
+  --report-modal-border: #e9ecef;
+  --report-modal-preview-bg: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  --report-modal-reason-bg: #ffffff;
+  --report-modal-reason-border: #d1d5db;
+  --report-modal-textarea-bg: #f7f8fa;
+  --report-modal-textarea-border: #d0d7de;
+  --report-modal-backdrop: rgba(0, 0, 0, 0.55);
+}
+
+.dark-mode {
+  --report-modal-bg: #0b0f1a;
+  --report-modal-bg-gradient: linear-gradient(135deg, #0b0f1a 0%, #121826 100%);
+  --report-modal-header-bg: linear-gradient(135deg, #0a0e18 0%, #151b2a 100%);
+  --report-modal-footer-bg: linear-gradient(135deg, #0a0e18 0%, #151b2a 100%);
+  --report-modal-text: #f8f9fa;
+  --report-modal-text-secondary: #cbd5e1;
+  --report-modal-border: #2a2f3a;
+  --report-modal-preview-bg: linear-gradient(135deg, #151b2a 0%, #1e2430 100%);
+  --report-modal-reason-bg: #0f1422;
+  --report-modal-reason-border: #222838;
+  --report-modal-textarea-bg: #0f1422;
+  --report-modal-textarea-border: #222838;
+  --report-modal-backdrop: rgba(0, 0, 0, 0.75);
+}
 
 /* --- Report Modal Overlay --- */
-.report-modal__overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.8);
-  z-index: 1000;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  animation: fadeIn 0.3s ease;
-}
-
-/* Darker backdrop in dark mode */
-.dark-mode .report-modal__backdrop {
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
 .report-modal__backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.55);
-  /* Removed heavy blur to improve performance */
-  /* backdrop-filter: blur(4px); */
+  background-color: var(--report-modal-backdrop);
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 1rem;
   z-index: 10000;
   animation: fadeIn 0.2s ease-out;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .report-modal__backdrop.closing {
@@ -39,11 +53,11 @@
 }
 
 .report-modal__container {
-  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  background: var(--report-modal-bg-gradient);
   border-radius: 20px 20px 0 0;
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
   width: 100%;
-  height: 100dvh; /* mobile-friendly viewport */
+  height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
   position: relative;
@@ -51,6 +65,11 @@
   display: flex;
   flex-direction: column;
   will-change: transform;
+  color: var(--report-modal-text);
+}
+
+.dark-mode .report-modal__container {
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
 }
 
 .report-modal__container.closing {
@@ -60,8 +79,8 @@
 /* --- Header --- */
 .report-modal__header {
   padding: 2rem 1.5rem 1rem;
-  border-bottom: 1px solid #e9ecef;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-bottom: 1px solid var(--report-modal-border);
+  background: var(--report-modal-header-bg);
   position: relative;
   flex-shrink: 0;
   padding-top: max(2rem, env(safe-area-inset-top, 2rem));
@@ -70,7 +89,7 @@
 .report-modal__header h2 {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #212529;
+  color: var(--report-modal-text);
   margin: 0;
   display: flex;
   align-items: center;
@@ -82,9 +101,15 @@
   font-size: 1rem;
 }
 
-/* Remove close button styles since button is removed */
+/* --- Body and Content --- */
+.report-modal__body {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 
-/* --- Body and Content Preview --- */
 .reasons-view,
 .other-view {
   padding: 1rem 1.5rem;
@@ -95,19 +120,13 @@
 }
 
 .report-modal__preview {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 1px solid #dee2e6;
+  background: var(--report-modal-preview-bg);
+  border: 1px solid var(--report-modal-border);
   border-radius: 8px;
   padding: 0.6rem;
   margin: 0 0 0.8rem 0;
   position: relative;
   overflow: hidden;
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-top: 0.8rem;
-  padding: 1rem 1.5rem;
-  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
 }
 
 .report-modal__preview::before {
@@ -123,7 +142,7 @@
 .report-modal__preview p {
   margin: 0;
   font-style: italic;
-  color: #495057;
+  color: var(--report-modal-text-secondary);
   line-height: 1.4;
   font-size: 0.8rem;
   display: -webkit-box;
@@ -171,7 +190,7 @@
 .other-header h3 {
   font-size: 1.1rem;
   font-weight: 700;
-  color: #212529;
+  color: var(--report-modal-text);
   margin: 0 0 0.5rem 0;
   display: flex;
   align-items: center;
@@ -181,7 +200,7 @@
 
 .other-header p {
   font-size: 0.8rem;
-  color: #6c757d;
+  color: var(--report-modal-text-secondary);
   margin: 0;
   line-height: 1.4;
 }
@@ -195,7 +214,7 @@
 
 .report-modal__prompt {
   font-weight: 600;
-  color: #212529;
+  color: var(--report-modal-text);
   font-size: 0.85rem;
   margin-bottom: 0.6rem;
   text-align: center;
@@ -219,11 +238,11 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.5rem 0.7rem;
-  border: 1px solid #d1d5db; /* stronger contrast */
+  border: 1px solid var(--report-modal-reason-border);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: #ffffff;
+  background: var(--report-modal-reason-bg);
   position: relative;
   overflow: hidden;
   min-height: 40px;
@@ -240,11 +259,25 @@
   transition: left 0.5s ease;
 }
 
+.dark-mode .reason-card::before {
+  background: linear-gradient(90deg, transparent, rgba(220, 53, 69, 0.15), transparent);
+}
+
 .reason-card:hover {
   border-color: #dc3545;
-  background: #fafafa;
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(220, 53, 69, 0.12);
+}
+
+.dark-mode .reason-card {
+  background: var(--report-modal-reason-bg);
+  border-color: var(--report-modal-reason-border);
+}
+
+.dark-mode .reason-card:hover {
+  background: #12192a;
+  border-color: #dc3545;
+  box-shadow: 0 6px 18px rgba(220, 53, 69, 0.25);
 }
 
 .reason-card:focus-within {
@@ -264,6 +297,12 @@
   box-shadow: 0 8px 25px rgba(220, 53, 69, 0.2), 0 0 0 2px rgba(220, 53, 69, 0.3);
 }
 
+.dark-mode .reason-card.selected {
+  background: linear-gradient(135deg, #1a243a 0%, #1e2835 100%);
+  border-color: #dc3545;
+  box-shadow: 0 8px 25px rgba(220, 53, 69, 0.3), 0 0 0 2px rgba(220, 53, 69, 0.4);
+}
+
 .reason-card input[type="radio"] {
   display: none;
 }
@@ -276,7 +315,7 @@
 
 .reason-card__label {
   font-size: 0.75rem;
-  color: #111827; /* darker label for readability */
+  color: var(--report-modal-text);
   font-weight: 600;
   line-height: 1.2;
   word-break: break-word;
@@ -293,12 +332,12 @@
 .report-modal__other-reason textarea {
   width: 100%;
   padding: 1rem;
-  border: 2px solid #d0d7de; /* more contrast in light mode */
+  border: 2px solid var(--report-modal-textarea-border);
   border-radius: 12px;
   font-size: 0.95rem;
   font-family: inherit;
-  color: #0f172a; /* dark text */
-  background: #f7f8fa; /* off-white for visibility */
+  color: var(--report-modal-text);
+  background: var(--report-modal-textarea-bg);
   resize: none;
   height: 120px;
   transition: all 0.3s ease;
@@ -309,8 +348,8 @@
 }
 
 .report-modal__other-reason textarea::placeholder {
-  color: #6b7280; /* slate-500 */
-  opacity: 1;
+  color: var(--report-modal-text-secondary);
+  opacity: 0.7;
 }
 
 .auto-resize-textarea {
@@ -328,7 +367,7 @@
 .char-count {
   text-align: right;
   font-size: 0.7rem;
-  color: #6c757d;
+  color: var(--report-modal-text-secondary);
   margin-top: 0.3rem;
   font-weight: 500;
 }
@@ -341,8 +380,8 @@
   margin-top: auto;
   padding: 1.5rem;
   padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 1.5rem));
-  border-top: 1px solid #e9ecef;
-  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-top: 1px solid var(--report-modal-border);
+  background: var(--report-modal-footer-bg);
   flex-shrink: 0;
 }
 
@@ -369,11 +408,21 @@
   border: 2px solid transparent;
 }
 
+.dark-mode .report-modal__btn--cancel {
+  background: linear-gradient(135deg, #495057 0%, #3e4449 100%);
+  color: #f8f9fa;
+}
+
 .report-modal__btn--cancel:hover,
 .report-modal__btn--back:hover {
   background: linear-gradient(135deg, #dee2e6 0%, #ced4da 100%);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.dark-mode .report-modal__btn--cancel:hover {
+  background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
 .report-modal__btn--back {
@@ -410,6 +459,12 @@
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
+  opacity: 0.6;
+}
+
+.dark-mode .report-modal__btn--submit:disabled {
+  background: linear-gradient(135deg, #6c434a 0%, #5d3a40 100%);
+  color: #adb5bd;
 }
 
 .report-modal__btn--cancel:active,
@@ -427,6 +482,8 @@
   align-items: center;
   justify-content: center;
   min-height: 300px;
+  background: var(--report-modal-bg-gradient);
+  height: 100%;
 }
 
 .success-icon {
@@ -447,13 +504,13 @@
 .success-title {
   font-size: 1.4rem;
   font-weight: 700;
-  color: #212529;
+  color: var(--report-modal-text);
   margin: 0 0 0.75rem 0;
   line-height: 1.3;
 }
 
 .success-message {
-  color: #6c757d;
+  color: var(--report-modal-text-secondary);
   line-height: 1.6;
   font-size: 0.95rem;
   margin: 0;
@@ -465,9 +522,17 @@
   font-weight: 600;
 }
 
+.dark-mode .success-message .highlight {
+  color: #4ade80;
+}
+
 .success-message .warning {
   color: #dc3545;
   font-weight: 600;
+}
+
+.dark-mode .success-message .warning {
+  color: #f87171;
 }
 
 @keyframes successPulse {
@@ -505,7 +570,8 @@
 @media (prefers-reduced-motion: reduce) {
   .report-modal__backdrop,
   .report-modal__container,
-  .report-modal__content {
+  .report-modal__content,
+  .success-icon {
     animation: none !important;
     transition: none !important;
   }
@@ -524,6 +590,12 @@
   animation: shake 0.5s ease-in-out;
 }
 
+.dark-mode .error-message {
+  background: linear-gradient(135deg, #3a1a1a 0%, #2d1515 100%);
+  border-color: #5a2c2c;
+  color: #f87171;
+}
+
 .submit-error {
   margin-top: 1rem;
 }
@@ -536,6 +608,10 @@
 .char-count .warning {
   color: #dc3545;
   font-weight: 600;
+}
+
+.dark-mode .char-count .warning {
+  color: #f87171;
 }
 
 /* Loading Spinner */
@@ -560,30 +636,15 @@
   75% { transform: translateX(5px); }
 }
 
-/* --- Dark Mode --- */
-.dark-mode .report-modal__container { background: linear-gradient(135deg, #0b0f1a 0%, #121826 100%); color: #f3f4f6; }
-.dark-mode .report-modal__header { border-bottom-color: #2a2f3a; background: linear-gradient(135deg, #0a0e18 0%, #151b2a 100%); }
-.dark-mode .report-modal__header h2 { color: #f8f9fa; }
-.dark-mode .report-modal__close-btn { color: #adb5bd; }
-.dark-mode .report-modal__close-btn:hover { color: #f8f9fa; }
-.dark-mode .report-modal__preview { background-color: #151b2a; border-color: #222838; }
-.dark-mode .report-modal__preview p { color: #cbd5e1; }
-.dark-mode .report-modal__prompt { color: #ced4da; }
-.dark-mode .reason-card { border-color: #222838; background-color: #0f1422; }
-.dark-mode .reason-card:hover { border-color: #3b4254; background-color: #12192a; }
-.dark-mode .reason-card.selected { background-color: #1a243a; border-color: #ef4444; }
-.dark-mode .reason-card__label { color: #f8f9fa; }
-.dark-mode .report-modal__other-reason textarea { background-color: #0f1422; border-color: #222838; color: #e5e7eb; }
-.dark-mode .report-modal__other-reason textarea:focus { border-color: #c82333; box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25); }
-.dark-mode .char-count { color: #adb5bd; }
-.dark-mode .report-modal__footer { border-top-color: #1e2430; }
-.dark-mode .report-modal__footer { background-color: #0b0f1a; }
-.dark-mode .report-modal__btn--cancel { background-color: #495057; color: #f8f9fa; }
-.dark-mode .report-modal__btn--cancel:hover { background-color: #5a6268; }
-.dark-mode .success-title { color: #f8f9fa; }
-.dark-mode .success-message { color: #ced4da; }
-.dark-mode .success-message .highlight { color: #4ade80; }
-.dark-mode .success-message .warning { color: #f87171; }
+/* --- Enhanced Focus States for Accessibility --- */
+.reason-card:focus-within,
+.report-modal__btn--cancel:focus,
+.report-modal__btn--submit:focus,
+.report-modal__btn--back:focus,
+.report-modal__other-reason textarea:focus {
+  outline: 2px solid #dc3545;
+  outline-offset: 2px;
+}
 
 /* --- Responsive Design --- */
 @media (max-width: 600px) {
@@ -600,9 +661,11 @@
   }
   .report-modal__header {
     padding: 0.6rem 0.9rem 0.5rem;
+    padding-top: max(0.6rem, env(safe-area-inset-top, 0.6rem));
   }
   .report-modal__footer {
     padding: 0.6rem 0.8rem;
+    padding-bottom: max(0.6rem, env(safe-area-inset-bottom, 0.6rem));
   }
   .report-modal__reasons {
     grid-template-columns: 1fr;
@@ -623,8 +686,6 @@
     height: 100px;
     padding: 0.8rem;
     font-size: 0.85rem;
-    color: #212529;
-    background: #ffffff;
   }
   .other-header {
     margin-bottom: 1rem;
@@ -650,15 +711,16 @@
     padding: 0.5rem 0.8rem;
   }
   .report-modal__footer {
-    flex-direction: column; /* stack buttons */
+    flex-direction: column;
     gap: 0.5rem;
     padding: 0.6rem 0.8rem;
+    padding-bottom: max(0.6rem, env(safe-area-inset-bottom, 0.6rem));
   }
   .report-modal__btn--cancel,
   .report-modal__btn--submit,
   .report-modal__btn--back {
     flex: 0 0 auto;
-    width: 100%; /* full width buttons */
+    width: 100%;
     min-height: 44px;
     font-size: 0.95rem;
     padding: 0.7rem 0.9rem;
@@ -673,6 +735,9 @@
     border-width: 2px;
     padding: calc(0.6rem - 1px) calc(0.8rem - 1px);
     box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25), 0 0 0 1px rgba(220, 53, 69, 0.2);
+  }
+  .dark-mode .reason-card.selected {
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.35), 0 0 0 1px rgba(220, 53, 69, 0.3);
   }
   .reason-card:active {
     transform: scale(0.98);
@@ -694,8 +759,6 @@
   .report-modal__other-reason textarea {
     height: 80px;
     font-size: 0.9rem;
-    color: #212529;
-    background: #ffffff;
   }
   .other-header h3 {
     font-size: 0.95rem;
