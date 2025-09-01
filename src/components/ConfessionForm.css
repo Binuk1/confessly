@@ -34,6 +34,26 @@
   box-shadow: 0 1px 4px 0 rgba(80,80,120,0.04);
   max-width: 370px;
   width: 100%;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+/* Dark mode styles */
+:global(html.dark-mode) .confession-form {
+  background: #2d2d2d !important;
+  border-color: #444 !important;
+}
+
+:global(html.dark-mode) .confession-form textarea {
+  color: #f0f0f0 !important;
+  background-color: #2d2d2d !important;
+}
+
+:global(html.dark-mode) .word-counter {
+  color: #aaa !important;
+}
+
+:global(html.dark-mode) .word-counter.over-limit {
+  color: #ff6b6b !important;
 }
 
 /* Disable textarea resize completely */

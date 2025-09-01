@@ -34,30 +34,62 @@
 .settings-button.open {
   transform: rotate(90deg);
 }
-.action-button.emoji-action {
+/* Action buttons (emoji, gif, etc) */
+.action-button.emoji-action,
+.action-button.gif-button {
   background: none !important;
   border: none !important;
   box-shadow: none !important;
-  font-size: 1.25rem;
-  color: #222;
-  padding: 0;
-  border-radius: 0;
+  font-size: 1.5rem; /* Larger font size */
+  color: #666; /* Darker gray for better visibility */
+  padding: 0.5rem;
+  border-radius: 8px;
   outline: none;
-  transition: color 0.16s;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px; /* Larger width */
+  height: 44px; /* Larger height */
+  cursor: pointer;
+  margin: 0 2px; /* Add some spacing between buttons */
 }
-.action-button.emoji-action:hover {
-  color: #111;
-  background: none !important;
-  box-shadow: none !important;
+
+.action-button.emoji-action:hover,
+.action-button.gif-button:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #333;
 }
-.action-button:active, .action-button.emoji-action:active {
-  color: #888;
-  background: none !important;
-  box-shadow: none !important;
+
+.action-button.emoji-action:active,
+.action-button.gif-button:active {
+  color: #555;
+  transform: scale(0.95);
+}
+
+/* Dark mode styles */
+.dark-mode .action-button.emoji-action,
+.dark-mode .action-button.gif-button {
+  color: #aaa; /* Lighter gray for dark mode */
+}
+
+.dark-mode .action-button.emoji-action:hover,
+.dark-mode .action-button.gif-button:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff;
+}
+
+.dark-mode .action-button.emoji-action:active,
+.dark-mode .action-button.gif-button:active {
+  color: #ccc;
 }
 @media (max-width: 600px) {
-  .action-button.emoji-action {
-    display: none !important;
+  .action-button.emoji-action,
+  .action-button.gif-button {
+    display: flex !important; /* Ensure buttons are visible on mobile */
+    font-size: 1.5rem; /* Same size as desktop */
+    width: 44px; /* Same size as desktop */
+    height: 44px; /* Same size as desktop */
   }
 }
 .emoji-picker-overlay {
@@ -160,7 +192,7 @@
   box-sizing: border-box;
 }
 .confession-form {
-  background: #fff;
+  background: var(--card-bg, #fff);
   border-radius: 14px;
   box-shadow: 0 4px 18px rgba(0,0,0,0.09);
   padding: 2rem 1.5rem 2rem 1.5rem;
@@ -168,6 +200,8 @@
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
+  border: 1px solid var(--border-color, #e5e7eb);
+  transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 .textarea-wrapper {
   width: 100%;
@@ -669,6 +703,11 @@ body.dark-mode {
   padding: 1.2rem; /* More padding */
   background: transparent;
   color: var(--text-color);
+  border: none;
+  outline: none;
+  width: 100%;
+  transition: color 0.2s ease;
+  color: var(--text-color);
   width: 100%;
   border: none;
   outline: none;
@@ -678,12 +717,35 @@ body.dark-mode {
 .confession-form textarea {
   min-height: 140px; /* Taller textarea */
   resize: vertical; /* Allow vertical resize for confession */
+  background: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.confession-form textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(47, 107, 255, 0.1);
+  outline: none;
 }
 
 .reply-form textarea {
   min-height: 70px; /* Taller reply textarea */
-  padding-bottom: 0.8rem;
+  padding: 1rem;
   resize: vertical;
+  background: var(--card-bg);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.reply-form textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(47, 107, 255, 0.1);
+  outline: none;
 }
 
 .form-actions,

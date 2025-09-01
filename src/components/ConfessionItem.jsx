@@ -73,16 +73,36 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
 
   // Real-time reaction listener
   useEffect(() => {
-    const unsubscribe = subscribeToReactions(confession.id, (reactions) => {
-      setLocalReactions(reactions);
-    });
+    let isMounted = true;
+    
+    const handleReactionUpdate = (reactions) => {
+      if (!isMounted) return;
+      
+      // Only update if reactions have actually changed
+      setLocalReactions(prevReactions => {
+        const current = JSON.stringify(prevReactions);
+        const next = JSON.stringify(reactions);
+        return current === next ? prevReactions : reactions;
+      });
+    };
+    
+    const unsubscribe = subscribeToReactions(confession.id, handleReactionUpdate);
 
     // Get user's current reaction
     getUserReaction(confession.id).then((userReaction) => {
-      setSelectedEmoji(userReaction);
+      if (isMounted) {
+        setSelectedEmoji(userReaction);
+      }
+    }).catch(error => {
+      console.error('Error getting user reaction:', error);
     });
 
-    return unsubscribe;
+    return () => {
+      isMounted = false;
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, [confession.id]);
 
   const TRUNCATE_LIMIT = 200;
@@ -160,62 +180,77 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
       transition: 'all 0.3s ease',
       transform: 'scale(1)',
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: '1.2rem',
     };
 
-    switch (rank) {
-      case 1: 
-        return (
-          <div style={{
-            ...badgeStyle,
-            background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-            border: '2px solid #FF8C00'
-          }}>
-            <TbCircleNumber1Filled size={24} color="#8B4513" />
-          </div>
-        );
-      case 2: 
-        return (
-          <div style={{
-            ...badgeStyle,
-            background: 'linear-gradient(135deg, #C0C0C0, #A9A9A9)',
-            border: '2px solid #696969'
-          }}>
-            <TbCircleNumber2Filled size={22} color="#2F4F4F" />
-          </div>
-        );
-      case 3: 
-        return (
-          <div style={{
-            ...badgeStyle,
-            background: 'linear-gradient(135deg, #CD7F32, #B8860B)',
-            border: '2px solid #8B6914'
-          }}>
-            <TbCircleNumber3Filled size={20} color="#654321" />
-          </div>
-        );
-      case 4:
-        return (
-          <div style={{
-            ...badgeStyle,
-            background: 'linear-gradient(135deg, #87CEEB, #4682B4)',
-            border: '2px solid #4169E1'
-          }}>
-            <TbCircleNumber4Filled size={18} color="#1E3A8A" />
-          </div>
-        );
-      case 5: 
-        return (
-          <div style={{
-            ...badgeStyle,
-            background: 'linear-gradient(135deg, #98FB98, #32CD32)',
-            border: '2px solid #228B22'
-          }}>
-            <TbCircleNumber5Filled size={16} color="#006400" />
-          </div>
-        );
-      default: 
-        return null;
+    const badgeConfigs = {
+      1: {
+        component: TbCircleNumber1Filled,
+        size: 24,
+        gradient: 'linear-gradient(135deg, #FFD700, #FFA500)',
+        border: '2px solid #FF8C00',
+        color: '#8B4513'
+      },
+      2: {
+        component: TbCircleNumber2Filled,
+        size: 22,
+        gradient: 'linear-gradient(135deg, #C0C0C0, #A9A9A9)',
+        border: '2px solid #696969',
+        color: '#2F4F4F'
+      },
+      3: {
+        component: TbCircleNumber3Filled,
+        size: 20,
+        gradient: 'linear-gradient(135deg, #CD7F32, #B8860B)',
+        border: '2px solid #8B6914',
+        color: '#654321'
+      },
+      4: {
+        component: TbCircleNumber4Filled,
+        size: 18,
+        gradient: 'linear-gradient(135deg, #87CEEB, #4682B4)',
+        border: '2px solid #4169E1',
+        color: '#1E3A8A'
+      },
+      5: {
+        component: TbCircleNumber5Filled,
+        size: 16,
+        gradient: 'linear-gradient(135deg, #98FB98, #32CD32)',
+        border: '2px solid #228B22',
+        color: '#006400'
+      }
+    };
+
+    const badgeConfig = badgeConfigs[rank];
+    
+    if (!badgeConfig) {
+      // For ranks beyond 5, show a simple badge with the number
+      return (
+        <div style={{
+          ...badgeStyle,
+          background: 'linear-gradient(135deg, #E0E0E0, #B0B0B0)',
+          border: '2px solid #808080',
+          color: '#333',
+          fontSize: '1rem'
+        }}>
+          {rank}
+        </div>
+      );
     }
+
+    const BadgeComponent = badgeConfig.component;
+    
+    return (
+      <div style={{
+        ...badgeStyle,
+        background: badgeConfig.gradient,
+        border: badgeConfig.border
+      }}>
+        <BadgeComponent size={badgeConfig.size} color={badgeConfig.color} />
+      </div>
+    );
   }
 
   // Listen for replies when replies are shown
@@ -291,7 +326,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       setSelectedEmoji(null);
       setLocalReactions(prev => ({
         ...prev,
-        [emoji]: Math.max(0, (prev[emoji] || 0) - 1)
+        [emoji]: Math.max(0, (prev[emoji] || 1) - 1)  // Ensure we have at least 1 before subtracting
       }));
     } else {
       // Adding new reaction
@@ -300,10 +335,10 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
         const newReactions = { ...prev };
         // Remove count from previous emoji if exists
         if (previousEmoji) {
-          newReactions[previousEmoji] = Math.max(0, (newReactions[previousEmoji] || 0) - 1);
+          newReactions[previousEmoji] = Math.max(0, (newReactions[previousEmoji] || 1) - 1);
         }
-        // Add count to new emoji
-        newReactions[emoji] = (newReactions[emoji] || 0) + 1;
+        // Add count to new emoji, ensuring we don't go below 0
+        newReactions[emoji] = Math.max(1, (newReactions[emoji] || 0) + 1);
         return newReactions;
       });
     }

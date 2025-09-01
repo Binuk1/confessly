@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import _ from 'lodash';
 import { db } from '../firebase';
 import ConfessionItem from './ConfessionItem';
 import SkeletonItem from './SkeletonItem';
@@ -46,16 +47,26 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
     return () => unsub();
   }, []);
 
-  // Determine candidate IDs to subscribe to (limit to SUBSCRIBE_LIMIT)
+  // Memoize candidate IDs with a stable sort
   const candidateIds = useMemo(() => {
     if (recentItems.length === 0) return [];
+    
+    // Create a stable sort by including the ID as a tiebreaker
     const scored = recentItems.map(item => ({
       id: item.id,
       coarseScore: item.coarseReactions || 0
     }));
-    scored.sort((a, b) => b.coarseScore - a.coarseScore);
+    
+    // Sort by score (descending) and then by ID (for stability)
+    scored.sort((a, b) => {
+      if (b.coarseScore !== a.coarseScore) {
+        return b.coarseScore - a.coarseScore;
+      }
+      return a.id.localeCompare(b.id);
+    });
+    
     return scored.slice(0, SUBSCRIBE_LIMIT).map(s => s.id);
-  }, [recentItems]);
+  }, [recentItems, SUBSCRIBE_LIMIT]);
 
   // Visibility-based pause/resume for all RTDB subscriptions
   useEffect(() => {
@@ -75,7 +86,16 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
-  // (moved) subscription effect placed after topFive to ensure Top 5 are always subscribed
+  // Throttle reaction updates to prevent excessive re-renders
+  const throttledSetReactionsMap = useRef(
+    _.throttle(
+      (newReactions) => {
+        setReactionsMap(newReactions);
+      },
+      200, // 200ms throttle
+      { leading: true, trailing: true }
+    )
+  ).current;
 
   // Hard cleanup when view becomes inactive
   useEffect(() => {
@@ -91,59 +111,92 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
     }
   }, [isActive]);
 
+  // Memoize the date calculation to prevent recreation on every render
+  const twentyFourHoursAgo = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getTime() - (24 * 60 * 60 * 1000));
+  }, []);
+
   const topFive = useMemo(() => {
     if (!recentItems || recentItems.length === 0) return [];
-    const withScores = recentItems.map(item => {
-      const reactions = reactionsMap[item.id] || 0;
-      return { ...item, reactions };
+    
+    // First, filter out confessions older than 24 hours
+    const recentConfessions = recentItems.filter(item => {
+      const createdAt = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(0);
+      return createdAt >= twentyFourHoursAgo;
     });
-    // Stable sorting with previous order as final tie-breaker to avoid jitter
-    const prevIndex = new Map((prevOrderRef.current || []).map((id, idx) => [id, idx]));
-    const sorted = withScores.sort((a, b) => {
-      // Primary: more reactions first
-      if (b.reactions !== a.reactions) return b.reactions - a.reactions;
-      // Secondary: previous order to keep stability (avoid flipping on ties)
-      const pia = prevIndex.has(a.id) ? prevIndex.get(a.id) : Number.MAX_SAFE_INTEGER;
-      const pib = prevIndex.has(b.id) ? prevIndex.get(b.id) : Number.MAX_SAFE_INTEGER;
-      if (pia !== pib) return pia - pib;
-      // Final: more recent if both new to the list
-      const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
-      const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
-      return tb - ta;
+    
+    // Add reaction counts and calculate total reactions
+    const withScores = recentConfessions.map(item => {
+      // Get reactions from our live map, default to empty object if none
+      const reactions = reactionsMap[item.id] || {};
+      // Calculate total reactions, ensuring we're working with numbers
+      const totalReactions = typeof reactions === 'object' 
+        ? Object.values(reactions).reduce((sum, count) => sum + (Number(count) || 0), 0)
+        : 0;
+      
+      return { 
+        ...item, 
+        reactions, 
+        totalReactions,
+        // Add timestamp for tie-breaking if needed
+        timestamp: item.createdAt?.toMillis ? item.createdAt.toMillis() : 0
+      };
     });
+    
+    // Sort by total reactions (descending), then by timestamp (newest first for same reaction count)
+    const sorted = [...withScores].sort((a, b) => {
+      // First sort by total reactions (descending)
+      if (b.totalReactions !== a.totalReactions) {
+        return b.totalReactions - a.totalReactions;
+      }
+      // If reactions are equal, sort by timestamp (newest first)
+      return b.timestamp - a.timestamp;
+    });
+    
+    // Return top 5, including those with 0 reactions
     return sorted.slice(0, 5);
   }, [recentItems, reactionsMap]);
 
   useEffect(() => {
-    // Debounce visual updates slightly to avoid flicker when data streams in
     if (!topFive) return;
+    
+    // Update trending state immediately when topFive changes
+    setTrending(topFive);
+    
+    // Update previous order ref for stability
+    prevOrderRef.current = topFive.map(i => i.id);
+    
+    // Set updating state briefly to trigger any animations
     setIsUpdating(true);
-    const t = setTimeout(() => {
-      const nextIds = topFive.map(i => i.id).join('|');
-      const prevIds = (prevOrderRef.current || []).join('|');
-      if (nextIds !== prevIds) {
-        setTrending(topFive);
-        prevOrderRef.current = topFive.map(i => i.id);
-      }
-      // End updating shortly after DOM reorders
-      setTimeout(() => setIsUpdating(false), 120);
-    }, 100);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setIsUpdating(false), 100);
+    return () => clearTimeout(timer);
   }, [topFive]);
 
-  // Subscribe to union of Top 5 and candidate IDs (within SUBSCRIBE_LIMIT)
+  // Optimize subscription list to minimize changes
   const subscribedIds = useMemo(() => {
+    // Only consider items from the last 24 hours
+    const recentIds = recentItems
+      .filter(item => {
+        const createdAt = item.createdAt?.toDate ? item.createdAt.toDate() : new Date(0);
+        return createdAt >= twentyFourHoursAgo;
+      })
+      .map(item => item.id);
+    
+    // Include current top 5
     const topIds = (topFive || []).map(i => i.id);
-    const set = new Set(topIds);
-    for (const id of candidateIds) {
-      if (set.size >= SUBSCRIBE_LIMIT) break;
-      set.add(id);
-    }
-    return Array.from(set);
-  }, [topFive, candidateIds]);
+    
+    // Combine, dedupe, and limit
+    const allIds = [...new Set([...recentIds, ...topIds])];
+    
+    // Sort to maintain stable subscription order
+    const sorted = [...allIds].sort((a, b) => a.localeCompare(b));
+    return sorted.slice(0, SUBSCRIBE_LIMIT);
+  }, [recentItems, topFive, twentyFourHoursAgo, SUBSCRIBE_LIMIT]);
 
   useEffect(() => {
     if (!isActive) return;
+    
     // Unsubscribe anything not in the target set
     const currentSet = new Set(subscribedIds);
     for (const id in reactionUnsubsRef.current) {
@@ -151,30 +204,35 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
         const fn = reactionUnsubsRef.current[id];
         if (typeof fn === 'function') fn();
         delete reactionUnsubsRef.current[id];
+        // Also remove from live ref to prevent stale data
+        if (reactionsLiveRef.current[id]) {
+          delete reactionsLiveRef.current[id];
+        }
       }
     }
 
-    // Subscribe missing ones
+    // Subscribe to reactions for each confession
     subscribedIds.forEach(id => {
       if (reactionUnsubsRef.current[id]) return;
+      
       const unsub = subscribeToReactionsLast24h(id, (reactions) => {
-        const total = Object.values(reactions || {}).reduce((a, b) => a + (b || 0), 0);
-        // Write to ref only; state sync is interval-based to minimize reorders
-        reactionsLiveRef.current = { ...reactionsLiveRef.current, [id]: total };
-        // Throttle a state sync so UI updates within ~200ms
-        if (!syncTimerRef.current && isActive) {
-          syncTimerRef.current = setTimeout(() => {
-            setReactionsMap(prev => {
-              const next = reactionsLiveRef.current || {};
-              const a = Object.keys(prev).sort().join('|') + JSON.stringify(prev);
-              const b = Object.keys(next).sort().join('|') + JSON.stringify(next);
-              if (a === b) return prev;
-              return { ...next };
-            });
-            syncTimerRef.current = null;
-          }, 200);
-        }
+        // Store the full reactions object, not just the total
+        const reactionData = reactions || {};
+        const total = Object.values(reactionData).reduce((sum, count) => sum + (Number(count) || 0), 0);
+        
+        // Update the live ref with the full reaction data
+        reactionsLiveRef.current = { 
+          ...reactionsLiveRef.current, 
+          [id]: reactionData 
+        };
+        
+        // Use the throttled update function
+        throttledSetReactionsMap({
+          ...reactionsMap,
+          ...reactionsLiveRef.current
+        });
       });
+      
       reactionUnsubsRef.current[id] = unsub;
     });
 
@@ -196,7 +254,12 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
       clearTimeout(syncTimerRef.current);
       syncTimerRef.current = null;
     }
-  }, [isActive]);
+    
+    return () => {
+      // Cancel any pending throttle executions
+      throttledSetReactionsMap.cancel();
+    };
+  }, [isActive, throttledSetReactionsMap]);
 
   return (
     <div className={`trending-wrapper ${isUpdating ? 'updating' : ''}`}>
