@@ -1,35 +1,49 @@
+import { translations } from './translations';
+
 /**
- * Simple Console Security Warning
- * Shows a basic warning message when the script loads
+ * Console Security Warning
+ * Shows a localized warning message in the browser console
  */
+
+// Get browser language (first 2 chars) or default to English
+const getBrowserLanguage = () => {
+  try {
+    return (navigator.language || navigator.userLanguage || 'en').substring(0, 2).toLowerCase();
+  } catch (e) {
+    return 'en';
+  }
+};
+
+// Get translation for current language, fallback to English
+const t = (key) => {
+  const lang = getBrowserLanguage();
+  const langTranslations = translations[lang] || translations.en;
+  return langTranslations[key] || translations.en[key] || key;
+};
 
 // Show warning immediately when script loads
 try {
+  const styles = {
+    stop: 'color: #ff0000; font-size: 50px; font-weight: bold; margin: 20px 0;',
+    warning: 'color: #ff4444; font-size: 16px; font-weight: bold; line-height: 1.5;',
+    tips: 'color: #cc3333; font-size: 14px; line-height: 1.6;',
+    brand: 'color: #666; font-size: 12px; font-style: italic;'
+  };
+
   // Big red STOP message
-  console.log(
-    '%c🛑 STOP!',
-    'color: #ff0000; font-size: 50px; font-weight: bold; margin: 20px 0;'
-  );
+  console.log(`%c${t('stop')}`, styles.stop);
   
   // Warning message
-  console.log(
-    '%cThis is a browser feature intended for developers. If someone told you to copy and paste something here to enable a feature or "hack" someone\'s account, it is a scam and will give them access to your account.',
-    'color: #ff4444; font-size: 16px; font-weight: bold; line-height: 1.5;'
-  );
+  console.log(`%c${t('warning')}`, styles.warning);
   
   // Security tips
-  console.log(
-    '%c⚠️ Security Tips:\n• Never paste code from untrusted sources\n• Scammers use this to steal accounts\n• Only developers should use this console',
-    'color: #cc3333; font-size: 14px; line-height: 1.6;'
-  );
+  if (t('tips')) {
+    console.log(`%c${t('tips')}`, styles.tips);
+  }
   
   // Branding
-  console.log(
-    '%c— Confessly Security Team',
-    'color: #666; font-size: 12px; font-style: italic;'
-  );
-  
-} catch (error) {
+  console.log(`%c— ${t('brand') || 'Confessly Security Team'}`, styles.brand);
+} catch (e) {
   // Fallback for browsers that don't support console styling
   console.warn('🛑 STOP! This console is for developers only. Pasting code here can compromise your account!');
 }

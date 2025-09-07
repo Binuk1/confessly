@@ -107,16 +107,8 @@ const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
               {showTooltip && (
                 <div className={`tooltip ${isMobile ? 'mobile' : ''}`} role="tooltip" id={tooltipId}>
                   <div className="tooltip-content">
-                    <h4>🛡️ AI-Powered Content Moderation</h4>
-                    <p>Content is automatically flagged by our advanced AI system and reviewed by the Confessly security team to ensure a safe community experience.</p>
-                    <div className="tooltip-features">
-                      <span>✓ Real-time AI detection</span>
-                      <span>✓ Human oversight</span>
-                      <span>✓ Privacy-focused</span>
-                    </div>
-                    <div className="tooltip-disclaimer">
-                      <small>⚠️ AI systems may occasionally make mistakes</small>
-                    </div>
+                    <h4>🔍 Content Moderation</h4>
+                    <p>AI + human review for safety.</p>
                   </div>
                 </div>
               )}
