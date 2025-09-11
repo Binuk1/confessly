@@ -5,24 +5,26 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1000;
-  animation: modalFadeIn 0.4s ease-out;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .settings-content {
-  background: #ffffff;
+  background: var(--settings-bg, #ffffff);
   border-radius: 16px;
-  padding: 2rem;
-  width: 90%;
+  width: 100%;
   max-width: 500px;
-  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.15);
-  border: 1px solid rgba(139, 92, 246, 0.1);
-  animation: modalSlideIn 0.5s ease-out;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   position: relative;
+  z-index: 1001;
 }
 
 /* Dark mode for settings modal */

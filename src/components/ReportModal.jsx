@@ -1,5 +1,6 @@
 // ReportModal.jsx
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { addDoc, collection, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../firebase';
 import { FaArrowLeft } from 'react-icons/fa';
@@ -163,7 +164,8 @@ function ReportModal({
 
   if (!isOpen) return null;
 
-  return (
+  // Use createPortal to render the modal in the modal-root
+  return createPortal((
     <div className={`report-modal__backdrop ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
       <div className="report-modal__container" onClick={e => e.stopPropagation()}>
         {submitted ? (
@@ -283,7 +285,7 @@ function ReportModal({
         )}
       </div>
     </div>
-  );
+  ), document.getElementById('modal-root'));
 }
 
 export default ReportModal;

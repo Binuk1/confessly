@@ -55,62 +55,101 @@ function App() {
   };
 
   return (
-    <div className="App">
-      <header className="app-header">
-        <h1>Anonymous Confession Wall</h1>
-        <button 
-          className="settings-button"
-          onClick={() => setShowSettings(!showSettings)}
-          aria-label="Settings"
-        >
-          <FaCog size={24} />
-        </button>
-      </header>
-
-      {showSettings && (
-        <SettingsModal 
-          darkMode={darkMode}
-          onToggleDarkMode={(next) => {
-            setDarkMode(next);
-            localStorage.setItem('darkMode', String(next));
-          }}
-          onClose={() => setShowSettings(false)}
-        />
-      )}
-
-      <ConfessionForm />
-      
-      <div className="toggle-bar">
-        <button
-          className={!viewTrending ? 'active' : ''}
-          onClick={() => handleSwitchView(false)}
-        >
-          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-            <MdFiberNew style={{ color: '#E53935', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.2))' }} size={24} />
-          </span>
-          <span>Latest</span>
-        </button>
-        <button
-          className={viewTrending ? 'active' : ''}
-          onClick={() => handleSwitchView(true)}
-        >
-          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-            <BsFire style={{ color: '#FFC94D', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.2))' }} size={22} />
-          </span>
-          <span>Trending</span>
-        </button>
-      </div>
-      <div className="views-stack">
-        <div className={`view-panel ${!viewTrending ? 'active' : 'inactive'}`} aria-hidden={viewTrending}>
-          <ConfessionList isActive={!viewTrending} onOpenSettings={() => setShowSettings(true)} />
+    <div className="app-container">
+      {/* Left Ad Container - Desktop Only */}
+      <a 
+        href="https://media.tenor.com/XcwA0JTGCcAAAAAe/why-are-you-gae-meme.png" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="ad-container ad-left"
+      >
+        <div className="ad-content">
+          <img 
+            src="/src/assets/ad-2.png" 
+            alt="Advertisement" 
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          />
         </div>
-        <div className={`view-panel ${viewTrending ? 'active' : 'inactive'}`} aria-hidden={!viewTrending}>
-          <TrendingConfessions isActive={viewTrending} onOpenSettings={() => setShowSettings(true)} />
+      </a>
+      
+      {/* Right Ad Container - Desktop Only */}
+      <a 
+        href="https://media.tenor.com/XcwA0JTGCcAAAAAe/why-are-you-gae-meme.png" 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="ad-container ad-right"
+      >
+        <div className="ad-content">
+          <img 
+            src="/src/assets/ad-2.png" 
+            alt="Advertisement" 
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          />
+        </div>
+      </a>
+      
+      <div className="main-content-wrapper">
+        {/* Main Content */}
+        <div className="main-content">
+          <div className="App">
+            <header className="app-header">
+              <h1>Anonymous Confession Wall</h1>
+              <button 
+                className="settings-button"
+                onClick={() => setShowSettings(!showSettings)}
+                aria-label="Settings"
+              >
+                <FaCog size={24} />
+              </button>
+            </header>
+
+            {showSettings && (
+              <SettingsModal 
+                darkMode={darkMode}
+                onToggleDarkMode={(next) => {
+                  setDarkMode(next);
+                  localStorage.setItem('darkMode', String(next));
+                }}
+                onClose={() => setShowSettings(false)}
+              />
+            )}
+
+            <ConfessionForm />
+            
+            <div className="toggle-bar">
+              <button
+                className={!viewTrending ? 'active' : ''}
+                onClick={() => handleSwitchView(false)}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <MdFiberNew style={{ color: '#E53935', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.2))' }} size={24} />
+                </span>
+                <span>Latest</span>
+              </button>
+              <button
+                className={viewTrending ? 'active' : ''}
+                onClick={() => handleSwitchView(true)}
+              >
+                <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+                  <BsFire style={{ color: '#FFC94D', filter: 'drop-shadow(0 0 1px rgba(0,0,0,0.2))' }} size={22} />
+                </span>
+                <span>Trending</span>
+              </button>
+            </div>
+            <div className="views-stack">
+              <div className={`view-panel ${!viewTrending ? 'active' : 'inactive'}`} aria-hidden={viewTrending}>
+                <ConfessionList isActive={!viewTrending} onOpenSettings={() => setShowSettings(true)} />
+              </div>
+              <div className={`view-panel ${viewTrending ? 'active' : 'inactive'}`} aria-hidden={!viewTrending}>
+                <TrendingConfessions isActive={viewTrending} onOpenSettings={() => setShowSettings(true)} />
+              </div>
+            </div>
+            
+            <GoToTop />
+            <ConnectionStatus />
+          </div>
         </div>
       </div>
-      
-      <GoToTop />
-      <ConnectionStatus />
     </div>
   );
 }

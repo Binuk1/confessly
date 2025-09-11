@@ -1,6 +1,7 @@
 import { FaSun, FaMoon, FaStar } from 'react-icons/fa';
 import React, { useState, useEffect } from 'react';
 import { RiInformationLine } from 'react-icons/ri';
+import { createPortal } from 'react-dom';
 import './SettingsModal.css';
 
 const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
@@ -43,11 +44,12 @@ const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
   // Close modal if click is outside the content
   const handleOverlayClick = (e) => {
     if (e.target.classList.contains('settings-modal')) {
+      if (!isOpen) return null;
       onClose();
     }
   };
 
-  return (
+  return createPortal((
     <div className="settings-modal" onClick={handleOverlayClick}>
       <div className="settings-content">
         <div className="settings-header">
@@ -130,7 +132,7 @@ const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
         </div>
       </div>
     </div>
-  );
+  ), document.getElementById('modal-root'));
 }
 
 export default SettingsModal;
