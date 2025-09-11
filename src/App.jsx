@@ -3,6 +3,8 @@ import { MdFiberNew } from 'react-icons/md';
 import { BsFire } from 'react-icons/bs';
 import { IoMdSettings } from 'react-icons/io';
 import { FaCog } from 'react-icons/fa';
+import adImage1 from './assets/ad-1.png';
+import adImage2 from './assets/ad-2.png';
 import ConfessionForm from './components/ConfessionForm';
 import ConfessionList from './components/ConfessionList';
 import { hideInitialSplash } from './main';
@@ -65,7 +67,7 @@ function App() {
       >
         <div className="ad-content">
           <img 
-            src="/src/assets/ad-2.png" 
+            src={adImage2} 
             alt="Advertisement" 
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
           />
@@ -81,7 +83,7 @@ function App() {
       >
         <div className="ad-content">
           <img 
-            src="/src/assets/ad-2.png" 
+            src={adImage2} 
             alt="Advertisement" 
             style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
           />
