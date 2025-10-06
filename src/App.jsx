@@ -95,13 +95,14 @@ function App() {
         <div className="main-content">
           <div className="App">
             <header className="app-header">
-              <h1>Anonymous Confession Wall</h1>
+              <h1>Confessly</h1>
               <button 
                 className="settings-button"
                 onClick={() => setShowSettings(!showSettings)}
                 aria-label="Settings"
+                title="Settings"
               >
-                <FaCog size={24} />
+                <FaCog size={20} />
               </button>
             </header>
 
