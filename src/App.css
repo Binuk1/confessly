@@ -27,12 +27,47 @@
   box-shadow: none !important;
 }
 
-/* Settings button rotation */
+/* Settings button */
 .settings-button {
   transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+  transform: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.settings-button.open {
-  transform: rotate(90deg);
+
+/* Desktop: Rotate on click instead of hover */
+@media (min-width: 768px) {
+  .settings-button.open {
+    transform: rotate(90deg) !important;
+  }
+  .settings-button:hover {
+    transform: none !important;
+  }
+}
+
+/* Mobile: Center with header title */
+@media (max-width: 767px) {
+  .app-header {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem 0;
+  }
+  .app-header h1 {
+    margin: 0;
+  }
+  .settings-button {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%) !important;
+    margin: 0;
+  }
+  .settings-button.open {
+    transform: translateY(-50%) rotate(90deg) !important;
+  }
 }
 /* Action buttons (emoji, gif, etc) */
 .action-button.emoji-action,
@@ -392,12 +427,13 @@ body.dark-mode {
   min-width: 320px; /* Minimum width for very small devices */
   max-width: 100%; /* Full width on mobile */
   background: var(--bg-color);
-  padding: 2.5rem; /* Increased padding */
-  border-radius: 16px; /* More rounded corners */
-  box-shadow: var(--card-shadow);
+  padding: 0; /* No padding by default (for mobile) */
+  border-radius: 0; /* No border radius by default (for mobile) */
+  box-shadow: none; /* No shadow by default (for mobile) */
   display: flex;
   flex-direction: column;
   gap: var(--section-spacing); /* Spacing between main sections */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 .app-header {
@@ -1232,28 +1268,54 @@ textarea, input, button {
   .App {
     min-width: 650px;
     max-width: 650px;
-    margin: 0 auto; /* Center the app on desktop */
+    margin: 2rem auto; /* Center the app on desktop with some top margin */
+    padding: 1.5rem; /* Add padding for desktop */
+    border-radius: 16px; /* Rounded corners for desktop */
+    box-shadow: var(--card-shadow); /* Add shadow for desktop */
   }
 }
 
 /* Mobile styles (max-width: 768px) */
 @media (max-width: 768px) {
-  body {
+  html, body {
     padding: 0;
     margin: 0;
-    align-items: flex-start;
+    width: 100%;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+  }
+  
+  .main-content {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+  
+  .main-content-wrapper {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    min-height: 100vh;
   }
 
   .App { 
-    padding: 0.5rem; 
+    flex: 1;
+    padding: 0; /* No padding for mobile */
     border-radius: 0; 
     box-shadow: none; 
     min-height: 100vh;
-    width: 100vw; /* Use viewport width */
-    min-width: 320px;
+    width: 100%;
+    min-width: 100%;
     max-width: 100%;
     margin: 0;
-    box-sizing: border-box; /* Include padding in width calculation */
+    box-sizing: border-box;
+    overflow-x: hidden; /* Prevent horizontal scrolling */
+    background: var(--bg-color); /* Ensure consistent background */
   }
 
   .app-header {
@@ -1318,10 +1380,12 @@ textarea, input, button {
   }
 
   .toggle-bar { 
-    margin: 1rem 0 1.5rem; 
+    margin: 1rem 10px 1.5rem; 
+    padding: 0 10px; /* Add horizontal padding */
     flex-direction: row; /* Side-by-side on mobile */
     gap: 0.6rem;
     flex-wrap: wrap;
+    box-sizing: border-box; /* Ensure padding is included in width */
   }
   .toggle-bar button { 
     padding: 0.65rem 1.2rem; 
@@ -1424,30 +1488,8 @@ textarea, input, button {
   }
 }
 
-/* Glassmorphism Header */
-.glass-header {
-  background: rgba(255, 255, 255, 0.65);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.10);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 18px;
-  border: 1.5px solid rgba(255, 255, 255, 0.18);
-  margin-bottom: 1.5rem;
-  padding: 1.2rem 2.5vw 1.2rem 2.5vw;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  transition: background 0.3s, box-shadow 0.3s;
-}
 
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 1.2rem;
-}
+
 
 .app-logo-img {
   width: 2.5rem;
@@ -1482,6 +1524,8 @@ textarea, input, button {
   display: flex;
   flex: 1;
   max-width: 100%;
+  padding: 0;
+  margin: 0;
   position: relative;
   z-index: 2; /* Higher than ads */
   /* Create a new stacking context */
@@ -1493,6 +1537,8 @@ textarea, input, button {
   flex: 1;
   max-width: 100%;
   overflow-x: hidden;
+  padding: 0;
+  margin: 0;
   padding: 0 1rem;
 }
 
@@ -1555,7 +1601,7 @@ textarea, input, button {
   
   /* Ensure main content has enough margin for ads */
   .main-content {
-    margin: 0 258px; /* 218px + 40px (20px on each side) */
+    margin: 0;
   }
   
   .app-container {
@@ -1565,14 +1611,14 @@ textarea, input, button {
   }
   
   .main-content {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 2rem;
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
   }
   
   .main-content-wrapper {
-    max-width: 1600px;
-    padding: 0 20px;
+    max-width: 100%;
+    padding: 0;
     position: relative;
   }
 }
@@ -1580,7 +1626,7 @@ textarea, input, button {
 /* Adjust main app width for larger screens */
 @media (min-width: 1600px) {
   .main-content-wrapper {
-    padding: 0 40px;
+    padding: 0;
   }
 }
 

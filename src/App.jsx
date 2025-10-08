@@ -97,10 +97,11 @@ function App() {
             <header className="app-header">
               <h1>Confessly</h1>
               <button 
-                className="settings-button"
+                className={`settings-button ${showSettings ? 'open' : ''}`}
                 onClick={() => setShowSettings(!showSettings)}
                 aria-label="Settings"
                 title="Settings"
+                aria-expanded={showSettings}
               >
                 <FaCog size={20} />
               </button>
