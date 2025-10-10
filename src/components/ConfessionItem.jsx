@@ -82,7 +82,17 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       setLocalReactions(prevReactions => {
         const current = JSON.stringify(prevReactions);
         const next = JSON.stringify(reactions);
-        return current === next ? prevReactions : reactions;
+        const changed = current !== next;
+        if (changed) {
+          // After updating counts, refresh the current user's reaction so UI (other views) can update
+          getUserReaction(confession.id).then((userReaction) => {
+            if (isMounted) setSelectedEmoji(userReaction);
+          }).catch(err => {
+            // Non-fatal: just log
+            console.error('Error refreshing user reaction after update:', err);
+          });
+        }
+        return changed ? reactions : prevReactions;
       });
     };
     
@@ -286,6 +296,12 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
           
           setReplies(sortedReplies);
           setReplyCount(sortedReplies.length);
+          // Broadcast actual reply count to other views
+          try {
+            window.dispatchEvent(new CustomEvent('confessionReply', { detail: { id: confession.id, replyCount: sortedReplies.length } }));
+          } catch (e) {
+            // ignore
+          }
           setLoading(false);
 
           // Clear optimistic reply once we get the real data
@@ -328,6 +344,12 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
         ...prev,
         [emoji]: Math.max(0, (prev[emoji] || 1) - 1)  // Ensure we have at least 1 before subtracting
       }));
+      // Notify other parts of the UI (e.g., Trending) to subscribe/update immediately
+      try {
+        window.dispatchEvent(new CustomEvent('confessionReaction', { detail: { id: confession.id } }));
+      } catch (e) {
+        // ignore
+      }
     } else {
       // Adding new reaction
       setSelectedEmoji(emoji);
@@ -341,6 +363,12 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
         newReactions[emoji] = Math.max(1, (newReactions[emoji] || 0) + 1);
         return newReactions;
       });
+      // Notify other parts of the UI (e.g., Trending) to subscribe/update immediately
+      try {
+        window.dispatchEvent(new CustomEvent('confessionReaction', { detail: { id: confession.id } }));
+      } catch (e) {
+        // ignore
+      }
     }
     
     // Background server update - don't await, handle errors gracefully
@@ -424,6 +452,16 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
     };
     
     setOptimisticReply(tempReply);
+    // Optimistically bump reply count so other views see immediate change
+    setReplyCount(prev => {
+      const newCount = prev + 1;
+      try {
+        window.dispatchEvent(new CustomEvent('confessionReply', { detail: { id: confession.id, replyCount: newCount } }));
+      } catch (e) {
+        // ignore
+      }
+      return newCount;
+    });
     
     // Store form data before clearing
     const submittedText = replyText.trim();

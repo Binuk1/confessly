@@ -1,5 +1,5 @@
-import { ref, set, get, onValue, off, push, remove } from 'firebase/database';
-import { realtimeDb } from '../firebase';
+import { doc, getDoc, onSnapshot, runTransaction, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 
 // Get anonymous user ID
 function getUserId() {
@@ -11,94 +11,140 @@ function getUserId() {
   return id;
 }
 
-// Subscribe to real-time reactions for a confession
+// Internal helper: transform Firestore reactions object (emoji -> array of userIds) to counts
+const transformReactionsToCounts = (reactionsObj) => {
+  const counts = {};
+  if (!reactionsObj) return counts;
+  Object.keys(reactionsObj).forEach((emoji) => {
+    const users = reactionsObj[emoji];
+    if (Array.isArray(users)) counts[emoji] = users.length;
+    else if (typeof users === 'object') counts[emoji] = Object.keys(users).length;
+    else counts[emoji] = 0;
+  });
+  return counts;
+};
+
+// Subscribe to reactions using Firestore onSnapshot
 export const subscribeToReactions = (confessionId, callback) => {
-  const reactionsRef = ref(realtimeDb, `reactions/${confessionId}`);
-  
-  const unsubscribe = onValue(reactionsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      // Transform the data from Realtime DB format to the expected format
-      const reactions = {};
-      Object.keys(data).forEach(emoji => {
-        const users = data[emoji];
-        if (users && typeof users === 'object') {
-          reactions[emoji] = Object.keys(users).length;
-        }
-      });
-      callback(reactions);
-    } else {
-      callback({});
-    }
+  const ref = doc(db, 'confessions', confessionId);
+  const unsub = onSnapshot(ref, (snapshot) => {
+    if (!snapshot.exists()) return callback({});
+    const data = snapshot.data();
+    const reactions = transformReactionsToCounts(data.reactions);
+    callback(reactions);
   }, (error) => {
-    console.error('Error listening to reactions:', error);
+    console.error('Error listening to reactions (firestore):', error);
     callback({});
   });
 
-  return () => {
-    off(reactionsRef);
-    unsubscribe();
-  };
+  return unsub;
 };
 
-// Subscribe to real-time reactions for the last 24 hours only
+// Subscribe to reactions but only count those in last 24h by using stored timestamps if available
 export const subscribeToReactionsLast24h = (confessionId, callback) => {
-  const reactionsRef = ref(realtimeDb, `reactions/${confessionId}`);
+  const ref = doc(db, 'confessions', confessionId);
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
 
-  const unsubscribe = onValue(reactionsRef, (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-      const reactions = {};
-      Object.keys(data).forEach(emoji => {
-        const users = data[emoji];
-        if (users && typeof users === 'object') {
-          let count = 0;
-          Object.values(users).forEach(rec => {
-            const ts = typeof rec?.timestamp === 'number' ? rec.timestamp : 0;
-            if (ts >= cutoff) count += 1;
-          });
-          reactions[emoji] = count;
-        }
-      });
-      callback(reactions);
-    } else {
-      callback({});
-    }
+  const unsub = onSnapshot(ref, (snapshot) => {
+    if (!snapshot.exists()) return callback({});
+    const data = snapshot.data();
+    const reactionsObj = data.reactions || {};
+
+    const counts = {};
+    Object.keys(reactionsObj).forEach((emoji) => {
+      const users = reactionsObj[emoji];
+      if (Array.isArray(users)) {
+        // If stored as array of {userId,timestamp} objects
+        counts[emoji] = users.filter(u => (u && (u.timestamp || 0) >= cutoff)).length;
+      } else if (typeof users === 'object') {
+        // If stored as map of userId -> { timestamp }
+        counts[emoji] = Object.values(users).filter(u => (u && (u.timestamp || 0) >= cutoff)).length;
+      } else {
+        counts[emoji] = 0;
+      }
+    });
+
+    callback(counts);
   }, (error) => {
-    console.error('Error listening to reactions (24h):', error);
+    console.error('Error listening to reactions last24h (firestore):', error);
     callback({});
   });
 
-  return () => {
-    off(reactionsRef);
-    unsubscribe();
-  };
+  return unsub;
 };
 
-// Toggle a reaction (add or remove)
+// Toggle reaction: Firestore stores reactions on confession document under `reactions` as emoji -> array of user objects
 export const toggleReaction = async (confessionId, emoji) => {
   const userId = getUserId();
-  const userReactionRef = ref(realtimeDb, `reactions/${confessionId}/${emoji}/${userId}`);
-  
+  const confessionRef = doc(db, 'confessions', confessionId);
+
   try {
-    // Check if user already reacted with this emoji
-    const snapshot = await get(userReactionRef);
-    
-    if (snapshot.exists()) {
-      // Remove reaction
-      await remove(userReactionRef);
-      return { hasReacted: false, count: -1 };
-    } else {
-      // Add reaction
-      await set(userReactionRef, {
-        timestamp: Date.now(),
-        userId: userId
-      });
-      return { hasReacted: true, count: 1 };
-    }
+    const result = await runTransaction(db, async (tx) => {
+      const snap = await tx.get(confessionRef);
+      if (!snap.exists()) {
+        // Create doc fallback
+        tx.set(confessionRef, { reactions: { [emoji]: [{ userId, timestamp: Date.now() }] } }, { merge: true });
+        return { hasReacted: true, countDelta: 1 };
+      }
+
+      const data = snap.data();
+      const reactions = data.reactions || {};
+
+      // Find if user already reacted with this emoji
+      const usersForEmoji = reactions[emoji] || [];
+      let has = false;
+      if (Array.isArray(usersForEmoji)) {
+        has = usersForEmoji.some(u => u && u.userId === userId);
+      } else if (typeof usersForEmoji === 'object') {
+        has = Boolean(usersForEmoji[userId]);
+      }
+
+      if (has) {
+        // Remove user's entry from this emoji
+        if (Array.isArray(usersForEmoji)) {
+          const newArr = usersForEmoji.filter(u => !(u && u.userId === userId));
+          tx.update(confessionRef, { [`reactions.${emoji}`]: newArr });
+        } else {
+          const updated = { ...usersForEmoji };
+          delete updated[userId];
+          tx.update(confessionRef, { [`reactions.${emoji}`]: updated });
+        }
+        return { hasReacted: false, countDelta: -1 };
+      } else {
+        // Add user's entry
+        const entry = { userId, timestamp: Date.now() };
+        if (Array.isArray(usersForEmoji)) {
+          const newArr = [...usersForEmoji, entry];
+          tx.update(confessionRef, { [`reactions.${emoji}`]: newArr });
+        } else {
+          const updated = { ...(usersForEmoji || {}) };
+          updated[userId] = entry;
+          tx.update(confessionRef, { [`reactions.${emoji}`]: updated });
+        }
+
+        // Also remove user's entry from any other emoji they may have reacted to
+        Object.keys(reactions).forEach((otherEmoji) => {
+          if (otherEmoji === emoji) return;
+          const arr = reactions[otherEmoji];
+          if (Array.isArray(arr)) {
+            if (arr.some(u => u && u.userId === userId)) {
+              const filtered = arr.filter(u => !(u && u.userId === userId));
+              tx.update(confessionRef, { [`reactions.${otherEmoji}`]: filtered });
+            }
+          } else if (typeof arr === 'object' && arr[userId]) {
+            const updated = { ...arr };
+            delete updated[userId];
+            tx.update(confessionRef, { [`reactions.${otherEmoji}`]: updated });
+          }
+        });
+
+        return { hasReacted: true, countDelta: 1 };
+      }
+    });
+
+    return { hasReacted: result.hasReacted, count: result.countDelta };
   } catch (error) {
-    console.error('Error toggling reaction:', error);
+    console.error('Error toggling reaction (firestore):', error);
     throw error;
   }
 };
@@ -106,26 +152,33 @@ export const toggleReaction = async (confessionId, emoji) => {
 // Remove user's previous reaction if they have one
 export const removePreviousReaction = async (confessionId, currentEmoji) => {
   const userId = getUserId();
-  const reactionsRef = ref(realtimeDb, `reactions/${confessionId}`);
-  
+  const confessionRef = doc(db, 'confessions', confessionId);
+
   try {
-    const snapshot = await get(reactionsRef);
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const promises = [];
-      
-      Object.keys(data).forEach(emoji => {
-        if (emoji !== currentEmoji && data[emoji] && data[emoji][userId]) {
-          promises.push(remove(ref(realtimeDb, `reactions/${confessionId}/${emoji}/${userId}`)));
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(confessionRef);
+      if (!snap.exists()) return;
+      const reactions = snap.data().reactions || {};
+
+      const updates = {};
+      Object.keys(reactions).forEach((emoji) => {
+        if (emoji === currentEmoji) return;
+        const arr = reactions[emoji];
+        if (Array.isArray(arr)) {
+          if (arr.some(u => u && u.userId === userId)) {
+            updates[`reactions.${emoji}`] = arr.filter(u => !(u && u.userId === userId));
+          }
+        } else if (typeof arr === 'object' && arr[userId]) {
+          const copy = { ...arr };
+          delete copy[userId];
+          updates[`reactions.${emoji}`] = copy;
         }
       });
-      
-      if (promises.length > 0) {
-        await Promise.all(promises);
-      }
-    }
+
+      if (Object.keys(updates).length > 0) tx.update(confessionRef, updates);
+    });
   } catch (error) {
-    console.error('Error removing previous reaction:', error);
+    console.error('Error removing previous reaction (firestore):', error);
     throw error;
   }
 };
@@ -133,58 +186,41 @@ export const removePreviousReaction = async (confessionId, currentEmoji) => {
 // Get user's current reaction for a confession
 export const getUserReaction = async (confessionId) => {
   const userId = getUserId();
-  const reactionsRef = ref(realtimeDb, `reactions/${confessionId}`);
-  
+  const confessionRef = doc(db, 'confessions', confessionId);
+
   try {
-    const snapshot = await get(reactionsRef);
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      for (const [emoji, users] of Object.entries(data)) {
-        if (users && users[userId]) {
-          return emoji;
-        }
+    const snap = await getDoc(confessionRef);
+    if (!snap.exists()) return null;
+    const reactions = snap.data().reactions || {};
+    for (const [emoji, users] of Object.entries(reactions)) {
+      if (Array.isArray(users)) {
+        if (users.some(u => u && u.userId === userId)) return emoji;
+      } else if (typeof users === 'object' && users[userId]) {
+        return emoji;
       }
     }
     return null;
   } catch (error) {
-    console.error('Error getting user reaction:', error);
+    console.error('Error getting user reaction (firestore):', error);
     return null;
   }
 };
 
 // Get reaction counts for a confession
 export const getReactionCounts = async (confessionId) => {
-  const reactionsRef = ref(realtimeDb, `reactions/${confessionId}`);
-  
+  const confessionRef = doc(db, 'confessions', confessionId);
   try {
-    const snapshot = await get(reactionsRef);
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const counts = {};
-      Object.keys(data).forEach(emoji => {
-        const users = data[emoji];
-        if (users && typeof users === 'object') {
-          counts[emoji] = Object.keys(users).length;
-        }
-      });
-      return counts;
-    }
-    return {};
+    const snap = await getDoc(confessionRef);
+    if (!snap.exists()) return {};
+    const reactions = snap.data().reactions || {};
+    return transformReactionsToCounts(reactions);
   } catch (error) {
-    console.error('Error getting reaction counts:', error);
+    console.error('Error getting reaction counts (firestore):', error);
     return {};
   }
 };
 
-// Sync reactions from Realtime DB to Firestore (for backup/analytics)
+// Sync is trivial now (Firestore is the source of truth)
 export const syncReactionsToFirestore = async (confessionId) => {
-  try {
-    const counts = await getReactionCounts(confessionId);
-    // This would update the Firestore document with the current reaction counts
-    // You can implement this if you want to keep Firestore as a backup
-    return counts;
-  } catch (error) {
-    console.error('Error syncing reactions to Firestore:', error);
-    throw error;
-  }
+  return getReactionCounts(confessionId);
 };

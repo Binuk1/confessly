@@ -33,7 +33,23 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
       const items = snapshot.docs.map((doc) => {
         const data = doc.data();
         // Derive a coarse Firestore reaction count if available to pre-rank candidates
-        const coarseReactions = Object.values(data.reactions || {}).reduce((a, b) => a + (b || 0), 0);
+        const reactionsObj = data.reactions || {};
+        let coarseReactions = 0;
+        try {
+          Object.values(reactionsObj).forEach((val) => {
+            if (Array.isArray(val)) {
+              coarseReactions += val.length;
+            } else if (val && typeof val === 'object') {
+              // map of userId -> { timestamp, userId }
+              coarseReactions += Object.keys(val).length;
+            } else if (typeof val === 'number') {
+              coarseReactions += Number(val) || 0;
+            }
+          });
+        } catch (err) {
+          coarseReactions = 0;
+        }
+
         return { id: doc.id, ...data, coarseReactions };
       });
 
@@ -83,7 +99,29 @@ function TrendingConfessions({ isActive = true, onOpenSettings }) {
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
+    // Listen for local reaction events to eagerly subscribe
+    const handleLocalReaction = (e) => {
+      try {
+        const id = e?.detail?.id;
+        if (id) {
+          // Add to recentItems via a lightweight update to force subscribedIds recompute
+          setRecentItems(prev => {
+            // If already present, no-op
+            if (prev.some(item => item.id === id)) return prev;
+            // Insert a placeholder with minimal data so it becomes a candidate
+            return [{ id, createdAt: new Date(), reactions: {} }, ...prev].slice(0, LIMIT_RECENT);
+          });
+        }
+      } catch (err) {
+        // ignore
+      }
+    };
+    window.addEventListener('confessionReaction', handleLocalReaction);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('confessionReaction', handleLocalReaction);
+    };
   }, []);
 
   // Throttle reaction updates to prevent excessive re-renders

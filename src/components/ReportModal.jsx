@@ -18,17 +18,62 @@ const useModalEffects = (isOpen) => {
     if (isOpen) {
       // Get scrollbar width before hiding it
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      
+      // Apply to body
       document.body.style.overflow = 'hidden';
       document.body.style.paddingRight = `${scrollbarWidth}px`;
+      
+      // Also apply to app container and header to prevent shift
+      const appContainer = document.querySelector('.app-container');
+      const appHeader = document.querySelector('.app-header');
+      const adContainers = document.querySelectorAll('.ad-container');
+      
+      if (appContainer) {
+        appContainer.style.paddingRight = `${scrollbarWidth}px`;
+      }
+      if (appHeader) {
+        appHeader.style.paddingRight = `${scrollbarWidth}px`;
+      }
+      adContainers.forEach(ad => {
+        ad.style.paddingRight = `${scrollbarWidth}px`;
+      });
     } else {
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
+      
+      const appContainer = document.querySelector('.app-container');
+      const appHeader = document.querySelector('.app-header');
+      const adContainers = document.querySelectorAll('.ad-container');
+      
+      if (appContainer) {
+        appContainer.style.paddingRight = '';
+      }
+      if (appHeader) {
+        appHeader.style.paddingRight = '';
+      }
+      adContainers.forEach(ad => {
+        ad.style.paddingRight = '';
+      });
     }
     
     // Cleanup on unmount
     return () => {
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
+      
+      const appContainer = document.querySelector('.app-container');
+      const appHeader = document.querySelector('.app-header');
+      const adContainers = document.querySelectorAll('.ad-container');
+      
+      if (appContainer) {
+        appContainer.style.paddingRight = '';
+      }
+      if (appHeader) {
+        appHeader.style.paddingRight = '';
+      }
+      adContainers.forEach(ad => {
+        ad.style.paddingRight = '';
+      });
     };
   }, [isOpen]);
 };
