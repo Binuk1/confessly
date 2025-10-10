@@ -1,5 +1,4 @@
 // /api/moderateContent.js
-// ❌ no import fetch from 'node-fetch'
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -38,7 +37,9 @@ Rules:
 
   const userText = `ContentType: ${contentType}\nText: ${text}`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
+  // Use the stable Gemini 2.5 Flash model (fastest and cheapest)
+  const model = 'gemini-2.5-flash';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
 
   try {
     const response = await fetch(url, {
@@ -48,7 +49,10 @@ Rules:
         contents: [
           { role: 'user', parts: [{ text: instruction + '\n\n' + userText }] }
         ],
-        generationConfig: { temperature: 0 }
+        generationConfig: { 
+          temperature: 0,
+          maxOutputTokens: 2048
+        }
       })
     });
 
@@ -82,7 +86,7 @@ Rules:
     })) : [];
 
     const responseBody = {
-      model: 'gemini-1.5-flash-latest',
+      model: model,
       isNSFW: Boolean(parsed.isNSFW) || issues.length > 0 && Object.values(categories).some(v => (typeof v === 'number' ? v : 0) >= 0.6),
       issues,
       categories,
