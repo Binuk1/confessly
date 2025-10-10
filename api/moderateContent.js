@@ -38,7 +38,7 @@ Rules:
 
   const userText = `ContentType: ${contentType}\nText: ${text}`;
 
-  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${encodeURIComponent(process.env.GEMINI_API_KEY)}`;
 
   try {
     const response = await fetch(url, {
@@ -82,7 +82,7 @@ Rules:
     })) : [];
 
     const responseBody = {
-      model: 'gemini-1.5-flash',
+      model: 'gemini-1.5-flash-latest',
       isNSFW: Boolean(parsed.isNSFW) || issues.length > 0 && Object.values(categories).some(v => (typeof v === 'number' ? v : 0) >= 0.6),
       issues,
       categories,
