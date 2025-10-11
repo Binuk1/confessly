@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "canvas-confetti": "^1.9.3",
+    "dotenv": "^17.2.3",
     "emoji-picker-react": "^4.12.2",
     "firebase": "^11.9.1",
     "lodash": "^4.17.21",

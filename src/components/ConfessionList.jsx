@@ -68,21 +68,36 @@ function ConfessionList({ optimisticConfession, onOptimisticCleared, isActive = 
   }
   displayConfessions.push(...pageItems);
 
+  // Scroll to top when page changes
+  useEffect(() => {
+    if (listTopRef.current) {
+      // Use smooth scroll only for programmatic page changes, not initial load
+      const behavior = currentPage > 1 ? 'smooth' : 'auto';
+      listTopRef.current.scrollIntoView({ 
+        behavior,
+        block: 'start' 
+      });
+    }
+  }, [currentPage]);
+
   const goToPage = (pageNum) => {
     if (pageNum < 1 || pageNum > totalPages || pageNum === clampedPage) return;
-    if (listTopRef.current) {
-      listTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    
+    // Start fade out
     setIsFading(true);
+    
+    // Change page after fade out starts
     setTimeout(() => {
       setCurrentPage(pageNum);
+      // Fade back in after a short delay
       setTimeout(() => setIsFading(false), 30);
     }, 150);
   };
 
   return (
     <div className={`confession-list ${isFading ? 'fading' : ''}`}>
-      <div ref={listTopRef} />
+      {/* This div is used as a scroll target */}
+      <div ref={listTopRef} style={{ position: 'relative', top: '-20px' }} />
       {displayConfessions.length === 0 && loading ? (
         <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
           <SkeletonItem size={50} />

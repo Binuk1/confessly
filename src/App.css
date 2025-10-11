@@ -1222,7 +1222,8 @@ textarea, input, button {
   flex-wrap: wrap;
   gap: 0.5rem;
   justify-content: center;
-  margin-top: 1rem;
+  margin: 1.5rem 0.5rem; /* Increased top and bottom margin, added horizontal margin */
+  padding-bottom: 2rem; /* Add padding to prevent content from being too close to the bottom */
 }
 .page-btn {
   background: var(--card-bg);
@@ -1285,15 +1286,17 @@ textarea, input, button {
   }
   
   .main-content {
-    padding: 0 !important;
+    padding: 0 0 2rem 0 !important; /* Add bottom padding to main content */
     margin: 0 !important;
     max-width: 100% !important;
+    min-height: calc(100vh - 3.5rem); /* Ensure content takes at least the full viewport height minus header */
   }
   
   .main-content-wrapper {
-    padding: 0 !important;
+    padding: 0 0.5rem !important; /* Add small horizontal padding */
     margin: 0 !important;
     max-width: 100% !important;
+    padding-bottom: env(safe-area-inset-bottom, 1rem); /* Add safe area for mobile devices with notches */
   }
 
   body {

@@ -96,12 +96,25 @@ export default function ManageStaff() {
 
       await signOut(tempAuth); // Clean up temp session
 
-      await setDoc(doc(db, "staff", uid), {
-        email,
+      // Create the staff document with all necessary fields
+      const staffData = {
+        email: email.toLowerCase(),
         role,
-      });
+        createdAt: new Date().toISOString(),
+        active: true
+      };
+      
+      await setDoc(doc(db, "staff", uid), staffData);
 
-      setSuccess(`Created ${role} account for ${email}.`);
+      // Verify the document was created
+      const docRef = doc(db, "staff", uid);
+      const docSnap = await getDoc(docRef);
+      
+      if (!docSnap.exists()) {
+        throw new Error("Failed to create staff document in Firestore");
+      }
+
+      setSuccess(`Successfully created ${role} account for ${email}.`);
       setEmail("");
       setPassword("");
       setRole("mod");
@@ -111,10 +124,13 @@ export default function ManageStaff() {
 
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
+      console.error("Staff creation error:", err);
       if (err.code === "auth/email-already-in-use") {
         setError("That email is already in use.");
+      } else if (err.message.includes("staff document")) {
+        setError("Failed to create staff record. Please try again.");
       } else {
-        setError("Failed to create staff: " + err.message);
+        setError(`Failed to create staff: ${err.message}`);
       }
     } finally {
       setIsCreating(false);

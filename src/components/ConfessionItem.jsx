@@ -52,7 +52,13 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
     
     // Listen for custom event for immediate updates
     const handleNsfwToggle = (event) => {
-      setNsfwFilter(event.detail.nsfwFilter);
+      const newNsfwFilter = event.detail.nsfwFilter;
+      setNsfwFilter(newNsfwFilter);
+      
+      // If NSFW filter is turned on and this is an NSFW confession, close the replies
+      if (newNsfwFilter && confession.isNSFW) {
+        setShowReplies(false);
+      }
     };
     
     window.addEventListener('storage', handleStorageChange);
@@ -61,7 +67,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('nsfwToggle', handleNsfwToggle);
     };
-  }, []);
+  }, [confession.isNSFW]);
 
   // Helper function to check if content should be blurred
   const shouldBlurContent = (isNSFW) => {
