@@ -6,6 +6,7 @@ import StaffLogin from './components/staff/StaffLogin.jsx'; // new
 import StaffDashboard from "./components/staff/StaffDashboard.jsx";
 import ManageStaff from "./components/staff/ManageStaff.jsx";
 import ReportsManagement from './components/staff/ReportsManagement';
+import BannedIPsManagement from './components/staff/BannedIPsManagement';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 // Expose a small helper to hide the initial inline splash
@@ -26,6 +27,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/staff/dashboard" element={<StaffDashboard />} />
         <Route path="/staff/manage" element={<ManageStaff />} />
         <Route path="/staff/reports" element={<ReportsManagement />} />
+        <Route path="/staff/banned-ips" element={<BannedIPsManagement />} />
         {/* More routes will be added here soon */}
       </Routes>
     </BrowserRouter>

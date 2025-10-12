@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
 import { db } from '../firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase';
 import GifPicker from './GifPicker';
 import SimpleEmojiPicker from './SimpleEmojiPicker';
 import SkeletonItem from './SkeletonItem';
@@ -148,7 +150,17 @@ function ConfessionForm({ onOptimisticConfession }) {
       
       cleanUndefined(docData);
       
-      await addDoc(collection(db, 'confessions'), docData);
+      const docRef = await addDoc(collection(db, 'confessions'), docData);
+      
+      // Log the IP address after successful confession creation
+      try {
+        const logConfessionIp = httpsCallable(functions, 'logConfessionIp');
+        const result = await logConfessionIp({ confessionId: docRef.id });
+        console.log('IP logging result:', result.data);
+      } catch (ipError) {
+        console.warn('IP logging failed (non-critical):', ipError.message);
+        // Don't fail the submission if IP logging fails - it's not critical
+      }
       
       // Success! The real confession will come through the Firestore listener
       

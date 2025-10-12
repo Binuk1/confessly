@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, memo } from 'react';
 import { collection, query, onSnapshot, orderBy, addDoc, serverTimestamp, doc, updateDoc, where } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase';
 import { db } from '../firebase';
 import SkeletonItem from './SkeletonItem';
 import GifPicker from './GifPicker';
@@ -282,8 +284,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
     
     try {
       const repliesQuery = query(
-        collection(db, 'replies'),
-        where('confessionId', '==', confession.id)
+        collection(db, `confessions/${confession.id}/replies`)
       );
 
       const unsubscribe = onSnapshot(repliesQuery, (snapshot) => {
@@ -481,18 +482,33 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
 
     try {
       // Add reply to replies collection
-      await addDoc(collection(db, 'replies'), {
-        confessionId: confession.id,
+      const docData = {
         text: submittedText,
         gifUrl: submittedGifUrl || null,
+        confessionId: confession.id,
         createdAt: serverTimestamp(),
         // Store moderation metadata
         moderated: true,
         moderatedAt: serverTimestamp(),
         isNSFW: replyModerationResult ? (replyModerationResult.isNSFW || false) : false,
         moderationIssues: replyModerationResult ? (replyModerationResult.issues || []) : []
-      });
+      };
 
+      const docRef = await addDoc(collection(db, `confessions/${confession.id}/replies`), docData);
+      
+      // Log the IP address after successful reply creation
+      try {
+        const logReplyIp = httpsCallable(functions, 'logReplyIp');
+        const result = await logReplyIp({ 
+          confessionId: confession.id,
+          replyId: docRef.id
+        });
+        console.log('Reply IP logging result:', result.data);
+      } catch (ipError) {
+        console.warn('Reply IP logging failed (non-critical):', ipError.message);
+        // Don't fail the submission if IP logging fails - it's not critical
+      }
+      
       // Update confession reply count in the parent document
       const newReplyCount = replyCount + 1;
       const confessionRef = doc(db, 'confessions', confession.id);

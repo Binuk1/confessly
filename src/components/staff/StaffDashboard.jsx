@@ -26,8 +26,8 @@ export default function StaffDashboard() {
           <button onClick={() => navigate("/staff/reports")}>
             📋 Review Reports
           </button>
-          <button disabled>
-            🚫 Ban IPs (Coming Soon)
+          <button onClick={() => navigate("/staff/banned-ips")}>
+            🚫 Manage Banned IPs
           </button>
           <button disabled>
             📊 Analytics (Coming Soon)

@@ -1,9 +1,11 @@
 /* ReportsManagement.css - Updated for Popup Style */
 .reports-management {
-  max-width: 1000px;
-  margin: 2rem auto;
-  padding: 1rem;
-  color: white;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  line-height: 1.6;
 }
 
 .reports-header {
@@ -58,19 +60,26 @@
 }
 
 .report-item {
-  background: #2d2d2d;
+  background: white;
   border-radius: 8px;
-  padding: 1.5rem;
-  border-left: 4px solid #ffc107;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  position: relative;
+  border-left: 4px solid #4a90e2;
+}
+
+.report-item.pending {
+  border-left-color: #ffc107;
 }
 
 .report-item.resolved {
-  border-left-color: #28a745;
+  border-left-color: #4caf50;
   opacity: 0.8;
 }
 
 .report-item.dismissed {
-  border-left-color: #6c757d;
+  border-left-color: #9e9e9e;
   opacity: 0.7;
 }
 
@@ -426,18 +435,123 @@
 }
 
 /* Confirmation Modal Styles - Popup Style */
+/* Ban Options Styles */
+.ban-options {
+  position: relative;
+  background: linear-gradient(135deg, #3a3a3a 0%, #333333 100%);
+  border-left: 4px solid #ffc107;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 12px;
+  z-index: 1002;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ban-options h4 {
+  margin-top: 0;
+  color: #ffc107;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ban-options h4:before {
+  content: '⚠️';
+  font-size: 1.4rem;
+}
+
+.ban-options p {
+  margin: 0 0 1.5rem 0;
+  color: #ddd;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.ban-options .form-group {
+  margin-bottom: 1.2rem;
+}
+
+.ban-options label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #ddd;
+  font-weight: 500;
+}
+
+.ban-options select,
+.ban-options input[type="text"] {
+  width: 100%;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid #555;
+  background-color: #2d2d2d;
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.ban-options select:focus,
+.ban-options input[type="text"]:focus {
+  outline: none;
+  border-color: #ffc107;
+  box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.25);
+}
+
+.ban-options .modal-actions {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #444;
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.ban-options .cancel-btn {
+  background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ban-options .confirm-btn {
+  background: linear-gradient(135deg, #ffc107 0%, #ffab00 100%);
+  color: #212529;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ban-options .confirm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ban-options .confirm-btn:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+}
+
+/* Confirmation Modal Overlay */
 .confirmation-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1100;
-  pointer-events: none;
+  z-index: 1200;
+  pointer-events: auto;
 }
 
 .confirmation-modal {
@@ -524,7 +638,35 @@
   box-shadow: none;
 }
 
+/* Responsive Design */
 @media (max-width: 768px) {
+  .modal-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .action-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .ban-options {
+    padding: 10px;
+  }
+  
+  .form-group input[type="text"],
+  .form-group select {
+    padding: 6px 10px;
+  }
+  
+  .dismiss-btn,
+  .remove-btn,
+  .ban-btn,
+  .confirm-btn,
+  .cancel-btn {
+    padding: 6px 12px;
+    font-size: 14px;
+  }
   .reports-management {
     padding: 0.5rem;
   }

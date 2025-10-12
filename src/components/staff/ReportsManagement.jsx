@@ -1,9 +1,11 @@
 // ReportsManagement.jsx - For Staff Dashboard
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, deleteDoc, getDocs, serverTimestamp } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, deleteDoc, getDocs, serverTimestamp, addDoc } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import RequireStaffAuth from './RequireStaffAuth';
 import './ReportsManagement.css';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../firebase';
 
 const REASON_LABELS = {
   inappropriate: '🚫 Inappropriate content',
@@ -23,6 +25,10 @@ function ReportsManagement() {
   const [moderatorNotes, setModeratorNotes] = useState('');
   const [processing, setProcessing] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [showBanOptions, setShowBanOptions] = useState(false);
+  const [banDuration, setBanDuration] = useState(86400); // 1 day default
+  const [banType, setBanType] = useState('both');
+  const [banReason, setBanReason] = useState('');
 
   useEffect(() => {
     const q = filter === 'pending' 
@@ -41,7 +47,7 @@ function ReportsManagement() {
     return () => unsub();
   }, [filter]);
 
-  const handleResolveReport = async (reportId, action, contentId, contentType) => {
+  const handleResolveReport = async (reportId, action, contentId, contentType, ipAddress = null, shouldBan = false) => {
     if (!selectedReport) return;
     
     setProcessing(true);
@@ -52,7 +58,8 @@ function ReportsManagement() {
         resolvedAt: serverTimestamp(),
         resolvedBy: auth.currentUser.uid,
         moderatorNotes: moderatorNotes.trim() || null,
-        moderatorAction: action
+        moderatorAction: action,
+        ...(shouldBan && ipAddress ? { bannedIP: ipAddress, banType, banDuration } : {})
       });
 
       // Take action on content if needed
@@ -73,13 +80,45 @@ function ReportsManagement() {
         }
       }
 
+      // Ban IP if requested
+      if (shouldBan && ipAddress) {
+        try {
+          const expiresAt = new Date();
+          if (banDuration > 0) {
+            expiresAt.setSeconds(expiresAt.getSeconds() + banDuration);
+          } else {
+            // Permanent ban (set to 10 years from now)
+            expiresAt.setFullYear(expiresAt.getFullYear() + 10);
+          }
+
+          await addDoc(collection(db, 'bannedIPs'), {
+            ip: ipAddress,
+            reason: banReason || `Banned from report #${reportId}: ${moderatorNotes || 'No reason provided'}`,
+            banType,
+            bannedAt: serverTimestamp(),
+            expiresAt,
+            bannedBy: auth.currentUser.uid,
+            isActive: true,
+            relatedReportId: reportId,
+            relatedContentId: contentId,
+            relatedContentType: contentType
+          });
+        } catch (banError) {
+          console.error('Error banning IP:', banError);
+          // Don't fail the entire operation if banning fails
+        }
+      }
+
       setSelectedReport(null);
       setModeratorNotes('');
+      setShowBanOptions(false);
+      setBanReason('');
     } catch (error) {
       console.error('Error resolving report:', error);
       alert('Failed to resolve report. Please try again.');
     } finally {
       setProcessing(false);
+      setShowConfirmDelete(false);
     }
   };
 
@@ -228,15 +267,105 @@ function ReportsManagement() {
                   >
                     {processing ? 'Processing...' : 'Dismiss Report'}
                   </button>
-                  <button
-                    className="remove-btn"
-                    onClick={() => setShowConfirmDelete(true)}
-                    disabled={processing}
-                  >
-                    {processing ? 'Processing...' : 'Delete Permanently'}
-                  </button>
+                  <div className="action-buttons">
+                    <button
+                      type="button"
+                      className="remove-btn"
+                      onClick={() => setShowConfirmDelete(true)}
+                      disabled={processing}
+                    >
+                      {processing ? 'Processing...' : 'Delete Permanently'}
+                    </button>
+                    <button
+                      type="button"
+                      className="ban-btn"
+                      onClick={() => setShowBanOptions(!showBanOptions)}
+                      disabled={processing}
+                    >
+                      {showBanOptions ? 'Cancel Ban' : 'Ban IP Address'}
+                    </button>
+                  </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Ban Options */}
+        {showBanOptions && selectedReport && (
+          <div className="ban-options">
+            <h4>Ban IP Address</h4>
+            <p>Ban the IP address associated with this content from submitting further content.</p>
+            
+            <div className="form-group">
+              <label>Ban Type</label>
+              <select 
+                value={banType} 
+                onChange={(e) => setBanType(e.target.value)}
+                disabled={processing}
+              >
+                <option value="confess">Prevent Posting Confessions</option>
+                <option value="reply">Prevent Posting Replies</option>
+                <option value="both">Prevent Both</option>
+                <option value="site">Block from Entire Site</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Ban Duration</label>
+              <select 
+                value={banDuration}
+                onChange={(e) => setBanDuration(parseInt(e.target.value, 10))}
+                disabled={processing}
+              >
+                <option value={3600}>1 Hour</option>
+                <option value={86400}>1 Day</option>
+                <option value={604800}>1 Week</option>
+                <option value={2592000}>1 Month</option>
+                <option value={0}>Permanent</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Ban Reason (visible to admins)</label>
+              <input
+                type="text"
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                placeholder="Reason for banning this IP"
+                disabled={processing}
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button
+                className="cancel-btn"
+                onClick={() => setShowBanOptions(false)}
+                disabled={processing}
+              >
+                Cancel
+              </button>
+              <button
+                className="confirm-btn"
+                onClick={() => {
+                  const ip = selectedReport.ipAddress;
+                  if (!ip) {
+                    alert('No IP address found for this content');
+                    return;
+                  }
+                  handleResolveReport(
+                    selectedReport.id,
+                    'remove',
+                    selectedReport.contentId,
+                    selectedReport.contentType,
+                    ip,
+                    true // shouldBan
+                  );
+                }}
+                disabled={processing || !banReason.trim()}
+              >
+                {processing ? 'Processing...' : 'Delete & Ban IP'}
+              </button>
             </div>
           </div>
         )}
@@ -253,12 +382,13 @@ function ReportsManagement() {
                   className="confirm-delete-btn"
                   onClick={() => {
                     handleResolveReport(
-                      selectedReport.id, 
-                      'remove', 
-                      selectedReport.contentId, 
-                      selectedReport.contentType
-                    );
-                    setShowConfirmDelete(false);
+                    selectedReport.id, 
+                    'remove', 
+                    selectedReport.contentId, 
+                    selectedReport.contentType,
+                    null,
+                    false
+                  );
                   }}
                   disabled={processing}
                 >
