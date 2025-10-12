@@ -61,66 +61,85 @@ function ReportsManagement() {
         moderatorAction: action,
         ...(shouldBan && ipAddress ? { bannedIP: ipAddress, banType, banDuration } : {})
       });
-
+  
       // Take action on content if needed
       if (action === 'remove') {
-        // Permanently delete the content
-        const contentRef = doc(db, contentType === 'confession' ? 'confessions' : 'replies', contentId);
-        await deleteDoc(contentRef);
-        
-        // Delete all replies if this is a confession
         if (contentType === 'confession') {
+          // Delete the confession
+          const confessionRef = doc(db, 'confessions', contentId);
+          await deleteDoc(confessionRef);
+          
+          // Delete all replies in the subcollection
           const repliesQuery = query(
-            collection(db, 'replies'),
-            where('confessionId', '==', contentId)
+            collection(db, `confessions/${contentId}/replies`)
           );
           const repliesSnapshot = await getDocs(repliesQuery);
           const deletePromises = repliesSnapshot.docs.map(doc => deleteDoc(doc.ref));
           await Promise.all(deletePromises);
-        }
-      }
-
-      // Ban IP if requested
-      if (shouldBan && ipAddress) {
-        try {
-          const expiresAt = new Date();
-          if (banDuration > 0) {
-            expiresAt.setSeconds(expiresAt.getSeconds() + banDuration);
+          
+        } else if (contentType === 'reply') {
+          // For replies, we need the confessionId to access the subcollection
+          // Extract from the report if available
+          const confessionId = selectedReport.confessionId || selectedReport.parentId;
+          
+          if (confessionId) {
+            // Delete reply from subcollection
+            const replyRef = doc(db, `confessions/${confessionId}/replies`, contentId);
+            await deleteDoc(replyRef);
+            
+            // Update the confession's reply count
+            const confessionRef = doc(db, 'confessions', confessionId);
+            const confessionSnap = await getDocs(query(collection(db, `confessions/${confessionId}/replies`)));
+            await updateDoc(confessionRef, {
+              replyCount: confessionSnap.size
+            });
           } else {
-            // Permanent ban (set to 10 years from now)
-            expiresAt.setFullYear(expiresAt.getFullYear() + 10);
+            console.error('Cannot delete reply: confessionId not found in report');
           }
-
-          await addDoc(collection(db, 'bannedIPs'), {
-            ip: ipAddress,
-            reason: banReason || `Banned from report #${reportId}: ${moderatorNotes || 'No reason provided'}`,
-            banType,
-            bannedAt: serverTimestamp(),
-            expiresAt,
-            bannedBy: auth.currentUser.uid,
-            isActive: true,
-            relatedReportId: reportId,
-            relatedContentId: contentId,
-            relatedContentType: contentType
-          });
-        } catch (banError) {
-          console.error('Error banning IP:', banError);
-          // Don't fail the entire operation if banning fails
         }
       }
+      
+      // Ban IP if requested
+    if (shouldBan && ipAddress) {
+      try {
+        const expiresAt = new Date();
+        if (banDuration > 0) {
+          expiresAt.setSeconds(expiresAt.getSeconds() + banDuration);
+        } else {
+          // Permanent ban (set to 10 years from now)
+          expiresAt.setFullYear(expiresAt.getFullYear() + 10);
+        }
 
-      setSelectedReport(null);
-      setModeratorNotes('');
-      setShowBanOptions(false);
-      setBanReason('');
-    } catch (error) {
-      console.error('Error resolving report:', error);
-      alert('Failed to resolve report. Please try again.');
-    } finally {
-      setProcessing(false);
-      setShowConfirmDelete(false);
+        await addDoc(collection(db, 'bannedIPs'), {
+          ip: ipAddress.toLowerCase(), // Normalize to lowercase
+          reason: banReason || `Banned from report #${reportId}: ${moderatorNotes || 'No reason provided'}`,
+          banType,
+          bannedAt: serverTimestamp(),
+          expiresAt,
+          bannedBy: auth.currentUser.uid,
+          isActive: true,
+          relatedReportId: reportId,
+          relatedContentId: contentId,
+          relatedContentType: contentType
+        });
+      } catch (banError) {
+        console.error('Error banning IP:', banError);
+        // Don't fail the entire operation if banning fails
+      }
     }
-  };
+
+    setSelectedReport(null);
+    setModeratorNotes('');
+    setShowBanOptions(false);
+    setBanReason('');
+  } catch (error) {
+    console.error('Error resolving report:', error);
+    alert('Failed to resolve report. Please try again.');
+  } finally {
+    setProcessing(false);
+    setShowConfirmDelete(false);
+  }
+};
 
   const handleDismissReport = async (reportId) => {
     setProcessing(true);

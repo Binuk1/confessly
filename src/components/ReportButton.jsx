@@ -3,7 +3,7 @@ import { IoFlagOutline } from "react-icons/io5"; // Changed to outlined version
 import ReportModal from './ReportModal';
 import './ReportButton.css';
 
-function ReportButton({ contentId, contentType, contentText, disabled = false }) {
+function ReportButton({ contentId, contentType, contentText,confessionId, disabled = false }) {
   const [showModal, setShowModal] = useState(false);
 
   return (
@@ -28,6 +28,7 @@ function ReportButton({ contentId, contentType, contentText, disabled = false })
         contentId={contentId}
         contentType={contentType}
         contentText={contentText}
+        confessionId={confessionId}
       />
     </>
   );

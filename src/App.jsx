@@ -3,15 +3,18 @@ import { MdFiberNew } from 'react-icons/md';
 import { BsFire } from 'react-icons/bs';
 import { IoMdSettings } from 'react-icons/io';
 import { FaCog } from 'react-icons/fa';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from './firebase';
 import adImage1 from './assets/ad-1.png';
 import adImage2 from './assets/ad-2.png';
 import ConfessionForm from './components/ConfessionForm';
 import ConfessionList from './components/ConfessionList';
-import { hideInitialSplash } from './main';
+import { hideInitialSplash, waitForSplashHide } from './main';
 import TrendingConfessions from './components/TrendingConfessions';
 import SettingsModal from './components/SettingsModal';
 import GoToTop from './components/GoToTop';
 import ConnectionStatus from './components/ConnectionStatus';
+import BanPage from './components/BanPage';
 import './utils/consoleWarning';
 import './App.css';
 
@@ -19,43 +22,63 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [viewTrending, setViewTrending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [isFading, setIsFading] = useState(false);
+  const [isBanned, setIsBanned] = useState(null); // null = checking, false = not banned, true = banned
+  const [splashHidden, setSplashHidden] = useState(false);
 
   useEffect(() => {
     const savedMode = localStorage.getItem('darkMode') === 'true';
     setDarkMode(savedMode);
-  }, []);
-
-  useEffect(() => {
-    // Apply dark mode class to document
-    if (darkMode) {
+    
+    // Apply dark mode immediately
+    if (savedMode) {
       document.documentElement.classList.add('dark-mode');
     } else {
       document.documentElement.classList.remove('dark-mode');
     }
 
-    // Hide the initial splash screen
-    hideInitialSplash();
+    // Start ban check and ONLY hide splash when it's complete
+    const initializeApp = async () => {
+      await checkBanStatus();
+      
+      // Now hide the splash screen
+      hideInitialSplash();
+      setSplashHidden(true);
+    };
 
-    // Console warning is auto-initialized via import
-  }, [darkMode]);
-
-  // Hide inline splash as soon as app mounts
-  useEffect(() => {
-    hideInitialSplash();
+    initializeApp();
   }, []);
+
+  const checkBanStatus = async () => {
+    try {
+      const checkSiteBan = httpsCallable(functions, 'checkSiteBan');
+      const result = await checkSiteBan();
+      setIsBanned(result.data.isBanned);
+    } catch (error) {
+      console.error('Error checking ban status:', error);
+      setIsBanned(false); // Allow access if check fails
+    }
+  };
 
   const handleSwitchView = (toTrending) => {
     if (viewTrending === toTrending) return;
-    // Preserve current scroll position to avoid flicker/jump on first toggle
     const y = window.scrollY;
     setViewTrending(toTrending);
-    // Restore scroll on next frame after DOM updates
     requestAnimationFrame(() => {
       window.scrollTo(0, y);
     });
   };
 
+  // Show ban page if banned (only after splash is hidden)
+  if (isBanned === true && splashHidden) {
+    return <BanPage />;
+  }
+
+  // Don't show main app until splash is hidden and ban check is complete
+  if (!splashHidden || isBanned === null) {
+    return null; // Splash screen stays visible
+  }
+
+  // Main app content - only shown if not banned
   return (
     <div className="app-container">
       {/* Left Ad Container - Desktop Only */}

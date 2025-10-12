@@ -431,6 +431,28 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       showError('Please enter some text or add a GIF to your reply.');
       return;
     }
+  
+    // ===== CHECK IF IP IS BANNED =====
+    setModeratingReply(true);
+    try {
+      const checkReplyBan = httpsCallable(functions, 'checkReplyBan');
+      const banCheckResult = await checkReplyBan();
+      
+      if (banCheckResult.data.isBanned) {
+        const expiryMessage = banCheckResult.data.expiresAt 
+          ? `This ban expires on ${new Date(banCheckResult.data.expiresAt).toLocaleString()}`
+          : 'This is a permanent ban';
+        
+        showError(`❌ Your IP address has been banned from posting replies. Reason: ${banCheckResult.data.reason}. ${expiryMessage}`);
+        setModeratingReply(false);
+        return;
+      }
+    } catch (banCheckError) {
+      console.error('Error checking IP ban:', banCheckError);
+      // Continue if ban check fails (fail open approach)
+    }
+    // ===== END BAN CHECK =====
+
 
     // CONTENT MODERATION - Check reply text and store moderation result
     let replyModerationResult = null;
@@ -874,6 +896,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                     contentId={reply.id}
                     contentType="reply"
                     contentText={reply.text || 'GIF reply'}
+                    confessionId={confession.id}
                     disabled={shouldBlurContent(reply.isNSFW)}
                   />
                 )}

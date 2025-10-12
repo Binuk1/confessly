@@ -1,7 +1,7 @@
-// ReportModal.jsx
+// ReportModal.jsx - UPDATED with IP fetching
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { addDoc, collection, serverTimestamp, doc, updateDoc, increment } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { FaArrowLeft } from 'react-icons/fa';
 import './ReportModal.css';
@@ -16,14 +16,11 @@ const useModalEffects = (isOpen) => {
     
     // Disable/enable background scrolling with proper scrollbar compensation
     if (isOpen) {
-      // Get scrollbar width before hiding it
       const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       
-      // Apply to body
       document.body.style.overflow = 'hidden';
       document.body.style.paddingRight = `${scrollbarWidth}px`;
       
-      // Also apply to app container and header to prevent shift
       const appContainer = document.querySelector('.app-container');
       const appHeader = document.querySelector('.app-header');
       const adContainers = document.querySelectorAll('.ad-container');
@@ -56,7 +53,6 @@ const useModalEffects = (isOpen) => {
       });
     }
     
-    // Cleanup on unmount
     return () => {
       document.body.style.overflow = '';
       document.body.style.paddingRight = '';
@@ -93,7 +89,8 @@ function ReportModal({
   onClose,
   contentId,
   contentType, // 'confession' or 'reply'
-  contentText
+  contentText,
+  confessionId // NEW: Required for replies to fetch from subcollection
 }) {
   const [selectedReason, setSelectedReason] = useState('');
   const [otherReason, setOtherReason] = useState('');
@@ -104,10 +101,8 @@ function ReportModal({
   const [showOtherView, setShowOtherView] = useState(false);
   const textareaRef = useRef(null);
   
-  // Handle modal effects (hide go-to-top, disable scroll)
   useModalEffects(isOpen);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -119,13 +114,12 @@ function ReportModal({
     setIsClosing(true);
     setTimeout(() => {
       onClose();
-      // Reset state after animation
       setIsClosing(false);
       setSubmitted(false);
       setSelectedReason('');
       setOtherReason('');
       setShowOtherView(false);
-    }, 300); // Match animation duration
+    }, 300);
   };
 
   const handleReasonSelect = (reasonId) => {
@@ -134,9 +128,8 @@ function ReportModal({
       setShowOtherView(true);
     } else {
       setShowOtherView(false);
-      setOtherReason(''); // Clear other reason when switching away
+      setOtherReason('');
     }
-    // Clear reason error when selecting
     if (errors.reason) {
       setErrors(prev => ({ ...prev, reason: null }));
     }
@@ -168,6 +161,43 @@ function ReportModal({
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * Fetch IP address from the original content document
+   */
+  const fetchContentIP = async () => {
+    try {
+      let contentRef;
+      
+      if (contentType === 'confession') {
+        // Fetch from confessions collection
+        contentRef = doc(db, 'confessions', contentId);
+      } else if (contentType === 'reply') {
+        // Fetch from replies subcollection
+        if (!confessionId) {
+          console.error('confessionId is required for reply reports');
+          return null;
+        }
+        contentRef = doc(db, `confessions/${confessionId}/replies`, contentId);
+      } else {
+        console.error('Unknown content type:', contentType);
+        return null;
+      }
+
+      const contentSnap = await getDoc(contentRef);
+      
+      if (contentSnap.exists()) {
+        const contentData = contentSnap.data();
+        return contentData.ipAddress || null;
+      } else {
+        console.warn('Content document not found');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching content IP:', error);
+      return null;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -179,7 +209,14 @@ function ReportModal({
     setErrors({});
     
     try {
-      // Create the report with additional validation metadata
+      // Fetch the IP address from the original content
+      const ipAddress = await fetchContentIP();
+      
+      if (!ipAddress) {
+        console.warn('No IP address found for this content. Report will still be created.');
+      }
+
+      // Create the report with IP address included
       await addDoc(collection(db, 'reports'), {
         contentId,
         contentType,
@@ -190,15 +227,24 @@ function ReportModal({
         priority: selectedReason === 'threat' ? 'high' : 'normal',
         createdAt: serverTimestamp(),
         userAgent: navigator.userAgent,
-        reportedFrom: window.location.pathname
+        reportedFrom: window.location.pathname,
+        // NEW: Store IP address and confessionId (for reply context)
+        ipAddress: ipAddress || null,
+        confessionId: contentType === 'reply' ? confessionId : contentId, // For replies, store parent confession ID
+        parentId: contentType === 'reply' ? confessionId : null // Alternative field name for clarity
       });
 
       // Update the content's report count
-      const contentRef = doc(db, contentType === 'confession' ? 'confessions' : 'replies', contentId);
+      let contentRef;
+      if (contentType === 'confession') {
+        contentRef = doc(db, 'confessions', contentId);
+      } else {
+        contentRef = doc(db, `confessions/${confessionId}/replies`, contentId);
+      }
       await updateDoc(contentRef, { reportCount: increment(1) });
 
       setSubmitted(true);
-      setTimeout(handleClose, 3000); // Auto close after showing success
+      setTimeout(handleClose, 3000);
     } catch (error) {
       console.error('Error submitting report:', error);
       setErrors({ submit: 'Failed to submit report. Please check your connection and try again.' });
@@ -209,7 +255,6 @@ function ReportModal({
 
   if (!isOpen) return null;
 
-  // Use createPortal to render the modal in the modal-root
   return createPortal((
     <div className={`report-modal__backdrop ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
       <div className="report-modal__container" onClick={e => e.stopPropagation()}>
@@ -230,7 +275,6 @@ function ReportModal({
 
             <main className="report-modal__body">
               <div className={`report-modal__content ${showOtherView ? 'show-other' : 'show-reasons'}`}>
-                {/* Main Reasons View */}
                 <div className="reasons-view">
                   <div className="report-modal__preview">
                     <p>"{contentText.substring(0, 100)}{contentText.length > 100 ? '...' : ''}"</p>
@@ -275,7 +319,6 @@ function ReportModal({
                   </form>
                 </div>
 
-                {/* Other Reason View */}
                 <div className="other-view">
                   <div className="other-header">
                     <h3>📝 Describe the Issue</h3>

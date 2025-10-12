@@ -330,6 +330,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0; /* Add this line */
 }
 
 .report-modal__other-reason textarea {
@@ -342,12 +343,54 @@
   color: var(--report-modal-text);
   background: var(--report-modal-textarea-bg);
   resize: none;
-  height: 120px;
+  min-height: 120px; /* Change height to min-height */
   transition: all 0.3s ease;
   overflow: hidden;
   flex: 1;
   line-height: 1.5;
   caret-color: #c82333;
+}
+
+/* Error message styling */
+.error-message {
+  display: block;
+  margin: 0.8rem 0;
+  padding: 0.8rem 1rem;
+  background-color: #fde8e8;
+  color: #9b2c2c;
+  border-left: 4px solid #e53e3e;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  word-break: break-word;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.dark-mode .error-message {
+  background-color: rgba(229, 62, 62, 0.15);
+  color: #feb2b2;
+  border-left-color: #f56565;
+}
+
+/* Animation for error message */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Ensure the error message is visible in the form */
+.report-modal__other-reason {
+  position: relative;
+}
+
+.report-modal__other-reason .error-message {
+  margin: 0.8rem 0 0;
+  position: static;
+  transform: none;
+  opacity: 1;
 }
 
 .report-modal__other-reason textarea::placeholder {
@@ -651,6 +694,17 @@
 
 /* --- Responsive Design --- */
 @media (max-width: 600px) {
+  .report-modal__other-reason textarea {
+    min-height: 100px; /* Change height to min-height */
+    padding: 0.8rem;
+    font-size: 0.85rem;
+  }
+  
+  .report-modal__other-reason .error-message {
+    margin-top: 0.4rem;
+    margin-bottom: 0.2rem;
+  }
+}
   .report-modal__container {
     width: 100%;
     height: 100dvh;
@@ -699,7 +753,7 @@
   .other-header p {
     font-size: 0.75rem;
   }
-}
+
 
 @media (max-width: 480px) {
   .report-modal__container {
@@ -760,13 +814,18 @@
     margin-bottom: 0.5rem;
   }
   .report-modal__other-reason textarea {
-    height: 80px;
+    min-height: 80px; /* Change height to min-height */
     font-size: 0.9rem;
   }
+  
+  .report-modal__other-reason .error-message {
+    margin-top: 0.3rem;
+    margin-bottom: 0.1rem;
+  }
+}
   .other-header h3 {
     font-size: 0.95rem;
   }
   .other-header p {
     font-size: 0.7rem;
   }
-}

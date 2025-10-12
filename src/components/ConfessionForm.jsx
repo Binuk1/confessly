@@ -42,6 +42,24 @@ function ConfessionForm({ onOptimisticConfession }) {
     setText(newText);
   };
 
+  // Format ban expiry date properly
+  const formatBanExpiry = (expiresAt) => {
+    if (!expiresAt) {
+      return 'This is a permanent ban';
+    }
+    
+    try {
+      // Parse the ISO string from Cloud Functions
+      const date = new Date(expiresAt);
+      if (isNaN(date.getTime())) {
+        return 'This ban has no expiration date';
+      }
+      return `This ban expires on ${date.toLocaleString()}`;
+    } catch (error) {
+      return 'This ban has no expiration date';
+    }
+  };
+
   // Updated function to check for meaningful content (supports all languages)
   const hasMeaningfulContent = (text) => {
     const trimmedText = text.trim();
@@ -72,6 +90,25 @@ function ConfessionForm({ onOptimisticConfession }) {
       return;
     }
     
+    // ===== CHECK IF IP IS BANNED =====
+    setModerating(true);
+    try {
+      const checkConfessionBan = httpsCallable(functions, 'checkConfessionBan');
+      const banCheckResult = await checkConfessionBan();
+      
+      if (banCheckResult.data.isBanned) {
+        const expiryMessage = formatBanExpiry(banCheckResult.data.expiresAt);
+        
+        showError(`❌ Your IP address has been banned from posting confessions. Reason: ${banCheckResult.data.reason}. ${expiryMessage}`);
+        setModerating(false);
+        return;
+      }
+    } catch (banCheckError) {
+      console.error('Error checking IP ban:', banCheckError);
+      // Continue if ban check fails (fail open approach)
+    }
+    // ===== END BAN CHECK =====
+
     // CONTENT MODERATION - Check text content and store moderation result
     let moderationResult = null;
     if (text.trim()) {
