@@ -25,16 +25,19 @@ function App() {
   const [isBanned, setIsBanned] = useState(null); // null = checking, false = not banned, true = banned
   const [splashHidden, setSplashHidden] = useState(false);
 
-  useEffect(() => {
-    const savedMode = localStorage.getItem('darkMode') === 'true';
-    setDarkMode(savedMode);
-    
-    // Apply dark mode immediately
-    if (savedMode) {
+  const toggleDarkMode = (isDark) => {
+    setDarkMode(isDark);
+    localStorage.setItem('darkMode', isDark);
+    if (isDark) {
       document.documentElement.classList.add('dark-mode');
     } else {
       document.documentElement.classList.remove('dark-mode');
     }
+  };
+
+  useEffect(() => {
+    const savedMode = localStorage.getItem('darkMode') === 'true';
+    toggleDarkMode(savedMode);
 
     // Start ban check and ONLY hide splash when it's complete
     const initializeApp = async () => {
@@ -133,10 +136,7 @@ function App() {
             {showSettings && (
               <SettingsModal 
                 darkMode={darkMode}
-                onToggleDarkMode={(next) => {
-                  setDarkMode(next);
-                  localStorage.setItem('darkMode', String(next));
-                }}
+                onToggleDarkMode={toggleDarkMode}
                 onClose={() => setShowSettings(false)}
               />
             )}

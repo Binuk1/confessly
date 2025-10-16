@@ -377,11 +377,39 @@ html {
 }
 
 /* Dark Mode - Inverted Red & Yellow Palette */
-.dark-mode {
-  --bg-color: #0F172A; /* slate-900 */
-  --text-color: #E5E7EB; /* gray-200 */
-  --card-bg: #1F2937; /* slate-800 */
-  --border-color: #374151; /* slate-700 */
+:root {
+  --bg-color: #ffffff;
+  --text-color: #1f2937;
+  --card-bg: #ffffff;
+  --border-color: #e5e7eb;
+  --primary-color: #4f46e5;
+  --primary-hover: #4338ca;
+  --secondary-color: #6b7280;
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #3b82f6;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --modal-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --transition: all 0.2s ease-in-out;
+}
+
+html.dark-mode {
+  --bg-color: #0F172A;
+  --text-color: #E5E7EB;
+  --card-bg: #1F2937;
+  --border-color: #374151;
+  --primary-color: #818cf8;
+  --primary-hover: #6366f1;
+  --secondary-color: #9ca3af;
+  --success-color: #34d399;
+  --danger-color: #f87171;
+  --warning-color: #fbbf24;
+  --info-color: #60a5fa;
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --modal-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  --card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2), 0 1px 2px 0 rgba(0, 0, 0, 0.1);
   --primary-color: #3E7BFF; /* darker blue in dark */
   --primary-hover: #2F6BFF; /* deeper blue */
   --accent-color: #FFC27A; /* soft orange */
@@ -1269,15 +1297,60 @@ textarea, input, button {
   .App {
     min-width: 650px;
     max-width: 650px;
-    margin: 2rem auto; /* Center the app on desktop with some top margin */
+    margin: 0 auto; /* Center the app on desktop with some top margin */
     padding: 1.5rem; /* Add padding for desktop */
     border-radius: 16px; /* Rounded corners for desktop */
     box-shadow: var(--card-shadow); /* Add shadow for desktop */
   }
 }
 
-/* Mobile styles (max-width: 768px) */
-@media (max-width: 768px) {
+/* Tablet styles (668px - 1200px) */
+@media (min-width: 668px) and (max-width: 1200px) {
+  .app-container {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .main-content-wrapper {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .main-content {
+    padding: 0 !important;
+  }
+}
+
+/* Mobile styles (max-width: 767px) */
+@media (max-width: 767px) {
+  .app-container {
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    min-height: 100vh !important;
+    width: 100vw !important;
+    max-width: 100% !important;
+  }
+
+  .main-content-wrapper {
+    margin: 0 !important;
+    padding: 0.5rem !important;
+    border-radius: 0 !important;
+    min-height: 100vh !important;
+  }
+
+  .main-content {
+    margin: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  .App {
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+  }
   html, body {
     padding: 0;
     margin: 0;
@@ -1523,16 +1596,57 @@ textarea, input, button {
 }
 
 /* Main Content Wrapper */
+/* Debug styles - can be removed after debugging */
+.app-container {
+  background-color: rgba(255, 200, 200, 0.3) !important; /* Light red */
+  min-height: 100vh;
+  position: relative;
+  border-radius: 28px;
+  margin: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 0.5rem;
+}
+
+@media (max-width: 768px) {
+  .app-container {
+    border-radius: 16px;
+    margin: 0.25rem;
+  }
+}
+
 .main-content-wrapper {
   display: flex;
   flex: 1;
   max-width: 100%;
-  padding: 0;
+  padding: 1rem;
+  background-color: rgba(200, 255, 200, 0.3) !important; /* Light green */
+  border-radius: 24px;
+  margin: 0.5rem;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.main-content {
+  background-color: rgba(200, 200, 255, 0.3) !important; /* Light blue */
+  width: 100%;
   margin: 0;
   position: relative;
   z-index: 2; /* Higher than ads */
   /* Create a new stacking context */
   isolation: isolate;
+  border-radius: 20px;
+  overflow: hidden;
+  margin: 1rem 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Adjust for mobile */
+@media (max-width: 768px) {
+  .main-content {
+    border-radius: 12px;
+    margin: 0.5rem;
+  }
 }
 
 /* Main Content */
