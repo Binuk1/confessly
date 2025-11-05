@@ -130,6 +130,16 @@ const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
             </span>
           </div>
         </div>
+        
+        <div className="legal-links">
+          <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">
+            Privacy Policy
+          </a>
+          <span className="divider">•</span>
+          <a href="/terms" target="_blank" rel="noopener noreferrer">
+            Terms & Conditions
+          </a>
+        </div>
       </div>
     </div>
   ), document.getElementById('modal-root'));

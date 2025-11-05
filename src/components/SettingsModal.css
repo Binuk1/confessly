@@ -27,6 +27,82 @@
   z-index: 1001;
 }
 
+/* Legal Links */
+.legal-links {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  row-gap: 0.5rem;
+}
+
+.legal-links a {
+  color: #6d28d9;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+.legal-links a:hover {
+  color: #5b21b6;
+  background-color: rgba(109, 40, 217, 0.05);
+}
+
+.legal-links .divider {
+  color: #9ca3af;
+  font-weight: bold;
+  padding: 0 0.25rem;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* Mobile styles */
+@media (max-width: 480px) {
+  .legal-links {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .legal-links .divider {
+    display: none;
+  }
+  
+  .legal-links a {
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Dark Mode */
+body.dark-mode .legal-links {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .legal-links a {
+  color: #a78bfa;
+}
+
+body.dark-mode .legal-links a:hover {
+  color: #8b5cf6;
+  background-color: rgba(139, 92, 246, 0.1);
+}
+
+body.dark-mode .legal-links .divider {
+  color: #6b7280;
+}
+
 /* Dark mode for settings modal */
 body.dark-mode .settings-content {
   background: #1e1b2e;
@@ -217,10 +293,12 @@ body.dark-mode .nsfw-section h4 {
   font-size: 1.2rem;
   font-weight: 600;
   color: #4c1d95;
-  margin: 0 0 0.75rem 0;
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 0.5rem;
+  width: 100%;
 }
 
 body.dark-mode .section-title {

@@ -15,6 +15,7 @@ import SettingsModal from './components/SettingsModal';
 import GoToTop from './components/GoToTop';
 import ConnectionStatus from './components/ConnectionStatus';
 import BanPage from './components/BanPage';
+import CookieConsent from './components/CookieConsent';
 import './utils/consoleWarning';
 import './App.css';
 
@@ -177,6 +178,7 @@ function App() {
           </div>
         </div>
       </div>
+      <CookieConsent />
     </div>
   );
 }

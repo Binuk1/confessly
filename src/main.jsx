@@ -7,6 +7,8 @@ import StaffDashboard from "./components/staff/StaffDashboard.jsx";
 import ManageStaff from "./components/staff/ManageStaff.jsx";
 import ReportsManagement from './components/staff/ReportsManagement';
 import BannedIPsManagement from './components/staff/BannedIPsManagement';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import TermsAndConditions from './pages/TermsAndConditions';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 // Track if splash should be hidden
@@ -53,7 +55,8 @@ createRoot(document.getElementById('root')).render(
         <Route path="/staff/manage" element={<ManageStaff />} />
         <Route path="/staff/reports" element={<ReportsManagement />} />
         <Route path="/staff/banned-ips" element={<BannedIPsManagement />} />
-        {/* More routes will be added here soon */}
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
