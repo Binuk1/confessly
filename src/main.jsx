@@ -45,6 +45,16 @@ function waitForSplashHide() {
   });
 }
 
+// If the user requested specific static pages (privacy / terms), don't show the app splash — hide it immediately
+// This makes direct navigation to those pages load without the loading wall overlay.
+if (typeof window !== 'undefined') {
+  const path = window.location.pathname;
+  if (path === '/privacy-policy' || path === '/terms') {
+    // Hide synchronously (will add hide class and remove after transition)
+    hideInitialSplash();
+  }
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
