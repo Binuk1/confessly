@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { db } from '../firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 import GifPicker from './GifPicker';
@@ -90,42 +90,8 @@ function ConfessionForm({ onOptimisticConfession }) {
       return;
     }
     
-    // ===== CHECK IF IP IS BANNED =====
-    setModerating(true);
-    try {
-      const checkConfessionBan = httpsCallable(functions, 'checkConfessionBan');
-      const banCheckResult = await checkConfessionBan();
-      
-      if (banCheckResult.data.isBanned) {
-        const expiryMessage = formatBanExpiry(banCheckResult.data.expiresAt);
-        
-        showError(`❌ Your IP address has been banned from posting confessions. Reason: ${banCheckResult.data.reason}. ${expiryMessage}`);
-        setModerating(false);
-        return;
-      }
-    } catch (banCheckError) {
-      console.error('Error checking IP ban:', banCheckError);
-      // Continue if ban check fails (fail open approach)
-    }
-    // ===== END BAN CHECK =====
-
-    // CONTENT MODERATION - Check text content and store moderation result
-    let moderationResult = null;
-    if (text.trim()) {
-      setModerating(true);
-      try {
-        moderationResult = await ContentModerationService.moderateContent(text.trim(), 'confession');
-      } catch (moderationError) {
-        console.error('Moderation failed:', moderationError);
-        // Continue with submission if moderation service fails (fail open approach)
-      } finally {
-        setModerating(false);
-      }
-    }
-    
-    setLoading(true);
-    
     // Create optimistic confession for immediate UI feedback
+    setLoading(true);
     const optimisticConfession = {
       id: `temp-${Date.now()}`,
       text: text.trim(),
@@ -152,6 +118,8 @@ function ConfessionForm({ onOptimisticConfession }) {
       onOptimisticConfession(optimisticConfession);
     }
     
+    // Immediately create the confession document (optimistic write). We'll update moderation metadata later.
+    let docRef = null;
     try {
       const docData = {
         text: submittedText,
@@ -159,14 +127,13 @@ function ConfessionForm({ onOptimisticConfession }) {
         createdAt: serverTimestamp(),
         reactions: {},
         replyCount: 0,
-        // Store moderation metadata
-        moderated: true,
-        moderatedAt: serverTimestamp(),
-        isNSFW: moderationResult ? (moderationResult.isNSFW || false) : false,
-        moderationIssues: moderationResult ? (moderationResult.issues || []) : []
+        // moderation placeholders - will be updated asynchronously
+        moderated: false,
+        moderatedAt: null,
+        isNSFW: false,
+        moderationIssues: []
       };
-      
-      // Clean undefined values
+
       const cleanUndefined = (obj) => {
         for (const [key, value] of Object.entries(obj)) {
           if (value === undefined) {
@@ -184,37 +151,87 @@ function ConfessionForm({ onOptimisticConfession }) {
           }
         }
       };
-      
+
       cleanUndefined(docData);
-      
-      const docRef = await addDoc(collection(db, 'confessions'), docData);
-      
-      // Log the IP address after successful confession creation
-      try {
-        const logConfessionIp = httpsCallable(functions, 'logConfessionIp');
-        const result = await logConfessionIp({ confessionId: docRef.id });
-        console.log('IP logging result:', result.data);
-      } catch (ipError) {
-        console.warn('IP logging failed (non-critical):', ipError.message);
-        // Don't fail the submission if IP logging fails - it's not critical
-      }
-      
-      // Success! The real confession will come through the Firestore listener
-      
+
+      docRef = await addDoc(collection(db, 'confessions'), docData);
+
+      // Fire-and-forget: log IP (non-blocking)
+      (async () => {
+        try {
+          const logConfessionIp = httpsCallable(functions, 'logConfessionIp');
+          await logConfessionIp({ confessionId: docRef.id });
+        } catch (ipError) {
+          console.warn('IP logging failed (non-critical):', ipError.message);
+        }
+      })();
+
+      // Now run ban check and moderation in parallel, but don't block the UI.
+      (async () => {
+        try {
+          const checkConfessionBan = httpsCallable(functions, 'checkConfessionBan');
+          const banPromise = checkConfessionBan().catch(err => ({ error: err }));
+          const moderationPromise = ContentModerationService.moderateContent(submittedText, 'confession').catch(err => ({ error: err }));
+
+          const [banResult, moderationResult] = await Promise.all([banPromise, moderationPromise]);
+
+          // If ban result exists and indicates banned, remove the confession and notify user
+          if (banResult && !banResult.error && banResult.data && banResult.data.isBanned) {
+            // Remove the created confession
+            try {
+              await deleteDoc(docRef);
+            } catch (delErr) {
+              console.error('Failed to delete banned confession:', delErr);
+            }
+            // Inform user (non-blocking UI update)
+            showError(`❌ Your IP address has been banned from posting confessions. Reason: ${banResult.data.reason}. ${formatBanExpiry(banResult.data.expiresAt)}`);
+            // Remove optimistic confession from parent
+            if (onOptimisticConfession) {
+              onOptimisticConfession(null, true);
+            }
+            return;
+          }
+
+          // If moderation returned a valid result, update the confession document with moderation metadata
+          if (moderationResult && !moderationResult.error && moderationResult.isNSFW !== undefined) {
+            try {
+              const update = {
+                moderated: true,
+                moderatedAt: serverTimestamp(),
+                isNSFW: moderationResult.isNSFW || false,
+                moderationIssues: moderationResult.issues || []
+              };
+              // Update the doc
+              await (async () => {
+                const { doc: _, ...rest } = { update };
+              })();
+              // Use updateDoc dynamically to avoid importing earlier if not present
+              const { updateDoc, doc: docFn } = await import('firebase/firestore');
+              await updateDoc(docFn(db, 'confessions', docRef.id), update);
+            } catch (updateErr) {
+              console.error('Failed to update moderation metadata:', updateErr);
+            }
+          }
+        } catch (bgErr) {
+          console.error('Background ban/moderation check failed:', bgErr);
+        }
+      })();
+
     } catch (err) {
       showError('Something went wrong. Please try again.');
-      console.error("Error:", err);
-      
+      console.error("Error creating confession:", err);
+
       // Restore form data on error
       setText(submittedText);
       setGifUrl(submittedGifUrl);
-      
+
       // Remove optimistic confession on error
       if (onOptimisticConfession) {
         onOptimisticConfession(null, true); // Pass error flag
       }
     } finally {
       setLoading(false);
+      setModerating(false);
     }
   };
 

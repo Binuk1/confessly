@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo } from 'react';
-import { collection, query, onSnapshot, orderBy, addDoc, serverTimestamp, doc, updateDoc, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, addDoc, serverTimestamp, doc, updateDoc, where, deleteDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 import { db } from '../firebase';
@@ -503,43 +503,96 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
     setShowEmojiPicker(false);
 
     try {
-      // Add reply to replies collection
+      // Add reply to replies collection immediately (optimistic write)
       const docData = {
         text: submittedText,
         gifUrl: submittedGifUrl || null,
         confessionId: confession.id,
         createdAt: serverTimestamp(),
-        // Store moderation metadata
-        moderated: true,
-        moderatedAt: serverTimestamp(),
-        isNSFW: replyModerationResult ? (replyModerationResult.isNSFW || false) : false,
-        moderationIssues: replyModerationResult ? (replyModerationResult.issues || []) : []
+        // moderation placeholders
+        moderated: false,
+        moderatedAt: null,
+        isNSFW: false,
+        moderationIssues: []
       };
 
       const docRef = await addDoc(collection(db, `confessions/${confession.id}/replies`), docData);
-      
-      // Log the IP address after successful reply creation
-      try {
-        const logReplyIp = httpsCallable(functions, 'logReplyIp');
-        const result = await logReplyIp({ 
-          confessionId: confession.id,
-          replyId: docRef.id
-        });
-        console.log('Reply IP logging result:', result.data);
-      } catch (ipError) {
-        console.warn('Reply IP logging failed (non-critical):', ipError.message);
-        // Don't fail the submission if IP logging fails - it's not critical
-      }
-      
-      // Update confession reply count in the parent document
-      const newReplyCount = replyCount + 1;
-      const confessionRef = doc(db, 'confessions', confession.id);
-      await updateDoc(confessionRef, {
-        replyCount: newReplyCount
-      });
 
-      // Update local reply count immediately
-      setReplyCount(newReplyCount);
+      // Fire-and-forget: log IP (non-blocking)
+      (async () => {
+        try {
+          const logReplyIp = httpsCallable(functions, 'logReplyIp');
+          await logReplyIp({ 
+            confessionId: confession.id,
+            replyId: docRef.id
+          });
+        } catch (ipError) {
+          console.warn('Reply IP logging failed (non-critical):', ipError.message);
+        }
+      })();
+
+      // Increment parent confession reply count right away (optimistic)
+      const newReplyCount = replyCount; // current local already incremented above
+      try {
+        const confessionRef = doc(db, 'confessions', confession.id);
+        // Update in background; don't await blocking UI
+        (async () => {
+          try {
+            const { updateDoc: upd, doc: docFn } = await import('firebase/firestore');
+            await upd(docFn(db, 'confessions', confession.id), {
+              replyCount: newReplyCount
+            });
+          } catch (err) {
+            console.error('Failed to update parent reply count:', err);
+          }
+        })();
+      } catch (err) {
+        console.error('Error scheduling parent reply count update:', err);
+      }
+
+      // Run ban check & moderation in background
+      (async () => {
+        try {
+          const checkReplyBan = httpsCallable(functions, 'checkReplyBan');
+          const banPromise = checkReplyBan().catch(err => ({ error: err }));
+          const moderationPromise = replyText.trim() ? ContentModerationService.moderateContent(replyText.trim(), 'reply').catch(err => ({ error: err })) : Promise.resolve(null);
+
+          const [banResult, moderationResult] = await Promise.all([banPromise, moderationPromise]);
+
+          if (banResult && !banResult.error && banResult.data && banResult.data.isBanned) {
+            // Delete reply doc
+            try {
+              await deleteDoc(docRef);
+            } catch (delErr) {
+              console.error('Failed to delete banned reply:', delErr);
+            }
+            // Remove optimistic reply
+            setOptimisticReply(null);
+            // Decrement local reply count
+            setReplyCount(prev => Math.max(0, prev - 1));
+            showError(`❌ Your IP address has been banned from posting replies. Reason: ${banResult.data.reason}. ${banResult.data.expiresAt ? `Expires: ${new Date(banResult.data.expiresAt).toLocaleString()}` : 'Permanent'}`);
+            return;
+          }
+
+          // If moderation returned a valid result, update the reply doc with moderation metadata
+          if (moderationResult && !moderationResult.error && moderationResult.isNSFW !== undefined) {
+            try {
+              const update = {
+                moderated: true,
+                moderatedAt: serverTimestamp(),
+                isNSFW: moderationResult.isNSFW || false,
+                moderationIssues: moderationResult.issues || []
+              };
+              const { updateDoc: upd, doc: docFn } = await import('firebase/firestore');
+              await upd(docFn(db, `confessions/${confession.id}/replies`, docRef.id), update);
+            } catch (updateErr) {
+              console.error('Failed to update reply moderation metadata:', updateErr);
+            }
+          }
+        } catch (bgErr) {
+          console.error('Background reply ban/moderation failed:', bgErr);
+        }
+      })();
 
       // Focus back to textarea for easier follow-up replies
       setTimeout(() => {
