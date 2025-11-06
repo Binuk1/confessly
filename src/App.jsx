@@ -31,8 +31,10 @@ function App() {
     localStorage.setItem('darkMode', isDark);
     if (isDark) {
       document.documentElement.classList.add('dark-mode');
+      document.body.classList.add('dark-mode');
     } else {
       document.documentElement.classList.remove('dark-mode');
+      document.body.classList.remove('dark-mode');
     }
   };
 

@@ -432,42 +432,8 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       return;
     }
   
-    // ===== CHECK IF IP IS BANNED =====
-    setModeratingReply(true);
-    try {
-      const checkReplyBan = httpsCallable(functions, 'checkReplyBan');
-      const banCheckResult = await checkReplyBan();
-      
-      if (banCheckResult.data.isBanned) {
-        const expiryMessage = banCheckResult.data.expiresAt 
-          ? `This ban expires on ${new Date(banCheckResult.data.expiresAt).toLocaleString()}`
-          : 'This is a permanent ban';
-        
-        showError(`❌ Your IP address has been banned from posting replies. Reason: ${banCheckResult.data.reason}. ${expiryMessage}`);
-        setModeratingReply(false);
-        return;
-      }
-    } catch (banCheckError) {
-      console.error('Error checking IP ban:', banCheckError);
-      // Continue if ban check fails (fail open approach)
-    }
-    // ===== END BAN CHECK =====
-
-
-    // CONTENT MODERATION - Check reply text and store moderation result
-    let replyModerationResult = null;
-    if (hasText) {
-      setModeratingReply(true);
-      try {
-        replyModerationResult = await ContentModerationService.moderateContent(replyText.trim(), 'reply');
-      } catch (moderationError) {
-        console.error('Reply moderation failed:', moderationError);
-        // Continue with submission if moderation service fails (fail open approach)
-      } finally {
-        setModeratingReply(false);
-      }
-    }
-
+    // For replies: do optimistic write first (fast UX) then run ban/moderation in background
+    // This mirrors the confession flow: post immediately, then validate asynchronously.
     setSubmittingReply(true);
     
     // Create optimistic reply for immediate UI feedback
@@ -822,17 +788,17 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
                     <button
                       type="submit"
                       className="submit-button"
-                      disabled={submittingReply || moderatingReply || (!replyText.trim() && !replyGifUrl)}
+                      disabled={submittingReply || (!replyText.trim() && !replyGifUrl)}
                       style={{ 
                         width: 'auto',
                         minWidth: 'unset',
                         paddingLeft: '1.1em',
                         paddingRight: '1.1em',
                         whiteSpace: 'nowrap',
-                        opacity: moderatingReply ? 0.7 : 1
+                        opacity: submittingReply ? 0.7 : 1
                       }}
                     >
-                      {moderatingReply ? 'Checking...' : submittingReply ? 'Posting...' : 'Reply'}
+                      {submittingReply ? 'Posting...' : 'Reply'}
                     </button>
                   </div>
                 </div>

@@ -445,7 +445,7 @@ body {
   overflow-y: auto; /* Allow scrolling if content overflows */
 }
 
-body.dark-mode {
+html.dark-mode body {
   background: linear-gradient(to right, #0B1222, #0A101A); /* Dark slate gradient */
 }
 
@@ -1334,7 +1334,8 @@ textarea, input, button {
 
   .main-content-wrapper {
     margin: 0 !important;
-    padding: 0.5rem !important;
+    /* remove all padding on mobile */
+    padding: 0 !important;
     border-radius: 0 !important;
     min-height: 100vh !important;
   }
@@ -1366,10 +1367,10 @@ textarea, input, button {
   }
   
   .main-content-wrapper {
-    padding: 0 0.5rem !important; /* Add small horizontal padding */
+    /* remove all padding on mobile */
+    padding: 0 !important;
     margin: 0 !important;
     max-width: 100% !important;
-    padding-bottom: env(safe-area-inset-bottom, 1rem); /* Add safe area for mobile devices with notches */
   }
 
   body {
@@ -1596,11 +1597,8 @@ textarea, input, button {
 }
 
 /* Main Content Wrapper */
-/* Debug styles - can be removed after debugging */
+/* Use theme variables instead of hard-coded debug colors so dark mode works consistently */
 .app-container {
-  background-color: rgba(255, 200, 200, 0.3) !important; /* Light red */
-  min-height: 100vh;
-  position: relative;
   border-radius: 28px;
   margin: 0.5rem;
   overflow: hidden;
@@ -1620,7 +1618,7 @@ textarea, input, button {
   flex: 1;
   max-width: 100%;
   padding: 1rem;
-  background-color: rgba(200, 255, 200, 0.3) !important; /* Light green */
+  background: transparent; /* Let app-container/background show through */
   border-radius: 24px;
   margin: 0.5rem;
   overflow: hidden;
@@ -1628,7 +1626,7 @@ textarea, input, button {
 }
 
 .main-content {
-  background-color: rgba(200, 200, 255, 0.3) !important; /* Light blue */
+  background: var(--card-bg);
   width: 100%;
   margin: 0;
   position: relative;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { MdCancel } from "react-icons/md";
 import './SimpleEmojiPicker.css';
 
 // Expanded emoji categories with more emojis
@@ -194,7 +195,7 @@ function SimpleEmojiPicker({ onEmojiClick, onClose }) {
               className="simple-emoji-picker-clear-btn"
               onClick={() => setSearchTerm('')}
             >
-              ✕
+              <MdCancel />
             </button>
           )}
         </div>
