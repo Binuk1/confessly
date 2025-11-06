@@ -1,6 +1,7 @@
 import { FaSun, FaMoon, FaStar } from 'react-icons/fa';
 import React, { useState, useEffect } from 'react';
 import { RiInformationLine } from 'react-icons/ri';
+import { MdOutlinePrivacyTip, MdOutlinePolicy } from 'react-icons/md';
 import { createPortal } from 'react-dom';
 import './SettingsModal.css';
 
@@ -132,12 +133,13 @@ const SettingsModal = ({ isOpen, onClose, darkMode, onToggleDarkMode }) => {
         </div>
         
         <div className="legal-links">
-          <a href="/privacy-policy" target="_blank" rel="noopener noreferrer">
-            Privacy Policy
+          <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="legal-link">
+            <MdOutlinePrivacyTip className="legal-icon" />
+            <span>Privacy Policy</span>
           </a>
-          <span className="divider">•</span>
-          <a href="/terms" target="_blank" rel="noopener noreferrer">
-            Terms & Conditions
+          <a href="/terms" target="_blank" rel="noopener noreferrer" className="legal-link">
+            <MdOutlinePolicy className="legal-icon" />
+            <span>Terms & Conditions</span>
           </a>
         </div>
       </div>

@@ -185,8 +185,9 @@ function SimpleEmojiPicker({ onEmojiClick, onClose }) {
           <input
             type="text"
             className="simple-emoji-picker-search-input"
-            placeholder="Search emojis... (try 'happy', 'food', 'heart')"
+            placeholder="Search emojis"
             value={searchTerm}
+            maxLength={50}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           {searchTerm && (

@@ -4,29 +4,18 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 import './BanPage.css';
 
-function BanPage() {
-  const [banInfo, setBanInfo] = useState(null);
+function BanPage({ banInfo, onRetry }) {
 
-  useEffect(() => {
-    // Get fresh ban info when ban page loads
-    checkBanStatus();
-  }, []);
+  // If no ban info is provided, try to get it from session storage
+  const effectiveBanInfo = banInfo || (() => {
+    const savedBanInfo = sessionStorage.getItem('banInfo');
+    return savedBanInfo ? JSON.parse(savedBanInfo) : null;
+  })();
 
-  const checkBanStatus = async () => {
-    try {
-      const checkSiteBan = httpsCallable(functions, 'checkSiteBan');
-      const result = await checkSiteBan();
-      setBanInfo(result.data);
-    } catch (error) {
-      console.error('Error checking ban status:', error);
-      // If we can't get ban info, show generic message
-      setBanInfo({
-        isBanned: true,
-        reason: 'Violation of community guidelines',
-        expiresAt: null
-      });
-    }
-  };
+  // If still no ban info, show loading state
+  if (!effectiveBanInfo) {
+    return null; // Splash screen will handle the loading state
+  }
 
   const formatExpiryDate = (expiresAt) => {
     if (!expiresAt) {
@@ -38,6 +27,19 @@ function BanPage() {
       if (isNaN(date.getTime())) {
         return 'This ban has no expiration date';
       }
+      
+      // Check if ban has expired
+      if (new Date() > date) {
+        // Clear ban info if expired
+        sessionStorage.removeItem('banInfo');
+        if (onRetry) {
+          onRetry();
+        } else {
+          window.location.reload();
+        }
+        return 'Ban expired. Refreshing...';
+      }
+      
       return `This ban expires on ${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`;
     } catch (error) {
       return 'This ban has no expiration date';
@@ -45,21 +47,15 @@ function BanPage() {
   };
 
   const handleRetry = () => {
-    window.location.reload();
+    // Clear session storage and notify parent to recheck ban status
+    sessionStorage.removeItem('banInfo');
+    if (onRetry) {
+      onRetry();
+    } else {
+      window.location.reload();
+    }
   };
 
-  if (!banInfo) {
-    return (
-      <div className="ban-page">
-        <div className="ban-container">
-          <div className="ban-loading">
-            <div className="loading-spinner"></div>
-            <p>Checking your access status...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="ban-page">
@@ -68,26 +64,25 @@ function BanPage() {
         <h1 className="ban-title">Access Restricted</h1>
         
         <div className="ban-details">
-          <p className="ban-message">
+          <p className="ban-description">
             Your access to Confessly has been temporarily restricted.
           </p>
           
           <div className="ban-reason">
             <strong>Reason</strong>
-            <div className="ban-reason-content">
-              {banInfo.reason || 'Violation of community guidelines'}
-            </div>
+            <p className="ban-message">
+              {effectiveBanInfo.reason || 'Your access has been restricted due to a violation of our community guidelines.'}
+            </p>
+            
+            <p className="ban-expiry">
+              {effectiveBanInfo.expiresAt ? formatExpiryDate(effectiveBanInfo.expiresAt) : 'This is a permanent ban.'}
+            </p>
+            {effectiveBanInfo.ip && (
+              <div className="ban-ip">
+                IP: {effectiveBanInfo.ip}
+              </div>
+            )}
           </div>
-          
-          <div className="ban-expiry">
-            {formatExpiryDate(banInfo.expiresAt)}
-          </div>
-          
-          {banInfo.ip && (
-            <div className="ban-ip">
-              IP: {banInfo.ip}
-            </div>
-          )}
         </div>
 
         <div className="ban-actions">
@@ -98,10 +93,9 @@ function BanPage() {
             ↻ Check Again
           </button>
         </div>
-
-        <div className="ban-footer">
-          <p>If you believe this is a mistake, the ban will be automatically lifted after the specified period.</p>
-        </div>
+      </div>
+      <div className="ban-footer">
+        <p>If you believe this is a mistake, the ban will be automatically lifted after the specified period.</p>
       </div>
     </div>
   );

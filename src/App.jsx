@@ -24,6 +24,7 @@ function App() {
   const [viewTrending, setViewTrending] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isBanned, setIsBanned] = useState(null); // null = checking, false = not banned, true = banned
+  const [banInfo, setBanInfo] = useState(null);
   const [splashHidden, setSplashHidden] = useState(false);
 
   const toggleDarkMode = (isDark) => {
@@ -41,27 +42,47 @@ function App() {
   useEffect(() => {
     const savedMode = localStorage.getItem('darkMode') === 'true';
     toggleDarkMode(savedMode);
-
-    // Start ban check and ONLY hide splash when it's complete
-    const initializeApp = async () => {
-      await checkBanStatus();
-      
-      // Now hide the splash screen
-      hideInitialSplash();
-      setSplashHidden(true);
-    };
-
-    initializeApp();
+    
+    // Check if we have a saved session
+    const savedBanInfo = sessionStorage.getItem('banInfo');
+    if (savedBanInfo) {
+      const banData = JSON.parse(savedBanInfo);
+      // If ban is expired, clear it
+      if (banData.expiresAt && new Date() > new Date(banData.expiresAt)) {
+        sessionStorage.removeItem('banInfo');
+      } else {
+        setBanInfo(banData);
+        setIsBanned(true);
+        setSplashHidden(true);
+        return;
+      }
+    }
+    
+    // If no saved ban, check with server
+    checkBanStatus().finally(() => {
+      // Keep splash screen visible for at least 1.5s for better UX
+      setTimeout(() => {
+        hideInitialSplash();
+        setSplashHidden(true);
+      }, 1500);
+    });
   }, []);
 
   const checkBanStatus = async () => {
     try {
       const checkSiteBan = httpsCallable(functions, 'checkSiteBan');
-      const result = await checkSiteBan();
+      // Add a small delay to ensure splash screen is visible
+      const [result] = await Promise.all([
+        checkSiteBan(),
+        new Promise(resolve => setTimeout(resolve, 1000)) // Minimum 1s splash screen
+      ]);
       setIsBanned(result.data.isBanned);
+      setBanInfo(result.data);
+      return result.data;
     } catch (error) {
       console.error('Error checking ban status:', error);
       setIsBanned(false); // Allow access if check fails
+      return { isBanned: false };
     }
   };
 
@@ -74,14 +95,24 @@ function App() {
     });
   };
 
-  // Show ban page if banned (only after splash is hidden)
-  if (isBanned === true && splashHidden) {
-    return <BanPage />;
+  // Show ban page if banned
+  if (isBanned === true) {
+    return <BanPage 
+      banInfo={banInfo} 
+      onRetry={async () => {
+        const result = await checkBanStatus();
+        if (!result.isBanned) {
+          setIsBanned(false);
+          setBanInfo(null);
+          sessionStorage.removeItem('banInfo');
+        }
+      }}
+    />;
   }
 
-  // Don't show main app until splash is hidden and ban check is complete
-  if (!splashHidden || isBanned === null) {
-    return null; // Splash screen stays visible
+  // Don't show main app until ban check is complete and splash is hidden
+  if (isBanned === null || !splashHidden) {
+    return null; // Splash screen will be shown by the splash screen component
   }
 
   // Main app content - only shown if not banned

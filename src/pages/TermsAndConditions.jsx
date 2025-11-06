@@ -1,12 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { MdOutlinePolicy } from "react-icons/md";
 import '../styles/TermsAndConditions.css';
 
 const TermsAndConditions = () => {
   return (
     <div className="terms-container">
       <div className="terms-content">
-        <h1>Terms & Conditions</h1>
+        <div className="terms-header">
+          <MdOutlinePolicy className="terms-icon" />
+          <h1>Terms & Conditions</h1>
+        </div>
         <p className="last-updated">Last updated: November 5, 2025</p>
 
         <section className="terms-section">

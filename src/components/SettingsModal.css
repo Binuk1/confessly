@@ -25,11 +25,15 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
   position: relative;
   z-index: 1001;
+  padding: 1.5rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Legal Links */
 .legal-links {
-  margin-top: 2rem;
+  margin-top: auto;
   padding-top: 1.5rem;
   border-top: 1px solid rgba(0, 0, 0, 0.1);
   text-align: center;
@@ -37,8 +41,9 @@
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0;
+  gap: 1rem;
   row-gap: 0.5rem;
+  margin-bottom: -0.5rem;
 }
 
 .legal-links a {
@@ -48,6 +53,9 @@
   transition: color 0.2s ease;
   padding: 0.5rem 0.75rem;
   border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;

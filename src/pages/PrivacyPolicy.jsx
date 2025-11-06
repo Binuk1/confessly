@@ -1,11 +1,15 @@
 import React from 'react';
+import { MdOutlinePrivacyTip } from "react-icons/md";
 import '../styles/PrivacyPolicy.css';
 
 const PrivacyPolicy = () => {
   return (
     <div className="privacy-container">
       <div className="privacy-content">
-        <h1>Privacy Policy</h1>
+        <div className="privacy-header">
+          <MdOutlinePrivacyTip className="privacy-icon" />
+          <h1>Privacy Policy</h1>
+        </div>
         <p className="last-updated">Last updated: November 5, 2025</p>
 
         <section className="privacy-section">

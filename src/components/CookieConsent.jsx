@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { MdOutlinePrivacyTip } from "react-icons/md";
 import '../styles/CookieConsent.css';
 
 const CookieConsent = () => {
@@ -24,7 +25,10 @@ const CookieConsent = () => {
     <div className="cookie-consent-overlay">
       <div className="cookie-consent">
         <div className="cookie-content">
-          <h3>We respect your privacy</h3>
+          <div className="cookie-header">
+            <MdOutlinePrivacyTip className="cookie-privacy-icon" />
+            <h3>We respect your privacy</h3>
+          </div>
           {showDetails ? (
             <div className="details-content">
               <p>
