@@ -1,46 +1,17 @@
-import { StrictMode } from 'react';
+import { StrictMode, Suspense, lazy } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 
-// Function to load all components with proper error handling
-async function loadComponents() {
-  try {
-    const [
-      AppImport,
-      StaffLoginImport,
-      StaffDashboardImport,
-      ManageStaffImport,
-      ReportsManagementImport,
-      BannedIPsManagementImport,
-      PrivacyPolicyImport,
-      TermsAndConditionsImport
-    ] = await Promise.all([
-      import('./App.jsx'),
-      import('./components/staff/StaffLogin.jsx'),
-      import('./components/staff/StaffDashboard.jsx'),
-      import('./components/staff/ManageStaff.jsx'),
-      import('./components/staff/ReportsManagement.jsx'),
-      import('./components/staff/BannedIPsManagement.jsx'),
-      import('./pages/PrivacyPolicy.jsx'),
-      import('./pages/TermsAndConditions.jsx')
-    ]);
-
-    // Assign components to window object
-    window.App = AppImport.default;
-    window.StaffLogin = StaffLoginImport.default;
-    window.StaffDashboard = StaffDashboardImport.default;
-    window.ManageStaff = ManageStaffImport.default;
-    window.ReportsManagement = ReportsManagementImport.default;
-    window.BannedIPsManagement = BannedIPsManagementImport.default;
-    window.PrivacyPolicy = PrivacyPolicyImport.default;
-    window.TermsAndConditions = TermsAndConditionsImport.default;
-
-  } catch (error) {
-    console.error('Error loading components:', error);
-    throw error; // Re-throw to be caught by initializeApp
-  }
-}
+// Lazy load all components
+const App = lazy(() => import('./App.jsx'));
+const StaffLogin = lazy(() => import('./components/staff/StaffLogin.jsx'));
+const StaffDashboard = lazy(() => import('./components/staff/StaffDashboard.jsx'));
+const ManageStaff = lazy(() => import('./components/staff/ManageStaff.jsx'));
+const ReportsManagement = lazy(() => import('./components/staff/ReportsManagement.jsx'));
+const BannedIPsManagement = lazy(() => import('./components/staff/BannedIPsManagement.jsx'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy.jsx'));
+const TermsAndConditions = lazy(() => import('./pages/TermsAndConditions.jsx'));
 
 // Track if splash should be hidden
 let splashHidden = false;
@@ -77,50 +48,101 @@ function waitForSplashHide() {
 }
 
 // If the user requested specific static pages (privacy / terms), don't show the app splash — hide it immediately
-// This makes direct navigation to those pages load without the loading wall overlay.
 if (typeof window !== 'undefined') {
   const path = window.location.pathname;
   if (path === '/privacy-policy' || path === '/terms') {
-    // Hide synchronously (will add hide class and remove after transition)
     hideInitialSplash();
   }
 }
 
-// Function to render the app once components are loaded
-async function initializeApp() {
-  try {
-    await loadComponents();
-    
-    // All components should be loaded now
-    const root = createRoot(document.getElementById('root'));
-    root.render(
-      <StrictMode>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<window.App />} />
-            <Route path="/staff" element={<window.StaffLogin />} />
-            <Route path="/staff/dashboard" element={<window.StaffDashboard />} />
-            <Route path="/staff/manage" element={<window.ManageStaff />} />
-            <Route path="/staff/reports" element={<window.ReportsManagement />} />
-            <Route path="/staff/banned-ips" element={<window.BannedIPsManagement />} />
-            <Route path="/privacy-policy" element={<window.PrivacyPolicy />} />
-            <Route path="/terms" element={<window.TermsAndConditions />} />
-          </Routes>
-        </BrowserRouter>
-      </StrictMode>
-    );
-  } catch (error) {
-    console.error('Failed to initialize app:', error);
-    // Show error UI to user
-    const root = document.getElementById('root');
-    root.innerHTML = `
-      <div style="padding: 20px; font-family: Arial, sans-serif; color: #ff4d4f;">
-        <h2>Failed to load the application</h2>
-        <p>Please refresh the page or try again later.</p>
-        <p>Error: ${error.message}</p>
-      </div>
-    `;
+// Error boundary component
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
   }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', color: '#ff4d4f' }}>
+          <h2>Something went wrong</h2>
+          <p>{this.state.error?.message || 'An unknown error occurred'}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '8px 16px',
+              background: '#ff4d4f',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// Loading component
+const LoadingFallback = () => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    background: '#0b0b0b',
+    color: 'white',
+    flexDirection: 'column',
+    gap: '16px'
+  }}>
+    <div className="loading-spinner"></div>
+    <p>Loading...</p>
+  </div>
+);
+
+// Main App component
+function AppWrapper() {
+  return (
+    <ErrorBoundary>
+      <Suspense fallback={<LoadingFallback />}>
+        <Routes>
+          <Route path="/" element={<App />} />
+          <Route path="/staff" element={<StaffLogin />} />
+          <Route path="/staff/dashboard" element={<StaffDashboard />} />
+          <Route path="/staff/manage" element={<ManageStaff />} />
+          <Route path="/staff/reports" element={<ReportsManagement />} />
+          <Route path="/staff/banned-ips" element={<BannedIPsManagement />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsAndConditions />} />
+        </Routes>
+      </Suspense>
+    </ErrorBoundary>
+  );
+}
+
+// Initialize the app
+function initializeApp() {
+  const root = createRoot(document.getElementById('root'));
+  root.render(
+    <StrictMode>
+      <BrowserRouter>
+        <AppWrapper />
+      </BrowserRouter>
+    </StrictMode>
+  );
 }
 
 // Start the app
