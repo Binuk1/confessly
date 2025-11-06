@@ -12,11 +12,27 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/android-chrome-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/android-chrome-512x512.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0b0b0b">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Confessly App</title>
-    <!-- Preload Inter so splash and app use the same font -->
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" as="image" href="/android-chrome-192x192.png" fetchpriority="high">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;800&display=swap" rel="stylesheet">
+    
+    <!-- Splash screen meta for iOS -->
+    <meta name="apple-mobile-web-app-title" content="Confessly">
+    <link rel="apple-touch-startup-image" href="/splash/iphone5_splash.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="/splash/iphone6_splash.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)">
+    <link rel="apple-touch-startup-image" href="/splash/iphoneplus_splash.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)">
+    <link rel="apple-touch-startup-image" href="/splash/iphonex_splash.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)">
+    <link rel="apple-touch-startup-image" href="/splash/ipad_splash.png" media="(min-device-width: 768px) and (max-device-width: 1024px) and (-webkit-min-device-pixel-ratio: 2)">
     <style>
       /* Minimal, dark, orange/black splash */
       #initial-splash { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0b0b0b, #161616); transition: opacity .35s ease; font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
@@ -34,7 +50,15 @@
     <div id="initial-splash" role="status" aria-live="polite">
       <div class="content">
         <span class="badge">BETA</span>
-        <img src="/android-chrome-192x192.png" alt="Confessly logo" class="logo" draggable="false" />
+        <img 
+          src="/android-chrome-192x192.png" 
+          alt="Confessly logo" 
+          class="logo" 
+          draggable="false" 
+          loading="eager"
+          fetchpriority="high"
+          onload="this.removeAttribute('loading');"
+        />
         <h1>Confessly</h1>
         <div class="spinner" aria-hidden="true"></div>
         <div class="subtitle">Loading your wall…</div>

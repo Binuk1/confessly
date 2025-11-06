@@ -1,15 +1,17 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import './index.css';
-import App from './App.jsx';
-import StaffLogin from './components/staff/StaffLogin.jsx'; // new
-import StaffDashboard from "./components/staff/StaffDashboard.jsx";
-import ManageStaff from "./components/staff/ManageStaff.jsx";
-import ReportsManagement from './components/staff/ReportsManagement';
-import BannedIPsManagement from './components/staff/BannedIPsManagement';
-import PrivacyPolicy from './pages/PrivacyPolicy';
-import TermsAndConditions from './pages/TermsAndConditions';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import './index.css';
+
+// Import components
+const App = (await import('./App.jsx')).default;
+const StaffLogin = (await import('./components/staff/StaffLogin.jsx')).default;
+const StaffDashboard = (await import('./components/staff/StaffDashboard.jsx')).default;
+const ManageStaff = (await import('./components/staff/ManageStaff.jsx')).default;
+const ReportsManagement = (await import('./components/staff/ReportsManagement.jsx')).default;
+const BannedIPsManagement = (await import('./components/staff/BannedIPsManagement.jsx')).default;
+const PrivacyPolicy = (await import('./pages/PrivacyPolicy.jsx')).default;
+const TermsAndConditions = (await import('./pages/TermsAndConditions.jsx')).default;
 
 // Track if splash should be hidden
 let splashHidden = false;
@@ -74,6 +76,26 @@ createRoot(document.getElementById('root')).render(
 
 // Safety: hide splash after a longer delay in case app never signals
 setTimeout(hideInitialSplash, 10000); // Increased to 10 seconds as fallback
+
+// Only register service worker in production
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(registration => {
+      console.log('ServiceWorker registration successful');
+    }).catch(err => {
+      console.log('ServiceWorker registration failed: ', err);
+    });
+  });
+}
+
+// Unregister any existing service workers in development
+if (import.meta.env.DEV) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (const registration of registrations) {
+      registration.unregister();
+    }
+  });
+}
 
 // Export for app code to call when first data is ready
 export { hideInitialSplash, waitForSplashHide };
