@@ -3,15 +3,31 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 
-// Import components
-const App = (await import('./App.jsx')).default;
-const StaffLogin = (await import('./components/staff/StaffLogin.jsx')).default;
-const StaffDashboard = (await import('./components/staff/StaffDashboard.jsx')).default;
-const ManageStaff = (await import('./components/staff/ManageStaff.jsx')).default;
-const ReportsManagement = (await import('./components/staff/ReportsManagement.jsx')).default;
-const BannedIPsManagement = (await import('./components/staff/BannedIPsManagement.jsx')).default;
-const PrivacyPolicy = (await import('./pages/PrivacyPolicy.jsx')).default;
-const TermsAndConditions = (await import('./pages/TermsAndConditions.jsx')).default;
+// Import components (using dynamic imports)
+let App, StaffLogin, StaffDashboard, ManageStaff, ReportsManagement, BannedIPsManagement, PrivacyPolicy, TermsAndConditions;
+
+// Create a function to load all components
+async function loadComponents() {
+  [
+    { module: import('./App.jsx'), name: 'App' },
+    { module: import('./components/staff/StaffLogin.jsx'), name: 'StaffLogin' },
+    { module: import('./components/staff/StaffDashboard.jsx'), name: 'StaffDashboard' },
+    { module: import('./components/staff/ManageStaff.jsx'), name: 'ManageStaff' },
+    { module: import('./components/staff/ReportsManagement.jsx'), name: 'ReportsManagement' },
+    { module: import('./components/staff/BannedIPsManagement.jsx'), name: 'BannedIPsManagement' },
+    { module: import('./pages/PrivacyPolicy.jsx'), name: 'PrivacyPolicy' },
+    { module: import('./pages/TermsAndConditions.jsx'), name: 'TermsAndConditions' }
+  ].forEach(async ({ module, name }) => {
+    try {
+      const component = await module;
+      window[name] = component.default;
+      return component.default;
+    } catch (error) {
+      console.error(`Failed to load component ${name}:`, error);
+      return null;
+    }
+  });
+}
 
 // Track if splash should be hidden
 let splashHidden = false;
@@ -57,22 +73,47 @@ if (typeof window !== 'undefined') {
   }
 }
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />} />
-        <Route path="/staff" element={<StaffLogin />} />
-        <Route path="/staff/dashboard" element={<StaffDashboard />} />
-        <Route path="/staff/manage" element={<ManageStaff />} />
-        <Route path="/staff/reports" element={<ReportsManagement />} />
-        <Route path="/staff/banned-ips" element={<BannedIPsManagement />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsAndConditions />} />
-      </Routes>
-    </BrowserRouter>
-  </StrictMode>
-);
+// Function to render the app once components are loaded
+async function initializeApp() {
+  try {
+    await loadComponents();
+    
+    // Ensure all components are loaded
+    const requiredComponents = [
+      'App', 'StaffLogin', 'StaffDashboard', 'ManageStaff',
+      'ReportsManagement', 'BannedIPsManagement', 'PrivacyPolicy', 'TermsAndConditions'
+    ];
+    
+    const missing = requiredComponents.filter(comp => !window[comp]);
+    if (missing.length > 0) {
+      console.error('Missing components:', missing);
+      return;
+    }
+    
+    const root = createRoot(document.getElementById('root'));
+    root.render(
+      <StrictMode>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<window.App />} />
+            <Route path="/staff" element={<window.StaffLogin />} />
+            <Route path="/staff/dashboard" element={<window.StaffDashboard />} />
+            <Route path="/staff/manage" element={<window.ManageStaff />} />
+            <Route path="/staff/reports" element={<window.ReportsManagement />} />
+            <Route path="/staff/banned-ips" element={<window.BannedIPsManagement />} />
+            <Route path="/privacy-policy" element={<window.PrivacyPolicy />} />
+            <Route path="/terms" element={<window.TermsAndConditions />} />
+          </Routes>
+        </BrowserRouter>
+      </StrictMode>
+    );
+  } catch (error) {
+    console.error('Failed to initialize app:', error);
+  }
+}
+
+// Start the app
+initializeApp();
 
 // Safety: hide splash after a longer delay in case app never signals
 setTimeout(hideInitialSplash, 10000); // Increased to 10 seconds as fallback
