@@ -3,30 +3,43 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
 
-// Import components (using dynamic imports)
-let App, StaffLogin, StaffDashboard, ManageStaff, ReportsManagement, BannedIPsManagement, PrivacyPolicy, TermsAndConditions;
-
-// Create a function to load all components
+// Function to load all components with proper error handling
 async function loadComponents() {
-  [
-    { module: import('./App.jsx'), name: 'App' },
-    { module: import('./components/staff/StaffLogin.jsx'), name: 'StaffLogin' },
-    { module: import('./components/staff/StaffDashboard.jsx'), name: 'StaffDashboard' },
-    { module: import('./components/staff/ManageStaff.jsx'), name: 'ManageStaff' },
-    { module: import('./components/staff/ReportsManagement.jsx'), name: 'ReportsManagement' },
-    { module: import('./components/staff/BannedIPsManagement.jsx'), name: 'BannedIPsManagement' },
-    { module: import('./pages/PrivacyPolicy.jsx'), name: 'PrivacyPolicy' },
-    { module: import('./pages/TermsAndConditions.jsx'), name: 'TermsAndConditions' }
-  ].forEach(async ({ module, name }) => {
-    try {
-      const component = await module;
-      window[name] = component.default;
-      return component.default;
-    } catch (error) {
-      console.error(`Failed to load component ${name}:`, error);
-      return null;
-    }
-  });
+  try {
+    const [
+      AppImport,
+      StaffLoginImport,
+      StaffDashboardImport,
+      ManageStaffImport,
+      ReportsManagementImport,
+      BannedIPsManagementImport,
+      PrivacyPolicyImport,
+      TermsAndConditionsImport
+    ] = await Promise.all([
+      import('./App.jsx'),
+      import('./components/staff/StaffLogin.jsx'),
+      import('./components/staff/StaffDashboard.jsx'),
+      import('./components/staff/ManageStaff.jsx'),
+      import('./components/staff/ReportsManagement.jsx'),
+      import('./components/staff/BannedIPsManagement.jsx'),
+      import('./pages/PrivacyPolicy.jsx'),
+      import('./pages/TermsAndConditions.jsx')
+    ]);
+
+    // Assign components to window object
+    window.App = AppImport.default;
+    window.StaffLogin = StaffLoginImport.default;
+    window.StaffDashboard = StaffDashboardImport.default;
+    window.ManageStaff = ManageStaffImport.default;
+    window.ReportsManagement = ReportsManagementImport.default;
+    window.BannedIPsManagement = BannedIPsManagementImport.default;
+    window.PrivacyPolicy = PrivacyPolicyImport.default;
+    window.TermsAndConditions = TermsAndConditionsImport.default;
+
+  } catch (error) {
+    console.error('Error loading components:', error);
+    throw error; // Re-throw to be caught by initializeApp
+  }
 }
 
 // Track if splash should be hidden
@@ -78,18 +91,7 @@ async function initializeApp() {
   try {
     await loadComponents();
     
-    // Ensure all components are loaded
-    const requiredComponents = [
-      'App', 'StaffLogin', 'StaffDashboard', 'ManageStaff',
-      'ReportsManagement', 'BannedIPsManagement', 'PrivacyPolicy', 'TermsAndConditions'
-    ];
-    
-    const missing = requiredComponents.filter(comp => !window[comp]);
-    if (missing.length > 0) {
-      console.error('Missing components:', missing);
-      return;
-    }
-    
+    // All components should be loaded now
     const root = createRoot(document.getElementById('root'));
     root.render(
       <StrictMode>
@@ -109,6 +111,15 @@ async function initializeApp() {
     );
   } catch (error) {
     console.error('Failed to initialize app:', error);
+    // Show error UI to user
+    const root = document.getElementById('root');
+    root.innerHTML = `
+      <div style="padding: 20px; font-family: Arial, sans-serif; color: #ff4d4f;">
+        <h2>Failed to load the application</h2>
+        <p>Please refresh the page or try again later.</p>
+        <p>Error: ${error.message}</p>
+      </div>
+    `;
   }
 }
 
