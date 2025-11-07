@@ -1,61 +1,88 @@
 /**
  * Console Warning Translations
- * Supports multiple languages for the console security warning
+ * For Confessly (Anonymous Confession App)
+ * Updated to support 10 languages — no accounts or passwords involved
  */
 
 export const translations = {
   en: {
     stop: '🛑 STOP!',
-    warning: 'This is a browser feature intended for developers. If someone told you to copy and paste something here to enable a feature or "hack" someone\'s account, it is a scam and will give them access to your account.',
-    tips: '⚠️ Security Tips:\n• Never paste code from untrusted sources\n• Scammers use this to steal accounts\n• Only developers should use this console',
-    brand: 'Confessly Security Team'
+    warning:
+      'This console is for developers only. If someone told you to paste something here to "unlock a feature" or "see secrets," DO NOT do it. It can expose your IP or allow others to control your browser.',
+    tips:
+      '⚠️ Security Tips:\n• Never paste code from strangers or websites\n• Confessly has no accounts or passwords\n• Only developers should use this console',
+    brand: 'Confessly Security Notice'
   },
   es: {
     stop: '🛑 ¡ALTO!',
-    warning: 'Esta es una función del navegador para desarrolladores. Si alguien te dijo que pegues algo aquí para activar una función o "hackear" una cuenta, es una estafa que les dará acceso a tu cuenta.',
-    tips: '⚠️ Consejos de seguridad:\n• Nunca pegues código de fuentes no confiables\n• Los estafadores usan esto para robar cuentas\n• Solo desarrolladores deberían usar esta consola',
-    brand: 'Equipo de Seguridad de Confessly'
+    warning:
+      'Esta consola es solo para desarrolladores. Si alguien te dice que pegues algo aquí para "desbloquear una función" o "ver secretos", NO lo hagas. Puede exponer tu IP o permitir que otros controlen tu navegador.',
+    tips:
+      '⚠️ Consejos de seguridad:\n• Nunca pegues código de desconocidos o sitios web\n• Confessly no tiene cuentas ni contraseñas\n• Solo los desarrolladores deben usar esta consola',
+    brand: 'Aviso de Seguridad de Confessly'
   },
   fr: {
     stop: '🛑 ARRÊTEZ !',
-    warning: 'Cette fonction du navigateur est destinée aux développeurs. Si quelqu\'un vous demande de coller quelque chose ici pour activer une fonction ou "pirater" un compte, c\'est une arnaque qui leur donnera accès à votre compte.',
-    tips: '⚠️ Conseils de sécurité :\n• Ne collez jamais de code provenant de sources non fiables\n• Les escrocs utilisent cela pour voler des comptes\n• Seuls les développeurs devraient utiliser cette console',
-    brand: 'Équipe de Sécurité Confessly'
+    warning:
+      'Cette console est destinée uniquement aux développeurs. Si quelqu’un vous demande de coller du code ici pour "déverrouiller une fonction" ou "voir des secrets", ne le faites pas. Cela peut exposer votre IP ou permettre à d’autres de contrôler votre navigateur.',
+    tips:
+      '⚠️ Conseils de sécurité :\n• Ne collez jamais de code provenant d’inconnus\n• Confessly n’a ni comptes ni mots de passe\n• Seuls les développeurs doivent utiliser cette console',
+    brand: 'Avis de Sécurité Confessly'
   },
   de: {
     stop: '🛑 STOPP!',
-    warning: 'Dies ist eine Browserfunktion für Entwickler. Wenn jemand Sie aufgefordert hat, hier etwas einzufügen, um eine Funktion zu aktivieren oder ein Konto zu "hacken", ist dies ein Betrug, der dem Angreifer Zugriff auf Ihr Konto verschafft.',
-    tips: '⚠️ Sicherheitstipps:\n• Fügen Sie niemals Code aus nicht vertrauenswürdigen Quellen ein\n• Betrüger nutzen dies, um Konten zu stehlen\n• Diese Konsole ist nur für Entwickler',
-    brand: 'Confessly Sicherheitsteam'
+    warning:
+      'Diese Konsole ist nur für Entwickler. Wenn jemand Sie auffordert, hier etwas einzufügen, um "eine Funktion freizuschalten" oder "Geheimnisse zu sehen", TUN SIE ES NICHT. Es kann Ihre IP offenlegen oder anderen ermöglichen, Ihren Browser zu steuern.',
+    tips:
+      '⚠️ Sicherheitstipps:\n• Fügen Sie niemals Code aus unbekannten Quellen ein\n• Confessly hat keine Konten oder Passwörter\n• Nur Entwickler sollten diese Konsole verwenden',
+    brand: 'Confessly Sicherheitshinweis'
   },
   pt: {
     stop: '🛑 PARE!',
-    warning: 'Este é um recurso do navegador para desenvolvedores. Se alguém pediu para você colar algo aqui para ativar um recurso ou "hackear" uma conta, é um golpe que dará a eles acesso à sua conta.',
-    tips: '⚠️ Dicas de segurança:\n• Nunca cole códigos de fontes não confiáveis\n• Golpistas usam isso para roubar contas\n• Apenas desenvolvedores devem usar este console',
-    brand: 'Equipe de Segurança Confessly'
+    warning:
+      'Este console é apenas para desenvolvedores. Se alguém pediu para você colar algo aqui para "desbloquear um recurso" ou "ver segredos", NÃO faça isso. Isso pode expor seu IP ou permitir que outros controlem seu navegador.',
+    tips:
+      '⚠️ Dicas de segurança:\n• Nunca cole códigos de fontes desconhecidas\n• O Confessly não tem contas ou senhas\n• Apenas desenvolvedores devem usar este console',
+    brand: 'Aviso de Segurança Confessly'
   },
   ru: {
     stop: '🛑 СТОП!',
-    warning: 'Это функция браузера для разработчиков. Если кто-то просит вас вставить сюда код для активации функции или "взлома" аккаунта, это мошенничество, которое даст им доступ к вашему аккаунту.',
-    tips: '⚠️ Советы по безопасности:\n• Никогда не вставляйте код из ненадёжных источников\n• Мошенники используют это для кражи аккаунтов\n• Эта консоль только для разработчиков',
-    brand: 'Команда безопасности Confessly'
+    warning:
+      'Эта консоль предназначена только для разработчиков. Если кто-то попросил вас вставить сюда код, чтобы "разблокировать функцию" или "увидеть секреты", НЕ ДЕЛАЙТЕ ЭТО. Это может раскрыть ваш IP или позволить другим управлять вашим браузером.',
+    tips:
+      '⚠️ Советы по безопасности:\n• Никогда не вставляйте код из ненадёжных источников\n• У Confessly нет аккаунтов или паролей\n• Только разработчики должны использовать эту консоль',
+    brand: 'Уведомление о безопасности Confessly'
   },
   zh: {
     stop: '🛑 停止！',
-    warning: '这是浏览器的开发者功能。如果有人让您在此处粘贴内容以启用功能或“破解”帐户，这是一个骗局，将使他们能够访问您的帐户。',
-    tips: '⚠️ 安全提示：\n• 切勿从不受信任的来源粘贴代码\n• 诈骗者利用此功能窃取账户\n• 只有开发人员应使用此控制台',
-    brand: 'Confessly 安全团队'
+    warning:
+      '此控制台仅供开发人员使用。如果有人让您在此处粘贴内容以“解锁功能”或“查看秘密”，请不要这样做。这可能会暴露您的IP或允许他人控制您的浏览器。',
+    tips:
+      '⚠️ 安全提示：\n• 不要粘贴来自陌生人或网站的代码\n• Confessly 没有账户或密码\n• 仅开发者应使用此控制台',
+    brand: 'Confessly 安全提示'
   },
   ja: {
     stop: '🛑 ストップ！',
-    warning: 'これは開発者向けのブラウザ機能です。機能を有効にしたり、アカウントを「ハッキング」するためにここに何かを貼り付けるように言われた場合、それは詐欺であり、アカウントへのアクセスを許可することになります。',
-    tips: '⚠️ セキュリティのヒント：\n• 信頼できないソースからのコードを貼り付けないでください\n• 詐欺師はこれを使用してアカウントを盗みます\n• このコンソールは開発者専用です',
-    brand: 'Confessly セキュリティチーム'
+    warning:
+      'このコンソールは開発者専用です。「機能を解除する」や「秘密を見る」と言われて何かをここに貼り付けるように言われた場合、絶対に行わないでください。IPが公開されたり、他人にブラウザを操作される可能性があります。',
+    tips:
+      '⚠️ セキュリティのヒント：\n• 信頼できないソースのコードを貼り付けないでください\n• Confessly にはアカウントもパスワードもありません\n• 開発者のみがこのコンソールを使用するべきです',
+    brand: 'Confessly セキュリティ通知'
   },
-  ar: {
-    stop: '🛑 توقف!',
-    warning: 'هذه ميزة متصفح مخصصة للمطورين. إذا طلب منك أحدهم لصق شيء هنا لتمكين ميزة أو "اختراق" حساب، فهذا احتيال سيمنحه الوصول إلى حسابك.',
-    tips: '⚠️ نصائح أمان:\n• لا تقم بلصق أكواد من مصادر غير موثوقة\n• المحتالون يستخدمون هذا لسرقة الحسابات\n• يجب على المطورين فقط استخدام وحدة التحكم هذه',
-    brand: 'فريق أمان Confessly'
+  ms: {
+    stop: '🛑 BERHENTI!',
+    warning:
+      'Konsol ini hanya untuk pembangun. Jika seseorang menyuruh anda menampal sesuatu di sini untuk "membuka ciri" atau "melihat rahsia", JANGAN LAKUKAN. Ia boleh dedahkan IP anda atau membenarkan orang lain mengawal pelayar anda.',
+    tips:
+      '⚠️ Tip Keselamatan:\n• Jangan tampal kod daripada orang tidak dikenali atau laman web\n• Confessly tiada akaun atau kata laluan\n• Hanya pembangun patut guna konsol ini',
+    brand: 'Notis Keselamatan Confessly'
+  },
+  hi: {
+    stop: '🛑 रुकिए!',
+    warning:
+      'यह कंसोल केवल डेवलपर्स के लिए है। अगर कोई कहता है कि यहाँ कुछ पेस्ट करें ताकि "फीचर अनलॉक" हो जाए या "सीक्रेट्स" दिखें — ऐसा बिलकुल न करें। इससे आपका IP पता उजागर हो सकता है या कोई आपके ब्राउज़र को नियंत्रित कर सकता है।',
+    tips:
+      '⚠️ सुरक्षा सुझाव:\n• किसी अजनबी या वेबसाइट से कोड पेस्ट न करें\n• Confessly में कोई अकाउंट या पासवर्ड नहीं है\n• यह कंसोल केवल डेवलपर्स के लिए है',
+    brand: 'Confessly सुरक्षा सूचना'
   }
 };
