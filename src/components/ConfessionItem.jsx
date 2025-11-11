@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, memo } from 'react';
-import { collection, query, onSnapshot, orderBy, addDoc, serverTimestamp, doc, updateDoc, where, deleteDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, addDoc, serverTimestamp, doc, updateDoc, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 import { db } from '../firebase';
@@ -526,9 +526,13 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
           const [banResult, moderationResult] = await Promise.all([banPromise, moderationPromise]);
 
           if (banResult && !banResult.error && banResult.data && banResult.data.isBanned) {
-            // Delete reply doc
+            // Delete reply using Cloud Function
             try {
-              await deleteDoc(docRef);
+              const deleteReply = httpsCallable(functions, 'deleteReply');
+              await deleteReply({
+                confessionId: confession.id,
+                replyId: docRef.id
+              });
             } catch (delErr) {
               console.error('Failed to delete banned reply:', delErr);
             }
@@ -543,14 +547,14 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
           // If moderation returned a valid result, update the reply doc with moderation metadata
           if (moderationResult && !moderationResult.error && moderationResult.isNSFW !== undefined) {
             try {
-              const update = {
-                moderated: true,
-                moderatedAt: serverTimestamp(),
+              // Update moderation status using Cloud Function
+              const updateReplyModeration = httpsCallable(functions, 'updateReplyModeration');
+              await updateReplyModeration({
+                confessionId: confession.id,
+                replyId: docRef.id,
                 isNSFW: moderationResult.isNSFW || false,
-                moderationIssues: moderationResult.issues || []
-              };
-              const { updateDoc: upd, doc: docFn } = await import('firebase/firestore');
-              await upd(docFn(db, `confessions/${confession.id}/replies`, docRef.id), update);
+                issues: moderationResult.issues || []
+              });
             } catch (updateErr) {
               console.error('Failed to update reply moderation metadata:', updateErr);
             }

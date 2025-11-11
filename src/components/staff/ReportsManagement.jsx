@@ -1,11 +1,15 @@
 // ReportsManagement.jsx - For Staff Dashboard
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, deleteDoc, getDocs, serverTimestamp, addDoc } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../../firebase';
 import RequireStaffAuth from './RequireStaffAuth';
 import './ReportsManagement.css';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../firebase';
+
+// Initialize Cloud Functions
+const deleteConfessionFn = httpsCallable(functions, 'deleteConfession');
+const deleteReplyFn = httpsCallable(functions, 'deleteReply');
 
 const REASON_LABELS = {
   inappropriate: '🚫 Inappropriate content',
@@ -52,52 +56,45 @@ function ReportsManagement() {
     
     setProcessing(true);
     try {
-      // Update report status
+      // First, handle content deletion if needed
+      if (action === 'remove') {
+        try {
+          if (contentType === 'confession') {
+            // Call Cloud Function to delete confession and its replies
+            await deleteConfessionFn({ confessionId: contentId });
+          } else if (contentType === 'reply') {
+            // Get confessionId from the report
+            const confessionId = selectedReport.confessionId || selectedReport.parentId;
+            if (confessionId) {
+              // Call Cloud Function to delete reply
+              await deleteReplyFn({ 
+                confessionId: confessionId,
+                replyId: contentId 
+              });
+            } else {
+              throw new Error('Cannot delete reply: confessionId not found in report');
+            }
+          }
+        } catch (error) {
+          console.error('Error deleting content:', error);
+          throw new Error(`Failed to delete ${contentType}: ${error.message}`);
+        }
+      }
+
+      // Update report status after successful deletion
       await updateDoc(doc(db, 'reports', reportId), {
         status: 'resolved',
         resolvedAt: serverTimestamp(),
         resolvedBy: auth.currentUser.uid,
         moderatorNotes: moderatorNotes.trim() || null,
         moderatorAction: action,
-        ...(shouldBan && ipAddress ? { bannedIP: ipAddress, banType, banDuration } : {})
+        ...(shouldBan && ipAddress ? { 
+          bannedIP: ipAddress, 
+          banType, 
+          banDuration,
+          banExpiresAt: new Date(Date.now() + (banDuration * 60 * 60 * 1000)).toISOString()
+        } : {})
       });
-  
-      // Take action on content if needed
-      if (action === 'remove') {
-        if (contentType === 'confession') {
-          // Delete the confession
-          const confessionRef = doc(db, 'confessions', contentId);
-          await deleteDoc(confessionRef);
-          
-          // Delete all replies in the subcollection
-          const repliesQuery = query(
-            collection(db, `confessions/${contentId}/replies`)
-          );
-          const repliesSnapshot = await getDocs(repliesQuery);
-          const deletePromises = repliesSnapshot.docs.map(doc => deleteDoc(doc.ref));
-          await Promise.all(deletePromises);
-          
-        } else if (contentType === 'reply') {
-          // For replies, we need the confessionId to access the subcollection
-          // Extract from the report if available
-          const confessionId = selectedReport.confessionId || selectedReport.parentId;
-          
-          if (confessionId) {
-            // Delete reply from subcollection
-            const replyRef = doc(db, `confessions/${confessionId}/replies`, contentId);
-            await deleteDoc(replyRef);
-            
-            // Update the confession's reply count
-            const confessionRef = doc(db, 'confessions', confessionId);
-            const confessionSnap = await getDocs(query(collection(db, `confessions/${confessionId}/replies`)));
-            await updateDoc(confessionRef, {
-              replyCount: confessionSnap.size
-            });
-          } else {
-            console.error('Cannot delete reply: confessionId not found in report');
-          }
-        }
-      }
       
       // Ban IP if requested
     if (shouldBan && ipAddress) {

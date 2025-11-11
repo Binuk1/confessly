@@ -1,4 +1,7 @@
 // contentModerationService.js
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase';
+
 export class ContentModerationService {
   static async moderateContent(text, contentType = 'confession') {
     if (!text || text.trim().length === 0) {
@@ -6,18 +9,13 @@ export class ContentModerationService {
     }
 
     try {
-      const response = await fetch('/api/moderateContent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, contentType }),
-      });
-
-      if (!response.ok) {
-        console.error('Moderation backend error:', response.statusText);
-        return { isClean: true, issues: [], error: 'Moderation backend error' };
+      const moderateContent = httpsCallable(functions, 'moderateContent');
+      const result = await moderateContent({ text, contentType });
+      
+      if (!result || !result.data) {
+        console.error('Moderation failed: No data returned');
+        return { isClean: true, issues: [], error: 'Moderation service unavailable' };
       }
-
-      const result = await response.json();
 
       // Prefer new Gemini-normalized fields if present
       const hasGemini = Array.isArray(result.issues) || typeof result.isNSFW === 'boolean' || result.categories;

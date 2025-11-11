@@ -121,10 +121,184 @@ function formatExpiresAt(expiresAt) {
   }
 }
 
-// ===== Cloud Functions =====
+// ===== Content Moderation Functions =====
 
 /**
- * Checks if an IP is banned from entire site
+ * Update moderation status for a confession
+ */
+exports.updateConfessionModeration = functions.https.onCall(async (data, context) => {
+  const { confessionId, isNSFW, issues } = data;
+  
+  if (!confessionId) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Confession ID is required'
+    );
+  }
+
+  try {
+    const confessionRef = db.collection('confessions').doc(confessionId);
+    await confessionRef.update({
+      moderated: true,
+      moderatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      isNSFW: Boolean(isNSFW),
+      moderationIssues: Array.isArray(issues) ? issues : []
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating confession moderation status:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      'Failed to update confession moderation status',
+      error.message
+    );
+  }
+});
+
+/**
+ * Update moderation status for a reply
+ */
+exports.updateReplyModeration = functions.https.onCall(async (data, context) => {
+  const { confessionId, replyId, isNSFW, issues } = data;
+  
+  if (!confessionId || !replyId) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Both confession ID and reply ID are required'
+    );
+  }
+
+  try {
+    const replyRef = db.collection('confessions')
+      .doc(confessionId)
+      .collection('replies')
+      .doc(replyId);
+      
+    await replyRef.update({
+      moderated: true,
+      moderatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      isNSFW: Boolean(isNSFW),
+      moderationIssues: Array.isArray(issues) ? issues : []
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating reply moderation status:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      'Failed to update reply moderation status',
+      error.message
+    );
+  }
+});
+
+/**
+ * Delete a confession and all its replies
+ */
+exports.deleteConfession = functions.https.onCall(async (data, context) => {
+  // Verify user is authenticated and has staff role
+  if (!context.auth || !context.auth.token.staff) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Only staff members can delete content'
+    );
+  }
+
+  const { confessionId } = data;
+  if (!confessionId) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Confession ID is required'
+    );
+  }
+
+  try {
+    const batch = db.batch();
+    const confessionRef = db.collection('confessions').doc(confessionId);
+    
+    // Delete all replies first
+    const repliesSnapshot = await confessionRef.collection('replies').get();
+    repliesSnapshot.forEach(doc => {
+      batch.delete(doc.ref);
+    });
+    
+    // Then delete the confession
+    batch.delete(confessionRef);
+    
+    await batch.commit();
+    
+    // Log the deletion
+    await db.collection('moderationLogs').add({
+      action: 'delete_confession',
+      targetId: confessionId,
+      staffId: context.auth.uid,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      ip: getIPAddress(context)
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting confession:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      'Failed to delete confession',
+      error.message
+    );
+  }
+});
+
+/**
+ * Delete a single reply
+ */
+exports.deleteReply = functions.https.onCall(async (data, context) => {
+  // Verify user is authenticated and has staff role
+  if (!context.auth || !context.auth.token.staff) {
+    throw new functions.https.HttpsError(
+      'permission-denied',
+      'Only staff members can delete content'
+    );
+  }
+
+  const { confessionId, replyId } = data;
+  if (!confessionId || !replyId) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'Both confession ID and reply ID are required'
+    );
+  }
+
+  try {
+    const replyRef = db.collection('confessions')
+      .doc(confessionId)
+      .collection('replies')
+      .doc(replyId);
+
+    await replyRef.delete();
+    
+    // Log the deletion
+    await db.collection('moderationLogs').add({
+      action: 'delete_reply',
+      targetId: replyId,
+      confessionId: confessionId,
+      staffId: context.auth.uid,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+      ip: getIPAddress(context)
+    });
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting reply:', error);
+    throw new functions.https.HttpsError(
+      'internal',
+      'Failed to delete reply',
+      error.message
+    );
+  }
+});
+
+// ===== IP Ban Functions =====
+
+/**
+ * Checks if an IP is banned from entire site"
  */
 exports.checkSiteBan = functions.https.onCall(async (data, context) => {
   const ip = getIPAddress(context);

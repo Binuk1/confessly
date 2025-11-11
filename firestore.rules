@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user is staff
+    function isStaff() {
+      return request.auth.token.staff === true;
+    }
+    
+    // Allow read access to confessions to all authenticated users
+    match /confessions/{confessionId} {
+      // Allow read access to everyone (including unauthenticated users)
+      allow read: true;
+      
+      // Allow creation of new confessions (deletion is handled by Cloud Functions)
+      allow create: if isAuthenticated();
+      
+      // Allow updates only for specific fields
+      allow update: if isAuthenticated() && (
+        // Allow updates to like/dislike counts
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes', 'likeCount', 'dislikeCount', 'replyCount']) ||
+        // Allow updates to reports count (for reporting content)
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reports', 'reportCount'])
+      );
+      
+      // Deletion is only allowed through Cloud Functions
+      allow delete: if false;
+      
+      // Replies subcollection
+      match /replies/{replyId} {
+        // Allow read access to everyone
+        allow read: true;
+        
+        // Allow creation of new replies
+        allow create: if isAuthenticated();
+        
+        // Allow updates to like/dislike counts and reports
+        allow update: if isAuthenticated() && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes', 'dislikes', 'likeCount', 'dislikeCount']) ||
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['reports', 'reportCount'])
+        );
+        
+        // Deletion is only allowed through Cloud Functions
+        allow delete: if false;
+      }
+    }
+    
+    // Reports collection - allow creation by any authenticated user, but only staff can read
+    match /reports/{reportId} {
+      allow create: if isAuthenticated();
+      allow read: if isAuthenticated() && isStaff();
+      allow update: if isAuthenticated() && isStaff();
+      allow delete: if isAuthenticated() && isStaff();
+    }
+    
+    // Banned IPs - only staff can read/write
+    match /bannedIPs/{document=**} {
+      allow read, write: if isAuthenticated() && isStaff();
+    }
+    
+    // Users collection - users can read/write their own data
+    match /users/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Staff can read all user data
+      allow read: if isAuthenticated() && isStaff();
+    }
+    
+    // Allow reads to public data (e.g., site settings, etc.)
+    match /public/{document=**} {
+      allow read: true;
+    }
+    
+    // Default deny all other operations
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

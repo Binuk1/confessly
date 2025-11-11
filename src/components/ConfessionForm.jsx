@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { db } from '../firebase';
-import { addDoc, collection, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 import GifPicker from './GifPicker';
@@ -177,9 +177,10 @@ function ConfessionForm({ onOptimisticConfession }) {
 
           // If ban result exists and indicates banned, remove the confession and notify user
           if (banResult && !banResult.error && banResult.data && banResult.data.isBanned) {
-            // Remove the created confession
+            // Remove the created confession using Cloud Function
             try {
-              await deleteDoc(docRef);
+              const deleteConfession = httpsCallable(functions, 'deleteConfession');
+              await deleteConfession({ confessionId: docRef.id });
             } catch (delErr) {
               console.error('Failed to delete banned confession:', delErr);
             }
@@ -201,13 +202,13 @@ function ConfessionForm({ onOptimisticConfession }) {
                 isNSFW: moderationResult.isNSFW || false,
                 moderationIssues: moderationResult.issues || []
               };
-              // Update the doc
-              await (async () => {
-                const { doc: _, ...rest } = { update };
-              })();
-              // Use updateDoc dynamically to avoid importing earlier if not present
-              const { updateDoc, doc: docFn } = await import('firebase/firestore');
-              await updateDoc(docFn(db, 'confessions', docRef.id), update);
+              // Update moderation status using Cloud Function
+              const updateModerationStatus = httpsCallable(functions, 'updateConfessionModeration');
+              await updateModerationStatus({
+                confessionId: docRef.id,
+                isNSFW: moderationResult.isNSFW || false,
+                issues: moderationResult.issues || []
+              });
             } catch (updateErr) {
               console.error('Failed to update moderation metadata:', updateErr);
             }
