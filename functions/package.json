@@ -13,9 +13,10 @@
   },
   "main": "index.js",
   "dependencies": {
+    "@google/generative-ai": "^0.2.0",
+    "@types/express": "^5.0.5",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "@google/generative-ai": "^0.2.0",
     "firebase-admin": "^11.11.1",
     "firebase-functions": "^4.7.0"
   },
