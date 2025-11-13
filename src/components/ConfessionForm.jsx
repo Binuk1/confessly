@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { db } from '../firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp,  } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../firebase';
 import GifPicker from './GifPicker';
@@ -78,34 +78,38 @@ function ConfessionForm({ onOptimisticConfession }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Check if over character limit
+    if (!text.trim() && !gifUrl) {
+      showError('Please enter some text or select a GIF');
+      return;
+    }
+
     if (isOverLimit) {
-      showError(`Please keep your confession under ${MAX_CHARACTERS} characters. Current: ${characterCount} characters.`);
+      showError(`Confession is too long (${characterCount}/${MAX_CHARACTERS} characters)`);
       return;
     }
-    
-    // FOR CONFESSIONS: Require meaningful text content, GIF alone is not enough
-    if (!hasMeaningfulContent(text)) {
-      showError('Confessions must contain meaningful text content, not just emojis, symbols, or GIFs.');
-      return;
-    }
-    
-    // Create optimistic confession for immediate UI feedback
+
     setLoading(true);
-    const optimisticConfession = {
-      id: `temp-${Date.now()}`,
-      text: text.trim(),
-      gifUrl: gifUrl || null,
-      createdAt: new Date(),
-      reactions: {},
-      replyCount: 0,
-      totalReactions: 0,
-      isOptimistic: true
-    };
+    setError('');
     
     // Store form data before clearing
     const submittedText = text.trim();
     const submittedGifUrl = gifUrl;
+    
+    // Create optimistic confession for immediate UI update
+    const tempId = `temp-${Date.now()}`;
+    const optimisticConfession = {
+      id: tempId,
+      text: submittedText,
+      gifUrl: submittedGifUrl || null,
+      createdAt: new Date().toISOString(),
+      likeCount: 0,
+      dislikeCount: 0,
+      replyCount: 0,
+      reportCount: 0,
+      reactions: {},
+      totalReactions: 0,
+      isOptimistic: true
+    };
     
     // Clear form immediately for better UX
     setText('');
@@ -115,41 +119,57 @@ function ConfessionForm({ onOptimisticConfession }) {
     
     // Send optimistic confession to parent component
     if (onOptimisticConfession) {
-      onOptimisticConfession(optimisticConfession);
+      onOptimisticConfession(optimisticConfession, false);
     }
-    
-    // Immediately create the confession document (optimistic write). We'll update moderation metadata later.
-    let docRef = null;
+
+    let docRef;
     try {
+      // Check for ban before creating the document
+      try {
+        const checkConfessionBan = httpsCallable(functions, 'checkConfessionBan');
+        const banResult = await checkConfessionBan();
+        
+        if (banResult.data && banResult.data.isBanned) {
+          const banMessage = `❌ Your IP address has been banned from posting confessions. Reason: ${banResult.data.reason}. ${formatBanExpiry(banResult.data.expiresAt)}`;
+          showError(banMessage);
+          setLoading(false);
+          return; // Exit early if banned
+        }
+      } catch (banError) {
+        console.error('Error checking ban status:', banError);
+        // Continue with submission if ban check fails (fail-open for better UX)
+      }
+
+      // Create the document data
       const docData = {
         text: submittedText,
-        gifUrl: submittedGifUrl || null,
+        gifUrl: gifUrl || null,
         createdAt: serverTimestamp(),
         reactions: {},
         replyCount: 0,
-        // moderation placeholders - will be updated asynchronously
+        totalReactions: 0,
         moderated: false,
-        moderatedAt: null,
         isNSFW: false,
         moderationIssues: []
       };
 
+      // Clean undefined values
       const cleanUndefined = (obj) => {
-        for (const [key, value] of Object.entries(obj)) {
-          if (value === undefined) {
+        Object.keys(obj).forEach(key => {
+          if (obj[key] === undefined) {
             obj[key] = null;
-          } else if (value && typeof value === 'object' && !Array.isArray(value) && value.constructor === Object) {
-            cleanUndefined(value);
-          } else if (Array.isArray(value)) {
-            value.forEach((item, index) => {
+          } else if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key]) && obj[key].constructor === Object) {
+            cleanUndefined(obj[key]);
+          } else if (Array.isArray(obj[key])) {
+            obj[key].forEach((item, index) => {
               if (item === undefined) {
-                value[index] = null;
+                obj[key][index] = null;
               } else if (item && typeof item === 'object') {
                 cleanUndefined(item);
               }
             });
           }
-        }
+        });
       };
 
       cleanUndefined(docData);
@@ -175,22 +195,17 @@ function ConfessionForm({ onOptimisticConfession }) {
 
           const [banResult, moderationResult] = await Promise.all([banPromise, moderationPromise]);
 
-          // If ban result exists and indicates banned, remove the confession and notify user
+          // If ban result exists and indicates banned, reject the confession
           if (banResult && !banResult.error && banResult.data && banResult.data.isBanned) {
-            // Remove the created confession using Cloud Function
-            try {
-              const deleteConfession = httpsCallable(functions, 'deleteConfession');
-              await deleteConfession({ confessionId: docRef.id });
-            } catch (delErr) {
-              console.error('Failed to delete banned confession:', delErr);
-            }
-            // Inform user (non-blocking UI update)
-            showError(`❌ Your IP address has been banned from posting confessions. Reason: ${banResult.data.reason}. ${formatBanExpiry(banResult.data.expiresAt)}`);
+            // Inform user about the ban
+            const banMessage = `❌ Your IP address has been banned from posting confessions. Reason: ${banResult.data.reason}. ${formatBanExpiry(banResult.data.expiresAt)}`;
+            showError(banMessage);
             // Remove optimistic confession from parent
             if (onOptimisticConfession) {
               onOptimisticConfession(null, true);
             }
-            return;
+            // Re-throw to prevent further processing
+            throw new Error(banMessage);
           }
 
           // If moderation returned a valid result, update the confession document with moderation metadata
@@ -202,13 +217,19 @@ function ConfessionForm({ onOptimisticConfession }) {
                 isNSFW: moderationResult.isNSFW || false,
                 moderationIssues: moderationResult.issues || []
               };
-              // Update moderation status using Cloud Function
-              const updateModerationStatus = httpsCallable(functions, 'updateConfessionModeration');
-              await updateModerationStatus({
-                confessionId: docRef.id,
-                isNSFW: moderationResult.isNSFW || false,
-                issues: moderationResult.issues || []
-              });
+              // Update moderation status using callable function
+              try {
+                const updateModerationStatus = httpsCallable(functions, 'updateConfessionModeration');
+                await updateModerationStatus({
+                  confessionId: docRef.id,
+                  isNSFW: moderationResult.isNSFW || false,
+                  issues: moderationResult.issues || []
+                });
+                console.log('✅ Moderation metadata updated successfully');
+              } catch (updateErr) {
+                // Non-critical: just log the error, don't block the user
+                console.warn('⚠️ Failed to update moderation metadata (non-critical):', updateErr.message);
+              }
             } catch (updateErr) {
               console.error('Failed to update moderation metadata:', updateErr);
             }

@@ -1,7 +1,12 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+
 admin.initializeApp();
 const db = admin.firestore();
+
+// Get Gemini API key from environment
+const GEMINI_API_KEY = functions.config().gemini?.apikey || process.env.GEMINI_API_KEY;
 
 // ===== Helper Functions =====
 
@@ -124,7 +129,105 @@ function formatExpiresAt(expiresAt) {
 // ===== Content Moderation Functions =====
 
 /**
- * Update moderation status for a confession
+ * Moderate content using Gemini AI
+ */
+exports.moderateContent = functions.https.onCall(async (data, context) => {
+  const { text, contentType = 'confession' } = data;
+
+  if (!text || text.trim().length === 0) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      'No text provided for moderation'
+    );
+  }
+
+  if (!GEMINI_API_KEY) {
+    console.warn('⚠️ GEMINI_API_KEY not configured, allowing content through');
+    return {
+      isNSFW: false,
+      issues: [],
+      categories: {}
+    };
+  }
+
+  try {
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    
+    const instruction = `You are a content moderation system for an anonymous confession app. Analyze the user text and output STRICT JSON only. No prose.
+Return this JSON shape:
+{
+  "isNSFW": boolean,
+  "issues": [ { "type": string, "severity": "low"|"medium"|"high", "text": string } ],
+  "categories": {
+    "hate_speech": number, "harassment": number, "bullying": number,
+    "self_harm": number, "sexual_content": number, "violence": number,
+    "profanity": number, "personal_attack": number, "personal_data": number,
+    "spam": number, "illegal": number, "other": number
+  }
+}
+Rules:
+- Set category scores from 0.0 to 1.0 (likelihood).
+- Consider content NSFW if any serious category likelihood >= 0.6 or clear violation exists.
+- issues[] should include each concrete violation you detect with a short excerpt in "text".
+- Be conservative for minors and sexual content.`;
+
+    const userText = `ContentType: ${contentType}\nText: ${text}`;
+
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const result = await model.generateContent(instruction + '\n\n' + userText);
+    const response = await result.response;
+    const responseText = response.text();
+
+    let parsed;
+    try {
+      const cleaned = responseText.trim().replace(/^```json\n|^```\n|```$/g, '');
+      parsed = JSON.parse(cleaned);
+    } catch (e) {
+      console.error('Failed to parse Gemini moderation JSON:', e);
+      // Return safe defaults on parse error
+      return {
+        isNSFW: false,
+        issues: [],
+        categories: {}
+      };
+    }
+
+    const categories = parsed.categories || {};
+    const issues = Array.isArray(parsed.issues)
+      ? parsed.issues.map((it) => ({
+          type: String(it.type || 'other'),
+          severity: ['low', 'medium', 'high'].includes(it.severity) ? it.severity : 'low',
+          text: String(it.text || '')
+        }))
+      : [];
+
+    const moderationResult = {
+      isNSFW: Boolean(parsed.isNSFW) || 
+             (issues.length > 0 && Object.values(categories).some(v => (typeof v === 'number' ? v : 0) >= 0.6)),
+      issues,
+      categories
+    };
+
+    console.log('✅ Content moderation complete:', {
+      contentType,
+      isNSFW: moderationResult.isNSFW,
+      issueCount: issues.length
+    });
+
+    return moderationResult;
+  } catch (error) {
+    console.error('❌ Content moderation error:', error);
+    // Return safe defaults to allow content through on error
+    return {
+      isNSFW: false,
+      issues: [],
+      categories: {}
+    };
+  }
+});
+
+/**
+ * Update moderation status for a confession (Callable function)
  */
 exports.updateConfessionModeration = functions.https.onCall(async (data, context) => {
   const { confessionId, isNSFW, issues } = data;
@@ -132,31 +235,31 @@ exports.updateConfessionModeration = functions.https.onCall(async (data, context
   if (!confessionId) {
     throw new functions.https.HttpsError(
       'invalid-argument',
-      'Confession ID is required'
+      'Missing required confessionId'
     );
   }
 
   try {
     const confessionRef = db.collection('confessions').doc(confessionId);
     await confessionRef.update({
-      moderated: true,
-      moderatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      isNSFW: Boolean(isNSFW),
-      moderationIssues: Array.isArray(issues) ? issues : []
+      'moderation.isNSFW': isNSFW || false,
+      'moderation.issues': issues || [],
+      'moderation.updatedAt': admin.firestore.FieldValue.serverTimestamp()
     });
+
     return { success: true };
   } catch (error) {
-    console.error('Error updating confession moderation status:', error);
+    console.error('Error updating confession moderation:', error);
     throw new functions.https.HttpsError(
       'internal',
-      'Failed to update confession moderation status',
+      'Failed to update confession moderation',
       error.message
     );
   }
 });
 
 /**
- * Update moderation status for a reply
+ * Update moderation status for a reply (Callable function)
  */
 exports.updateReplyModeration = functions.https.onCall(async (data, context) => {
   const { confessionId, replyId, isNSFW, issues } = data;
@@ -164,28 +267,24 @@ exports.updateReplyModeration = functions.https.onCall(async (data, context) => 
   if (!confessionId || !replyId) {
     throw new functions.https.HttpsError(
       'invalid-argument',
-      'Both confession ID and reply ID are required'
+      'Missing required confessionId or replyId'
     );
   }
 
   try {
-    const replyRef = db.collection('confessions')
-      .doc(confessionId)
-      .collection('replies')
-      .doc(replyId);
-      
+    const replyRef = db.collection('confessions').doc(confessionId).collection('replies').doc(replyId);
     await replyRef.update({
-      moderated: true,
-      moderatedAt: admin.firestore.FieldValue.serverTimestamp(),
-      isNSFW: Boolean(isNSFW),
-      moderationIssues: Array.isArray(issues) ? issues : []
+      'moderation.isNSFW': isNSFW || false,
+      'moderation.issues': issues || [],
+      'moderation.updatedAt': admin.firestore.FieldValue.serverTimestamp()
     });
+
     return { success: true };
   } catch (error) {
-    console.error('Error updating reply moderation status:', error);
+    console.error('Error updating reply moderation:', error);
     throw new functions.https.HttpsError(
       'internal',
-      'Failed to update reply moderation status',
+      'Failed to update reply moderation',
       error.message
     );
   }
@@ -298,7 +397,7 @@ exports.deleteReply = functions.https.onCall(async (data, context) => {
 // ===== IP Ban Functions =====
 
 /**
- * Checks if an IP is banned from entire site"
+ * Checks if an IP is banned from entire site
  */
 exports.checkSiteBan = functions.https.onCall(async (data, context) => {
   const ip = getIPAddress(context);
@@ -306,8 +405,7 @@ exports.checkSiteBan = functions.https.onCall(async (data, context) => {
   
   const banCheck = await checkIPBan(ip, 'site');
   
-  // Debug log to see what we're returning
-  console.log('📝 Site ban result:', {
+  console.log('🔍 Site ban result:', {
     isBanned: banCheck.isBanned,
     reason: banCheck.reason,
     expiresAtRaw: banCheck.expiresAt,
@@ -318,7 +416,7 @@ exports.checkSiteBan = functions.https.onCall(async (data, context) => {
   return {
     isBanned: banCheck.isBanned,
     reason: banCheck.reason,
-    expiresAt: formatExpiresAt(banCheck.expiresAt), // Now returns ISO string
+    expiresAt: formatExpiresAt(banCheck.expiresAt),
     banType: banCheck.banType,
     ip: ip
   };
@@ -333,7 +431,7 @@ exports.checkConfessionBan = functions.https.onCall(async (data, context) => {
   
   const banCheck = await checkIPBan(ip, 'confess');
   
-  console.log('📝 Confession ban result:', {
+  console.log('🔍 Confession ban result:', {
     isBanned: banCheck.isBanned,
     expiresAtFormatted: formatExpiresAt(banCheck.expiresAt)
   });
@@ -341,7 +439,7 @@ exports.checkConfessionBan = functions.https.onCall(async (data, context) => {
   return {
     isBanned: banCheck.isBanned,
     reason: banCheck.reason,
-    expiresAt: formatExpiresAt(banCheck.expiresAt), // Now returns ISO string
+    expiresAt: formatExpiresAt(banCheck.expiresAt),
     banType: banCheck.banType,
     ip: ip
   };
@@ -356,7 +454,7 @@ exports.checkReplyBan = functions.https.onCall(async (data, context) => {
   
   const banCheck = await checkIPBan(ip, 'reply');
   
-  console.log('📝 Reply ban result:', {
+  console.log('🔍 Reply ban result:', {
     isBanned: banCheck.isBanned,
     expiresAtFormatted: formatExpiresAt(banCheck.expiresAt)
   });
@@ -364,7 +462,7 @@ exports.checkReplyBan = functions.https.onCall(async (data, context) => {
   return {
     isBanned: banCheck.isBanned,
     reason: banCheck.reason,
-    expiresAt: formatExpiresAt(banCheck.expiresAt), // Now returns ISO string
+    expiresAt: formatExpiresAt(banCheck.expiresAt),
     banType: banCheck.banType,
     ip: ip
   };

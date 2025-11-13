@@ -458,31 +458,46 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       return newCount;
     });
     
-    // Store form data before clearing
     const submittedText = replyText.trim();
-    const submittedGifUrl = replyGifUrl;
-    
-    // Clear form immediately for better UX
-    setReplyText('');
-    setReplyGifUrl('');
-    setShowGifPicker(false);
-    setShowEmojiPicker(false);
+    let docRef;
 
     try {
-      // Add reply to replies collection immediately (optimistic write)
-      const docData = {
+      // Check for ban before creating the reply
+      try {
+        const checkReplyBan = httpsCallable(functions, 'checkReplyBan');
+        const banResult = await checkReplyBan();
+        
+        if (banResult.data && banResult.data.isBanned) {
+          const banMessage = `❌ Your IP address has been banned from posting replies. Reason: ${banResult.data.reason}. ${banResult.data.expiresAt ? `Expires: ${new Date(banResult.data.expiresAt).toLocaleString()}` : 'Permanent'}`;
+          showError(banMessage);
+          setSubmittingReply(false);
+          return; // Exit early if banned
+        }
+      } catch (banError) {
+        console.error('Error checking ban status:', banError);
+        // Continue with submission if ban check fails (fail-open for better UX)
+      }
+
+      // Create the reply data
+      const replyData = {
         text: submittedText,
-        gifUrl: submittedGifUrl || null,
+        gifUrl: replyGifUrl || null,
         confessionId: confession.id,
         createdAt: serverTimestamp(),
-        // moderation placeholders
+        likeCount: 0,
+        dislikeCount: 0,
+        reportCount: 0,
         moderated: false,
-        moderatedAt: null,
         isNSFW: false,
         moderationIssues: []
       };
 
-      const docRef = await addDoc(collection(db, `confessions/${confession.id}/replies`), docData);
+      // Add the reply to Firestore
+      const replyRef = await addDoc(
+        collection(db, 'confessions', confession.id, 'replies'),
+        replyData
+      );
+      docRef = { id: replyRef.id };
 
       // Fire-and-forget: log IP (non-blocking)
       (async () => {
@@ -526,35 +541,33 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
           const [banResult, moderationResult] = await Promise.all([banPromise, moderationPromise]);
 
           if (banResult && !banResult.error && banResult.data && banResult.data.isBanned) {
-            // Delete reply using Cloud Function
-            try {
-              const deleteReply = httpsCallable(functions, 'deleteReply');
-              await deleteReply({
-                confessionId: confession.id,
-                replyId: docRef.id
-              });
-            } catch (delErr) {
-              console.error('Failed to delete banned reply:', delErr);
-            }
             // Remove optimistic reply
             setOptimisticReply(null);
             // Decrement local reply count
             setReplyCount(prev => Math.max(0, prev - 1));
-            showError(`❌ Your IP address has been banned from posting replies. Reason: ${banResult.data.reason}. ${banResult.data.expiresAt ? `Expires: ${new Date(banResult.data.expiresAt).toLocaleString()}` : 'Permanent'}`);
-            return;
+            // Show error to user
+            const banMessage = `❌ Your IP address has been banned from posting replies. Reason: ${banResult.data.reason}. ${banResult.data.expiresAt ? `Expires: ${new Date(banResult.data.expiresAt).toLocaleString()}` : 'Permanent'}`;
+            showError(banMessage);
+            // Re-throw to prevent further processing
+            throw new Error(banMessage);
           }
 
           // If moderation returned a valid result, update the reply doc with moderation metadata
           if (moderationResult && !moderationResult.error && moderationResult.isNSFW !== undefined) {
             try {
-              // Update moderation status using Cloud Function
-              const updateReplyModeration = httpsCallable(functions, 'updateReplyModeration');
-              await updateReplyModeration({
-                confessionId: confession.id,
-                replyId: docRef.id,
-                isNSFW: moderationResult.isNSFW || false,
-                issues: moderationResult.issues || []
-              });
+              // Update moderation status using callable function
+              try {
+                const updateReplyModeration = httpsCallable(functions, 'updateReplyModeration');
+                await updateReplyModeration({
+                  confessionId: confession.id,
+                  replyId: docRef.id,
+                  isNSFW: moderationResult.isNSFW || false,
+                  issues: moderationResult.issues || []
+                });
+                console.log('✅ Reply moderation metadata updated successfully');
+              } catch (updateErr) {
+                console.warn('⚠️ Failed to update reply moderation metadata (non-critical):', updateErr.message);
+              }
             } catch (updateErr) {
               console.error('Failed to update reply moderation metadata:', updateErr);
             }
