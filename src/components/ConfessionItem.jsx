@@ -557,14 +557,18 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
             try {
               // Update moderation status using callable function
               try {
+                const { getFunctions, httpsCallable } = await import('firebase/functions');
+                const functions = getFunctions();
                 const updateReplyModeration = httpsCallable(functions, 'updateReplyModeration');
-                await updateReplyModeration({
+                
+                const result = await updateReplyModeration({
                   confessionId: confession.id,
                   replyId: docRef.id,
                   isNSFW: moderationResult.isNSFW || false,
                   issues: moderationResult.issues || []
                 });
-                console.log('✅ Reply moderation metadata updated successfully');
+                
+                console.log('✅ Reply moderation metadata updated successfully', result.data);
               } catch (updateErr) {
                 console.warn('⚠️ Failed to update reply moderation metadata (non-critical):', updateErr.message);
               }

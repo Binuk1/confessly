@@ -217,14 +217,28 @@ function ConfessionForm({ onOptimisticConfession }) {
                 isNSFW: moderationResult.isNSFW || false,
                 moderationIssues: moderationResult.issues || []
               };
-              // Update moderation status using callable function
+              // Update moderation status using HTTP endpoint with CORS
               try {
-                const updateModerationStatus = httpsCallable(functions, 'updateConfessionModeration');
-                await updateModerationStatus({
-                  confessionId: docRef.id,
-                  isNSFW: moderationResult.isNSFW || false,
-                  issues: moderationResult.issues || []
-                });
+                const response = await fetch(
+                  'https://us-central1-confey-72ff8.cloudfunctions.net/updateConfessionModeration',
+                  {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      confessionId: docRef.id,
+                      isNSFW: moderationResult.isNSFW || false,
+                      issues: moderationResult.issues || []
+                    })
+                  }
+                );
+                
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  throw new Error(errorData.error?.message || 'Failed to update moderation status');
+                }
+                
                 console.log('✅ Moderation metadata updated successfully');
               } catch (updateErr) {
                 // Non-critical: just log the error, don't block the user

@@ -226,36 +226,52 @@ Rules:
   }
 });
 
+const cors = require('cors')({ origin: true });
+
 /**
- * Update moderation status for a confession (Callable function)
+ * Update moderation status for a confession (Callable function with CORS)
  */
-exports.updateConfessionModeration = functions.https.onCall(async (data, context) => {
-  const { confessionId, isNSFW, issues } = data;
-  
-  if (!confessionId) {
-    throw new functions.https.HttpsError(
-      'invalid-argument',
-      'Missing required confessionId'
-    );
-  }
-
-  try {
-    const confessionRef = db.collection('confessions').doc(confessionId);
-    await confessionRef.update({
-      'moderation.isNSFW': isNSFW || false,
-      'moderation.issues': issues || [],
-      'moderation.updatedAt': admin.firestore.FieldValue.serverTimestamp()
+exports.updateConfessionModeration = functions.https.onRequest(async (req, res) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    cors(req, res, () => {
+      res.status(200).send();
     });
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error updating confession moderation:', error);
-    throw new functions.https.HttpsError(
-      'internal',
-      'Failed to update confession moderation',
-      error.message
-    );
+    return;
   }
+
+  return cors(req, res, async () => {
+    try {
+      const { confessionId, isNSFW, issues } = req.body;
+      
+      if (!confessionId) {
+        return res.status(400).json({
+          error: {
+            code: 'invalid-argument',
+            message: 'Missing required confessionId'
+          }
+        });
+      }
+
+      const confessionRef = db.collection('confessions').doc(confessionId);
+      await confessionRef.update({
+        'moderation.isNSFW': isNSFW || false,
+        'moderation.issues': issues || [],
+        'moderation.updatedAt': admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      return res.status(200).json({ success: true });
+    } catch (error) {
+      console.error('Error updating confession moderation:', error);
+      return res.status(500).json({
+        error: {
+          code: 'internal',
+          message: 'Failed to update confession moderation',
+          details: error.message
+        }
+      });
+    }
+  });
 });
 
 /**
