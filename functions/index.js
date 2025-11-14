@@ -1,12 +1,21 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const cors = require('cors');
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// Get Gemini API key from environment
-const GEMINI_API_KEY = functions.config().gemini?.apikey || process.env.GEMINI_API_KEY;
+// Create a CORS middleware instance
+const corsHandler = cors({ origin: true });
+
+// Get Gemini API key from Firebase config
+const GEMINI_API_KEY = functions.config().gemini?.api_key || '';
+
+if (!GEMINI_API_KEY) {
+  console.warn('⚠️ WARNING: No GEMINI_API_KEY found in Firebase config');
+} else {
+  console.log('✅ Gemini API key loaded successfully');
+}
 
 // ===== Helper Functions =====
 
@@ -126,107 +135,239 @@ function formatExpiresAt(expiresAt) {
   }
 }
 
+/**
+ * Fallback moderation using regex patterns
+ * More lenient pattern matching without word boundaries
+ */
+function fallbackModeration(text) {
+  // Comprehensive profanity list with case-insensitive matching
+  // Using looser matching to catch variations and typos
+  const profanityPatterns = [
+    /f+u+c+k+/i,
+    /s+h+i+t+/i,
+    /b+i+t+c+h+/i,
+    /a+s+s+h+o+l+e+/i,
+    /c+u+n+t+/i,
+    /d+i+c+k+/i,
+    /p+u+s+s+y+/i,
+    /w+h+o+r+e+/i,
+    /s+l+u+t+/i,
+    /d+a+m+n+/i,
+    /h+e+l+l+/i,
+    /b+a+s+t+a+r+d+/i,
+    /n+i+g+g+/i,  // Catches n-word variants
+    /f+a+g+/i,    // Homophobic slur
+    /r+e+t+a+r+d+/i,
+    /k+i+l+l+\s+(you|yourself|myself)/i,  // Violent threats
+    /d+i+e+\s+(you|yourself|bitch)/i
+  ];
+  
+  // Check against all patterns
+  const hasViolation = profanityPatterns.some(pattern => pattern.test(text));
+  
+  if (hasViolation) {
+    console.log('🚫 Fallback moderation: Content flagged as NSFW');
+    return {
+      isNSFW: true,
+      issues: [{
+        type: 'explicit_content',
+        severity: 'high',
+        text: 'Content contains explicit or inappropriate language'
+      }],
+      categories: {},
+      isClean: false,
+      usedFallback: true
+    };
+  }
+  
+  console.log('✅ Fallback moderation: Content appears clean');
+  return {
+    isNSFW: false,
+    issues: [],
+    categories: {},
+    isClean: true,
+    usedFallback: true
+  };
+}
+
 // ===== Content Moderation Functions =====
 
 /**
  * Moderate content using Gemini AI
+ * AI-powered NSFW detection with intelligent understanding
  */
 exports.moderateContent = functions.https.onCall(async (data, context) => {
   const { text, contentType = 'confession' } = data;
+  
+  // Input validation
+  if (!text || typeof text !== 'string' || text.trim() === '') {
+    return {
+      isNSFW: false,
+      issues: [],
+      categories: {},
+      isClean: true
+    };
+  }
 
-  if (!text || text.trim().length === 0) {
+  // Check for API key
+  if (!GEMINI_API_KEY) {
+    console.error('❌ CRITICAL: GEMINI_API_KEY not configured!');
+    console.error('Please set it with: firebase functions:config:set gemini.api_key="YOUR_KEY"');
     throw new functions.https.HttpsError(
-      'invalid-argument',
-      'No text provided for moderation'
+      'failed-precondition',
+      'Content moderation service is not configured. Please contact support.'
     );
   }
 
-  if (!GEMINI_API_KEY) {
-    console.warn('⚠️ GEMINI_API_KEY not configured, allowing content through');
-    return {
-      isNSFW: false,
-      issues: [],
-      categories: {}
-    };
-  }
-
   try {
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    // Enhanced AI prompt - let AI use its full knowledge
+    const prompt = `You are an expert content moderator with deep understanding of language, context, and internet culture.
+
+Analyze if this text is NSFW (Not Safe For Work). Use your full knowledge to detect:
+- Profanity in ANY form (including leetspeak like "f4ck", intentional misspellings like "fuk", character substitutions)
+- Slurs and hate speech (including coded versions with numbers/symbols like "n1gger")
+- Sexual or explicit content
+- Violence or threats
+- Harassment or bullying
+- Any attempt to bypass filters (spacing, symbols, creative spelling)
+
+Be thorough - catch obvious attempts to hide inappropriate language with numbers, symbols, or creative spelling.
+
+Text to analyze: "${text}"
+
+You MUST respond with ONLY valid JSON in exactly this format (no extra text, no markdown):
+{"isNSFW": true, "reason": "detected profanity: f-word variant"}
+
+OR
+
+{"isNSFW": false, "reason": "content appears appropriate"}`;
     
-    const instruction = `You are a content moderation system for an anonymous confession app. Analyze the user text and output STRICT JSON only. No prose.
-Return this JSON shape:
-{
-  "isNSFW": boolean,
-  "issues": [ { "type": string, "severity": "low"|"medium"|"high", "text": string } ],
-  "categories": {
-    "hate_speech": number, "harassment": number, "bullying": number,
-    "self_harm": number, "sexual_content": number, "violence": number,
-    "profanity": number, "personal_attack": number, "personal_data": number,
-    "spam": number, "illegal": number, "other": number
-  }
-}
-Rules:
-- Set category scores from 0.0 to 1.0 (likelihood).
-- Consider content NSFW if any serious category likelihood >= 0.6 or clear violation exists.
-- issues[] should include each concrete violation you detect with a short excerpt in "text".
-- Be conservative for minors and sexual content.`;
+    // Try multiple models in order of preference
+    const modelsToTry = [
+      'gemini-2.0-flash-exp',      // Latest experimental
+      'gemini-1.5-flash-002',       // Stable with version
+      'gemini-1.5-flash-001',       // Older stable
+      'gemini-1.5-flash',           // Auto-updated alias
+      'gemini-2.0-flash-thinking-exp-01-21', // Another experimental
+      'gemini-pro'                  // Legacy fallback
+    ];
+    
+    let lastError = null;
+    
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`🤖 Trying model: ${modelName}`);
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0,
+              maxOutputTokens: 100
+            }
+          })
+        });
 
-    const userText = `ContentType: ${contentType}\nText: ${text}`;
+        if (!response.ok) {
+          const errorBody = await response.text();
+          lastError = `Model ${modelName} returned ${response.status}: ${errorBody}`;
+          console.warn(`⚠️ ${lastError}`);
+          continue; // Try next model
+        }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    const result = await model.generateContent(instruction + '\n\n' + userText);
-    const response = await result.response;
-    const responseText = response.text();
-
-    let parsed;
-    try {
-      const cleaned = responseText.trim().replace(/^```json\n|^```\n|```$/g, '');
-      parsed = JSON.parse(cleaned);
-    } catch (e) {
-      console.error('Failed to parse Gemini moderation JSON:', e);
-      // Return safe defaults on parse error
-      return {
-        isNSFW: false,
-        issues: [],
-        categories: {}
-      };
+        const result = await response.json();
+        const responseText = result?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        
+        console.log(`✅ Successfully used model: ${modelName}`);
+        console.log('🤖 Raw AI response:', responseText);
+        
+        // Parse the response with robust error handling
+        try {
+          // Clean up the response aggressively
+          let cleaned = responseText.trim();
+          
+          // Remove any markdown
+          cleaned = cleaned.replace(/```json/gi, '');
+          cleaned = cleaned.replace(/```/g, '');
+          cleaned = cleaned.trim();
+          
+          // Extract JSON if there's extra text
+          const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            cleaned = jsonMatch[0];
+          }
+          
+          console.log('🧹 Cleaned response:', cleaned);
+          
+          const moderationResult = JSON.parse(cleaned);
+          
+          // Validate response structure
+          if (typeof moderationResult.isNSFW !== 'boolean') {
+            throw new Error(`Invalid AI response: isNSFW is ${typeof moderationResult.isNSFW}, expected boolean`);
+          }
+          
+          console.log(`✅ AI Decision: ${moderationResult.isNSFW ? '🚫 NSFW' : '✅ Clean'}`);
+          console.log(`   Reason: ${moderationResult.reason}`);
+          console.log(`   Model used: ${modelName}`);
+          
+          // Return standardized response
+          return {
+            isNSFW: Boolean(moderationResult.isNSFW),
+            issues: moderationResult.isNSFW ? [{
+              type: 'explicit_content',
+              severity: 'high',
+              text: moderationResult.reason || 'Content flagged as NSFW by AI'
+            }] : [],
+            categories: {},
+            isClean: !moderationResult.isNSFW,
+            aiPowered: true,
+            modelUsed: modelName
+          };
+          
+        } catch (parseError) {
+          console.error(`❌ Failed to parse response from ${modelName}:`, parseError.message);
+          console.error('📝 Response was:', responseText);
+          lastError = `Parse error with ${modelName}: ${parseError.message}`;
+          continue; // Try next model
+        }
+      } catch (modelError) {
+        lastError = `Error with ${modelName}: ${modelError.message}`;
+        console.warn(`⚠️ ${lastError}`);
+        continue; // Try next model
+      }
     }
+    
+    // If we get here, all models failed
+    console.error('❌ All models failed. Last error:', lastError);
+    throw new Error(`All Gemini models failed. Last error: ${lastError}`);
 
-    const categories = parsed.categories || {};
-    const issues = Array.isArray(parsed.issues)
-      ? parsed.issues.map((it) => ({
-          type: String(it.type || 'other'),
-          severity: ['low', 'medium', 'high'].includes(it.severity) ? it.severity : 'low',
-          text: String(it.text || '')
-        }))
-      : [];
-
-    const moderationResult = {
-      isNSFW: Boolean(parsed.isNSFW) || 
-             (issues.length > 0 && Object.values(categories).some(v => (typeof v === 'number' ? v : 0) >= 0.6)),
-      issues,
-      categories
-    };
-
-    console.log('✅ Content moderation complete:', {
-      contentType,
-      isNSFW: moderationResult.isNSFW,
-      issueCount: issues.length
-    });
-
-    return moderationResult;
   } catch (error) {
-    console.error('❌ Content moderation error:', error);
-    // Return safe defaults to allow content through on error
-    return {
-      isNSFW: false,
-      issues: [],
-      categories: {}
-    };
+    console.error('❌ Gemini API Error:', error.message);
+    
+    // Check if it's an API key issue
+    if (error.message?.includes('API_KEY') || error.message?.includes('apiKey') || error.message?.includes('403')) {
+      throw new functions.https.HttpsError(
+        'failed-precondition',
+        'Invalid API key. Please check Gemini API configuration.'
+      );
+    }
+    
+    // For other errors, rethrow
+    throw new functions.https.HttpsError(
+      'internal',
+      `Content moderation service error: ${error.message}`
+    );
   }
 });
-
-const cors = require('cors')({ origin: true });
 
 /**
  * Update moderation status for a confession (Callable function with CORS)
@@ -275,19 +416,40 @@ exports.updateConfessionModeration = functions.https.onRequest(async (req, res) 
 });
 
 /**
- * Update moderation status for a reply (Callable function)
+ * Update moderation status for a reply (HTTP endpoint)
  */
-exports.updateReplyModeration = functions.https.onCall(async (data, context) => {
-  const { confessionId, replyId, isNSFW, issues } = data;
-  
-  if (!confessionId || !replyId) {
-    throw new functions.https.HttpsError(
-      'invalid-argument',
-      'Missing required confessionId or replyId'
-    );
+exports.updateReplyModeration = functions.https.onRequest(async (req, res) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.status(204).send('');
+    return;
+  }
+
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(405).send('Method Not Allowed');
+    return;
   }
 
   try {
+    const { confessionId, replyId, isNSFW, issues } = req.body;
+    
+    if (!confessionId || !replyId) {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'invalid-argument',
+          message: 'Missing required confessionId or replyId'
+        }
+      });
+      return;
+    }
+
     const replyRef = db.collection('confessions').doc(confessionId).collection('replies').doc(replyId);
     await replyRef.update({
       'moderation.isNSFW': isNSFW || false,
@@ -295,14 +457,100 @@ exports.updateReplyModeration = functions.https.onCall(async (data, context) => 
       'moderation.updatedAt': admin.firestore.FieldValue.serverTimestamp()
     });
 
-    return { success: true };
+    console.log(`✅ Updated moderation for reply ${replyId} in confession ${confessionId}`);
+
+    // Send success response
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).json({
+      success: true,
+      data: {
+        replyId,
+        confessionId,
+        isNSFW: isNSFW || false,
+        issues: issues || []
+      }
+    });
   } catch (error) {
-    console.error('Error updating reply moderation:', error);
-    throw new functions.https.HttpsError(
-      'internal',
-      'Failed to update reply moderation',
-      error.message
-    );
+    console.error('❌ Error updating reply moderation:', error);
+
+    // Send error response
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'internal',
+        message: 'Failed to update reply moderation',
+        details: error.message
+      }
+    });
+  }
+});
+
+/**
+ * Update reply count for a confession (HTTP endpoint)
+ */
+exports.updateReplyCount = functions.https.onRequest(async (req, res) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.status(204).send('');
+    return;
+  }
+
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    const { confessionId, increment = true } = req.body;
+    
+    if (!confessionId) {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'invalid-argument',
+          message: 'Missing required confessionId'
+        }
+      });
+      return;
+    }
+
+    const confessionRef = db.collection('confessions').doc(confessionId);
+    await confessionRef.update({
+      'stats.replyCount': admin.firestore.FieldValue.increment(increment ? 1 : -1),
+      'stats.updatedAt': admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    console.log(`✅ Updated reply count for confession ${confessionId}`);
+
+    // Send success response
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).json({
+      success: true,
+      data: {
+        confessionId,
+        updatedAt: new Date().toISOString()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error updating reply count:', error);
+
+    // Send error response
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'internal',
+        message: 'Failed to update reply count',
+        details: error.message
+      }
+    });
   }
 });
 
@@ -562,6 +810,215 @@ exports.logReplyIp = functions.https.onCall(async (data, context) => {
 /**
  * Cleanup expired bans (run daily via Cloud Scheduler)
  */
+/**
+ * Update reaction for a confession
+ */
+exports.updateReaction = functions.https.onRequest(async (req, res) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.status(204).send('');
+    return;
+  }
+
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    const { confessionId, emoji, userId } = req.body;
+    
+    if (!confessionId || !emoji || !userId) {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'invalid-argument',
+          message: 'Missing required fields: confessionId, emoji, or userId'
+        }
+      });
+      return;
+    }
+
+    const confessionRef = db.collection('confessions').doc(confessionId);
+    
+    // Run in a transaction to ensure data consistency
+    await db.runTransaction(async (transaction) => {
+      const confessionDoc = await transaction.get(confessionRef);
+      
+      if (!confessionDoc.exists) {
+        throw new Error('Confession not found');
+      }
+      
+      const confessionData = confessionDoc.data();
+      const reactions = confessionData.reactions || {};
+      const userReactions = {};
+      
+      // Find and remove any existing reaction from this user
+      Object.entries(reactions).forEach(([emojiKey, users]) => {
+        if (Array.isArray(users)) {
+          const filteredUsers = users.filter(user => user.userId !== userId);
+          if (filteredUsers.length > 0) {
+            userReactions[emojiKey] = filteredUsers;
+          }
+        }
+      });
+      
+      // Add the new reaction if it's not the same as the existing one
+      if (!reactions[emoji] || !reactions[emoji].some(r => r.userId === userId)) {
+        if (!userReactions[emoji]) {
+          userReactions[emoji] = [];
+        }
+        userReactions[emoji].push({
+          userId,
+          timestamp: new Date().toISOString() // Use client-side timestamp for array elements
+        });
+      }
+      
+      // Update the confession with the new reactions
+      transaction.update(confessionRef, {
+        reactions: userReactions,
+        'stats.updatedAt': admin.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    // Send success response
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).json({
+      success: true,
+      data: {
+        confessionId,
+        emoji,
+        userId
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error updating reaction:', error);
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'internal',
+        message: error.message || 'An error occurred while updating the reaction'
+      }
+    });
+  }
+});
+
+/**
+ * Submit a content report
+ */
+exports.submitReport = functions.https.onRequest(async (req, res) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.status(204).send('');
+    return;
+  }
+
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
+
+  try {
+    const { 
+      contentId, 
+      contentType, 
+      contentText, 
+      reason, 
+      otherReason, 
+      userAgent, 
+      reportedFrom,
+      confessionId
+    } = req.body;
+    
+    // Validate required fields
+    if (!contentId || !contentType || !reason) {
+      res.set('Access-Control-Allow-Origin', '*');
+      res.status(400).json({
+        success: false,
+        error: {
+          code: 'invalid-argument',
+          message: 'Missing required fields: contentId, contentType, or reason'
+        }
+      });
+      return;
+    }
+
+    // Create the report document
+    const reportData = {
+      contentId,
+      contentType,
+      contentText: contentText ? contentText.substring(0, 200) : '',
+      reason,
+      status: 'pending',
+      priority: reason === 'threat' ? 'high' : 'normal',
+      reportedAt: admin.firestore.FieldValue.serverTimestamp(),
+      userAgent: userAgent || '',
+      reportedFrom: reportedFrom || '',
+      ipAddress: req.ip || null
+    };
+
+    // Add optional fields if they exist
+    if (otherReason) reportData.otherReason = otherReason;
+    if (confessionId) {
+      reportData.confessionId = confessionId;
+      reportData.parentId = confessionId;
+    }
+
+    // Add the report to the reports collection
+    await admin.firestore().collection('reports').add(reportData);
+
+    // Update the report count on the content
+    let contentRef;
+    if (contentType === 'confession') {
+      contentRef = admin.firestore().collection('confessions').doc(contentId);
+    } else if (contentType === 'reply' && confessionId) {
+      contentRef = admin.firestore().collection(`confessions/${confessionId}/replies`).doc(contentId);
+    } else {
+      throw new Error('Invalid content type or missing confessionId for reply');
+    }
+
+    await contentRef.update({
+      reportCount: admin.firestore.FieldValue.increment(1),
+      'stats.updatedAt': admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Send success response
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(200).json({
+      success: true,
+      data: {
+        contentId,
+        contentType,
+        reportId: contentId + '-' + Date.now()
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error submitting report:', error);
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'internal',
+        message: error.message || 'An error occurred while submitting the report'
+      }
+    });
+  }
+});
+
 exports.cleanupExpiredBans = functions.pubsub
   .schedule('every 24 hours')
   .onRun(async (context) => {

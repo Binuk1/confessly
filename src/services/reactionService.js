@@ -1,4 +1,4 @@
-import { doc, getDoc, onSnapshot, runTransaction, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
 // Get anonymous user ID
@@ -73,114 +73,49 @@ export const subscribeToReactionsLast24h = (confessionId, callback) => {
   return unsub;
 };
 
-// Toggle reaction: Firestore stores reactions on confession document under `reactions` as emoji -> array of user objects
+// Toggle reaction using Cloud Function
 export const toggleReaction = async (confessionId, emoji) => {
   const userId = getUserId();
-  const confessionRef = doc(db, 'confessions', confessionId);
-
+  
   try {
-    const result = await runTransaction(db, async (tx) => {
-      const snap = await tx.get(confessionRef);
-      if (!snap.exists()) {
-        // Create doc fallback
-        tx.set(confessionRef, { reactions: { [emoji]: [{ userId, timestamp: Date.now() }] } }, { merge: true });
-        return { hasReacted: true, countDelta: 1 };
-      }
-
-      const data = snap.data();
-      const reactions = data.reactions || {};
-
-      // Find if user already reacted with this emoji
-      const usersForEmoji = reactions[emoji] || [];
-      let has = false;
-      if (Array.isArray(usersForEmoji)) {
-        has = usersForEmoji.some(u => u && u.userId === userId);
-      } else if (typeof usersForEmoji === 'object') {
-        has = Boolean(usersForEmoji[userId]);
-      }
-
-      if (has) {
-        // Remove user's entry from this emoji
-        if (Array.isArray(usersForEmoji)) {
-          const newArr = usersForEmoji.filter(u => !(u && u.userId === userId));
-          tx.update(confessionRef, { [`reactions.${emoji}`]: newArr });
-        } else {
-          const updated = { ...usersForEmoji };
-          delete updated[userId];
-          tx.update(confessionRef, { [`reactions.${emoji}`]: updated });
-        }
-        return { hasReacted: false, countDelta: -1 };
-      } else {
-        // Add user's entry
-        const entry = { userId, timestamp: Date.now() };
-        if (Array.isArray(usersForEmoji)) {
-          const newArr = [...usersForEmoji, entry];
-          tx.update(confessionRef, { [`reactions.${emoji}`]: newArr });
-        } else {
-          const updated = { ...(usersForEmoji || {}) };
-          updated[userId] = entry;
-          tx.update(confessionRef, { [`reactions.${emoji}`]: updated });
-        }
-
-        // Also remove user's entry from any other emoji they may have reacted to
-        Object.keys(reactions).forEach((otherEmoji) => {
-          if (otherEmoji === emoji) return;
-          const arr = reactions[otherEmoji];
-          if (Array.isArray(arr)) {
-            if (arr.some(u => u && u.userId === userId)) {
-              const filtered = arr.filter(u => !(u && u.userId === userId));
-              tx.update(confessionRef, { [`reactions.${otherEmoji}`]: filtered });
-            }
-          } else if (typeof arr === 'object' && arr[userId]) {
-            const updated = { ...arr };
-            delete updated[userId];
-            tx.update(confessionRef, { [`reactions.${otherEmoji}`]: updated });
-          }
-        });
-
-        return { hasReacted: true, countDelta: 1 };
-      }
+    // Get current reaction state before making any changes
+    const currentReaction = await getUserReaction(confessionId);
+    const isRemoving = currentReaction === emoji;
+    
+    // Call the Cloud Function to handle the reaction
+    const response = await fetch('https://us-central1-confey-72ff8.cloudfunctions.net/updateReaction', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        confessionId,
+        emoji,
+        userId
+      })
     });
 
-    return { hasReacted: result.hasReacted, count: result.countDelta };
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error?.message || 'Failed to update reaction');
+    }
+    
+    // Return a consistent response format
+    return { 
+      hasReacted: !isRemoving, 
+      countDelta: isRemoving ? -1 : 1 
+    };
   } catch (error) {
-    console.error('Error toggling reaction (firestore):', error);
+    console.error('Error toggling reaction:', error);
     throw error;
   }
 };
 
 // Remove user's previous reaction if they have one
 export const removePreviousReaction = async (confessionId, currentEmoji) => {
-  const userId = getUserId();
-  const confessionRef = doc(db, 'confessions', confessionId);
-
-  try {
-    await runTransaction(db, async (tx) => {
-      const snap = await tx.get(confessionRef);
-      if (!snap.exists()) return;
-      const reactions = snap.data().reactions || {};
-
-      const updates = {};
-      Object.keys(reactions).forEach((emoji) => {
-        if (emoji === currentEmoji) return;
-        const arr = reactions[emoji];
-        if (Array.isArray(arr)) {
-          if (arr.some(u => u && u.userId === userId)) {
-            updates[`reactions.${emoji}`] = arr.filter(u => !(u && u.userId === userId));
-          }
-        } else if (typeof arr === 'object' && arr[userId]) {
-          const copy = { ...arr };
-          delete copy[userId];
-          updates[`reactions.${emoji}`] = copy;
-        }
-      });
-
-      if (Object.keys(updates).length > 0) tx.update(confessionRef, updates);
-    });
-  } catch (error) {
-    console.error('Error removing previous reaction (firestore):', error);
-    throw error;
-  }
+  // This is now handled by the Cloud Function
+  // The Cloud Function will remove any existing reactions when adding a new one
+  return Promise.resolve();
 };
 
 // Get user's current reaction for a confession
@@ -191,17 +126,19 @@ export const getUserReaction = async (confessionId) => {
   try {
     const snap = await getDoc(confessionRef);
     if (!snap.exists()) return null;
-    const reactions = snap.data().reactions || {};
+
+    const data = snap.data();
+    const reactions = data.reactions || {};
+
+    // Find the emoji that has this user's ID
     for (const [emoji, users] of Object.entries(reactions)) {
-      if (Array.isArray(users)) {
-        if (users.some(u => u && u.userId === userId)) return emoji;
-      } else if (typeof users === 'object' && users[userId]) {
+      if (Array.isArray(users) && users.some(u => u && u.userId === userId)) {
         return emoji;
       }
     }
     return null;
   } catch (error) {
-    console.error('Error getting user reaction (firestore):', error);
+    console.error('Error getting user reaction:', error);
     return null;
   }
 };

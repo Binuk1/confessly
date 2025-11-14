@@ -79,6 +79,25 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
   const textareaRef = useRef(null);
   const emojiPickerRef = useRef(null);
 
+  // Real-time reply count listener
+  useEffect(() => {
+    if (!confession?.id) return;
+    
+    const confessionRef = doc(db, 'confessions', confession.id);
+    const unsubscribe = onSnapshot(confessionRef, (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        if (data.stats?.replyCount !== undefined) {
+          setReplyCount(data.stats.replyCount);
+        } else if (data.replyCount !== undefined) {
+          setReplyCount(data.replyCount);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [confession?.id]);
+
   // Real-time reaction listener
   useEffect(() => {
     let isMounted = true;
@@ -95,9 +114,6 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
           // After updating counts, refresh the current user's reaction so UI (other views) can update
           getUserReaction(confession.id).then((userReaction) => {
             if (isMounted) setSelectedEmoji(userReaction);
-          }).catch(err => {
-            // Non-fatal: just log
-            console.error('Error refreshing user reaction after update:', err);
           });
         }
         return changed ? reactions : prevReactions;
@@ -111,8 +127,6 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       if (isMounted) {
         setSelectedEmoji(userReaction);
       }
-    }).catch(error => {
-      console.error('Error getting user reaction:', error);
     });
 
     return () => {
@@ -289,10 +303,18 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
 
       const unsubscribe = onSnapshot(repliesQuery, (snapshot) => {
         try {
-          const repliesData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
+          const repliesData = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              // Ensure moderation data is properly merged
+              ...(data.moderation && {
+                isNSFW: data.moderation.isNSFW || false,
+                issues: data.moderation.issues || []
+              }),
+            };
+          });
           
           // Sort in memory by createdAt (ascending - oldest first)
           const sortedReplies = repliesData.sort((a, b) => {
@@ -318,11 +340,9 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
             setOptimisticReply(null);
           }
         } catch (err) {
-          console.error("Error processing replies:", err);
           setLoading(false);
         }
       }, (err) => {
-        console.error("Error fetching replies:", err);
         if (err.code === 'permission-denied') {
           showError("Unable to load replies. Please try again later.");
         } else if (err.code === 'unavailable') {
@@ -334,7 +354,6 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
 
       return () => unsubscribe();
     } catch (err) {
-      console.error("Error setting up replies listener:", err);
       setReplies([]);
       setLoading(false);
     }
@@ -382,8 +401,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
     try {
       if (selectedEmoji === emoji) {
         // Was removing reaction
-        toggleReaction(confession.id, emoji).catch(err => {
-          console.error("Error removing reaction:", err);
+        toggleReaction(confession.id, emoji).catch(() => {
           // Revert optimistic update on error
           setSelectedEmoji(emoji);
           setLocalReactions(prev => ({
@@ -399,8 +417,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
         }
         promises.push(toggleReaction(confession.id, emoji));
         
-        Promise.all(promises).catch(err => {
-          console.error("Error updating reaction:", err);
+        Promise.all(promises).catch(() => {
           // Revert optimistic update on error
           setSelectedEmoji(previousEmoji);
           setLocalReactions(prev => {
@@ -416,7 +433,7 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
         });
       }
     } catch (err) {
-      console.error("Error in reaction handler:", err);
+      // Handle error silently
     }
   }
 
@@ -474,7 +491,6 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
           return; // Exit early if banned
         }
       } catch (banError) {
-        console.error('Error checking ban status:', banError);
         // Continue with submission if ban check fails (fail-open for better UX)
       }
 
@@ -508,27 +524,36 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
             replyId: docRef.id
           });
         } catch (ipError) {
-          console.warn('Reply IP logging failed (non-critical):', ipError.message);
+          // Non-critical error, ignore
         }
       })();
 
-      // Increment parent confession reply count right away (optimistic)
-      const newReplyCount = replyCount; // current local already incremented above
+      // Update parent reply count using the Cloud Function
       try {
-        const confessionRef = doc(db, 'confessions', confession.id);
-        // Update in background; don't await blocking UI
-        (async () => {
-          try {
-            const { updateDoc: upd, doc: docFn } = await import('firebase/firestore');
-            await upd(docFn(db, 'confessions', confession.id), {
-              replyCount: newReplyCount
-            });
-          } catch (err) {
-            console.error('Failed to update parent reply count:', err);
-          }
-        })();
+        const response = await fetch('https://us-central1-confey-72ff8.cloudfunctions.net/updateReplyCount', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            confessionId: confession.id,
+            increment: true
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || 'Failed to update reply count');
+        }
+
+        await response.json();
+        
+        // Clear the form after successful submission
+        setReplyText('');
+        setReplyGifUrl('');
+        setShowGifPicker(false);
       } catch (err) {
-        console.error('Error scheduling parent reply count update:', err);
+        // Handle error silently
       }
 
       // Run ban check & moderation in background
@@ -555,29 +580,32 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
           // If moderation returned a valid result, update the reply doc with moderation metadata
           if (moderationResult && !moderationResult.error && moderationResult.isNSFW !== undefined) {
             try {
-              // Update moderation status using callable function
-              try {
-                const { getFunctions, httpsCallable } = await import('firebase/functions');
-                const functions = getFunctions();
-                const updateReplyModeration = httpsCallable(functions, 'updateReplyModeration');
-                
-                const result = await updateReplyModeration({
+              // Update moderation status using new HTTP endpoint
+              const response = await fetch('https://us-central1-confey-72ff8.cloudfunctions.net/updateReplyModeration', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
                   confessionId: confession.id,
                   replyId: docRef.id,
                   isNSFW: moderationResult.isNSFW || false,
                   issues: moderationResult.issues || []
-                });
-                
-                console.log('✅ Reply moderation metadata updated successfully', result.data);
-              } catch (updateErr) {
-                console.warn('⚠️ Failed to update reply moderation metadata (non-critical):', updateErr.message);
+                })
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error?.message || 'Failed to update reply moderation');
               }
+
+              await response.json();
             } catch (updateErr) {
-              console.error('Failed to update reply moderation metadata:', updateErr);
+              // Non-critical error, ignore
             }
           }
         } catch (bgErr) {
-          console.error('Background reply ban/moderation failed:', bgErr);
+          // Handle error silently
         }
       })();
 
@@ -589,7 +617,6 @@ function ConfessionItem({ confession, rank, onOpenSettings }) {
       }, 100);
 
     } catch (err) {
-      console.error("Error submitting reply:", err);
       showError("Failed to submit reply. Please try again.");
       
       // Restore form data on error

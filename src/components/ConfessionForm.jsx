@@ -136,25 +136,33 @@ function ConfessionForm({ onOptimisticConfession }) {
           return; // Exit early if banned
         }
       } catch (banError) {
-        console.error('Error checking ban status:', banError);
         // Continue with submission if ban check fails (fail-open for better UX)
       }
 
-      // Create the document data
+      // Get moderation result first
+      const moderationResult = await ContentModerationService.moderateContent(submittedText, 'confession');
+      
+      // Create the confession document with initial moderation status
+      const confessionsRef = collection(db, 'confessions');
+      
+      // Create the document data object
       const docData = {
         text: submittedText,
-        gifUrl: gifUrl || null,
+        gifUrl: submittedGifUrl || null,
         createdAt: serverTimestamp(),
         reactions: {},
         replyCount: 0,
         totalReactions: 0,
-        moderated: false,
-        isNSFW: false,
-        moderationIssues: []
+        moderated: true,
+        isNSFW: moderationResult?.isNSFW || false,
+        moderationIssues: moderationResult?.issues || [],
+        moderationCategories: moderationResult?.categories || {}
       };
 
       // Clean undefined values
       const cleanUndefined = (obj) => {
+        if (!obj) return;
+        
         Object.keys(obj).forEach(key => {
           if (obj[key] === undefined) {
             obj[key] = null;
@@ -172,9 +180,11 @@ function ConfessionForm({ onOptimisticConfession }) {
         });
       };
 
+      // Clean the document data
       cleanUndefined(docData);
 
-      docRef = await addDoc(collection(db, 'confessions'), docData);
+      // Create the document
+      docRef = await addDoc(confessionsRef, docData);
 
       // Fire-and-forget: log IP (non-blocking)
       (async () => {
@@ -182,7 +192,7 @@ function ConfessionForm({ onOptimisticConfession }) {
           const logConfessionIp = httpsCallable(functions, 'logConfessionIp');
           await logConfessionIp({ confessionId: docRef.id });
         } catch (ipError) {
-          console.warn('IP logging failed (non-critical):', ipError.message);
+          // Non-critical error, ignore
         }
       })();
 
@@ -238,25 +248,21 @@ function ConfessionForm({ onOptimisticConfession }) {
                   const errorData = await response.json();
                   throw new Error(errorData.error?.message || 'Failed to update moderation status');
                 }
-                
-                console.log('✅ Moderation metadata updated successfully');
               } catch (updateErr) {
-                // Non-critical: just log the error, don't block the user
-                console.warn('⚠️ Failed to update moderation metadata (non-critical):', updateErr.message);
+                // Non-critical error, ignore
               }
             } catch (updateErr) {
-              console.error('Failed to update moderation metadata:', updateErr);
+              // Handle error silently
             }
           }
         } catch (bgErr) {
-          console.error('Background ban/moderation check failed:', bgErr);
+          // Handle error silently
         }
       })();
 
     } catch (err) {
       showError('Something went wrong. Please try again.');
-      console.error("Error creating confession:", err);
-
+      
       // Restore form data on error
       setText(submittedText);
       setGifUrl(submittedGifUrl);

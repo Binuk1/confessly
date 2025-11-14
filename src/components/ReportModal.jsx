@@ -209,45 +209,33 @@ function ReportModal({
     setErrors({});
     
     try {
-      // Fetch the IP address from the original content
-      const ipAddress = await fetchContentIP();
-      
-      if (!ipAddress) {
-        console.warn('No IP address found for this content. Report will still be created.');
-      }
-
-      // Create the report with IP address included
-      await addDoc(collection(db, 'reports'), {
-        contentId,
-        contentType,
-        contentText: contentText.substring(0, 200),
-        reason: selectedReason,
-        otherReason: selectedReason === 'other' ? otherReason.trim() : null,
-        status: 'pending',
-        priority: selectedReason === 'threat' ? 'high' : 'normal',
-        createdAt: serverTimestamp(),
-        userAgent: navigator.userAgent,
-        reportedFrom: window.location.pathname,
-        // NEW: Store IP address and confessionId (for reply context)
-        ipAddress: ipAddress || null,
-        confessionId: contentType === 'reply' ? confessionId : contentId, // For replies, store parent confession ID
-        parentId: contentType === 'reply' ? confessionId : null // Alternative field name for clarity
+      const response = await fetch('https://us-central1-confey-72ff8.cloudfunctions.net/submitReport', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contentId,
+          contentType,
+          contentText: contentText,
+          reason: selectedReason,
+          otherReason: selectedReason === 'other' ? otherReason.trim() : null,
+          userAgent: navigator.userAgent,
+          reportedFrom: window.location.pathname,
+          confessionId: contentType === 'reply' ? confessionId : null
+        })
       });
 
-      // Update the content's report count
-      let contentRef;
-      if (contentType === 'confession') {
-        contentRef = doc(db, 'confessions', contentId);
-      } else {
-        contentRef = doc(db, `confessions/${confessionId}/replies`, contentId);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error?.message || 'Failed to submit report');
       }
-      await updateDoc(contentRef, { reportCount: increment(1) });
 
       setSubmitted(true);
       setTimeout(handleClose, 3000);
     } catch (error) {
       console.error('Error submitting report:', error);
-      setErrors({ submit: 'Failed to submit report. Please check your connection and try again.' });
+      setErrors({ submit: error.message || 'Failed to submit report. Please check your connection and try again.' });
     } finally {
       setSubmitting(false);
     }

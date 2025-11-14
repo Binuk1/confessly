@@ -5,44 +5,44 @@ import { functions } from '../firebase';
 export class ContentModerationService {
   static async moderateContent(text, contentType = 'confession') {
     if (!text || text.trim().length === 0) {
-      return { isClean: true, issues: [], isNSFW: false };
+      return { isClean: true, issues: [], isNSFW: false, categories: {} };
     }
 
     try {
       const moderateContent = httpsCallable(functions, 'moderateContent');
-      const result = await moderateContent({ text, contentType });
+      const result = await moderateContent({ 
+        text, 
+        contentType,
+        timestamp: new Date().toISOString()
+      });
       
       if (!result || !result.data) {
-        console.error('Moderation failed: No data returned');
-        return { isClean: true, issues: [], isNSFW: false, error: 'Moderation service unavailable' };
+        return { 
+          isClean: true, 
+          issues: [], 
+          categories: {},
+          aiPowered: false
+        };
       }
 
       // The result.data contains the ModerationResult object directly
-      const { isNSFW, issues, categories } = result.data;
-
+      const { isNSFW = false, issues = [], categories = {} } = result.data;
       const isClean = !isNSFW && (!issues || issues.length === 0);
-
-      console.log(`Content moderation for ${contentType}:`, {
-        text: text.substring(0, 100) + '...',
-        isClean,
-        isNSFW,
-        issueCount: issues?.length || 0
-      });
 
       return {
         isClean,
-        issues: issues || [],
+        issues: Array.isArray(issues) ? issues : [],
         isNSFW: Boolean(isNSFW),
-        categories: categories || null
+        categories: categories || {}
       };
 
     } catch (error) {
-      console.error('Content moderation error:', error);
       // On error, allow content to be posted (fail-open for better UX)
       return { 
         isClean: true, 
         issues: [], 
-        isNSFW: false,
+        categories: {},
+        aiPowered: false,
         error: error.message 
       };
     }
