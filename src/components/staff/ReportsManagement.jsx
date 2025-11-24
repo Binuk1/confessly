@@ -1,11 +1,10 @@
 // ReportsManagement.jsx - For Staff Dashboard
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '../../firebase';
+import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, serverTimestamp, addDoc } from 'firebase/firestore';
+import { auth, db, functions } from '../../firebase';
 import RequireStaffAuth from './RequireStaffAuth';
 import './ReportsManagement.css';
-import { httpsCallable } from 'firebase/functions';
-import { functions } from '../../firebase';
+import { httpsCallable, httpsCallableFromURL } from 'firebase/functions';
 
 // Initialize Cloud Functions
 const deleteConfessionFn = httpsCallable(functions, 'deleteConfession');
@@ -56,21 +55,57 @@ function ReportsManagement() {
     
     setProcessing(true);
     try {
+      const user = auth.currentUser;
+      if (!user) throw new Error('User not authenticated');
+      
+      // Get ID token for authentication
+      const idToken = await user.getIdToken();
+      
       // First, handle content deletion if needed
       if (action === 'remove') {
         try {
           if (contentType === 'confession') {
-            // Call Cloud Function to delete confession and its replies
-            await deleteConfessionFn({ confessionId: contentId });
+            // Call HTTP Cloud Function to delete confession
+            const response = await fetch(`https://us-central1-confey-72ff8.cloudfunctions.net/deleteConfession`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${idToken}`
+              },
+              body: JSON.stringify({ 
+                data: { confessionId: contentId } 
+              })
+            });
+            
+            if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.error?.message || 'Failed to delete confession');
+            }
+            
           } else if (contentType === 'reply') {
             // Get confessionId from the report
             const confessionId = selectedReport.confessionId || selectedReport.parentId;
             if (confessionId) {
-              // Call Cloud Function to delete reply
-              await deleteReplyFn({ 
-                confessionId: confessionId,
-                replyId: contentId 
+              // Call HTTP Cloud Function to delete reply
+              const response = await fetch(`https://us-central1-confey-72ff8.cloudfunctions.net/deleteReply`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${idToken}`
+                },
+                body: JSON.stringify({ 
+                  data: { 
+                    confessionId: confessionId,
+                    replyId: contentId 
+                  } 
+                })
               });
+              
+              if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error?.message || 'Failed to delete reply');
+              }
+              
             } else {
               throw new Error('Cannot delete reply: confessionId not found in report');
             }

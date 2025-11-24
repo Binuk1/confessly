@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MdOutlinePolicy } from "react-icons/md";
+import PageFeedback from '../components/PageFeedback';
 import '../styles/TermsAndConditions.css';
 
 const TermsAndConditions = () => {
@@ -108,6 +109,7 @@ const TermsAndConditions = () => {
           <p>Email: support@confessly.app</p>
         </section>
       </div>
+      <PageFeedback />
     </div>
   );
 };

@@ -375,44 +375,57 @@ OR
 exports.updateConfessionModeration = functions.https.onRequest(async (req, res) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    cors(req, res, () => {
-      res.status(200).send();
-    });
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.status(204).send('');
     return;
   }
 
-  return cors(req, res, async () => {
-    try {
-      const { confessionId, isNSFW, issues } = req.body;
-      
-      if (!confessionId) {
-        return res.status(400).json({
-          error: {
-            code: 'invalid-argument',
-            message: 'Missing required confessionId'
-          }
-        });
-      }
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.status(405).send('Method Not Allowed');
+    return;
+  }
 
-      const confessionRef = db.collection('confessions').doc(confessionId);
-      await confessionRef.update({
-        'moderation.isNSFW': isNSFW || false,
-        'moderation.issues': issues || [],
-        'moderation.updatedAt': admin.firestore.FieldValue.serverTimestamp()
-      });
-
-      return res.status(200).json({ success: true });
-    } catch (error) {
-      console.error('Error updating confession moderation:', error);
-      return res.status(500).json({
+  try {
+    const { confessionId, isNSFW, issues } = req.body;
+    
+    if (!confessionId) {
+      res.set('Access-Control-Allow-Origin', '*');
+      return res.status(400).json({
+        success: false,
         error: {
-          code: 'internal',
-          message: 'Failed to update confession moderation',
-          details: error.message
+          code: 'invalid-argument',
+          message: 'Missing required confessionId'
         }
       });
     }
-  });
+
+    const confessionRef = db.collection('confessions').doc(confessionId);
+    await confessionRef.update({
+      'moderation.isNSFW': isNSFW || false,
+      'moderation.issues': issues || [],
+      'moderation.updatedAt': admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.set('Access-Control-Allow-Origin', '*');
+    return res.status(200).json({ 
+      success: true 
+    });
+  } catch (error) {
+    console.error('Error updating confession moderation:', error);
+    res.set('Access-Control-Allow-Origin', '*');
+    return res.status(500).json({
+      success: false,
+      error: {
+        code: 'internal',
+        message: 'Failed to update confession moderation',
+        details: error.message
+      }
+    });
+  }
 });
 
 /**
@@ -558,12 +571,29 @@ exports.updateReplyCount = functions.https.onRequest(async (req, res) => {
  * Delete a confession and all its replies
  */
 exports.deleteConfession = functions.https.onCall(async (data, context) => {
-  // Verify user is authenticated and has staff role
-  if (!context.auth || !context.auth.token.staff) {
+  // Verify user is authenticated
+  if (!context.auth) {
     throw new functions.https.HttpsError(
-      'permission-denied',
-      'Only staff members can delete content'
+      'unauthenticated',
+      'You must be logged in to perform this action'
     );
+  }
+  
+  // Get the user's custom claims to check for staff role
+  const user = await admin.auth().getUser(context.auth.uid);
+  
+  // If user doesn't have staff role in custom claims, check Firestore staff collection
+  if (!user.customClaims?.staff) {
+    const staffDoc = await admin.firestore().collection('staff').doc(context.auth.uid).get();
+    if (!staffDoc.exists) {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Only staff members can delete content'
+      );
+    }
+    
+    // Update user's custom claims if they're in the staff collection
+    await admin.auth().setCustomUserClaims(context.auth.uid, { staff: true });
   }
 
   const { confessionId } = data;
@@ -613,12 +643,29 @@ exports.deleteConfession = functions.https.onCall(async (data, context) => {
  * Delete a single reply
  */
 exports.deleteReply = functions.https.onCall(async (data, context) => {
-  // Verify user is authenticated and has staff role
-  if (!context.auth || !context.auth.token.staff) {
+  // Verify user is authenticated
+  if (!context.auth) {
     throw new functions.https.HttpsError(
-      'permission-denied',
-      'Only staff members can delete content'
+      'unauthenticated',
+      'You must be logged in to perform this action'
     );
+  }
+  
+  // Get the user's custom claims to check for staff role
+  const user = await admin.auth().getUser(context.auth.uid);
+  
+  // If user doesn't have staff role in custom claims, check Firestore staff collection
+  if (!user.customClaims?.staff) {
+    const staffDoc = await admin.firestore().collection('staff').doc(context.auth.uid).get();
+    if (!staffDoc.exists) {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Only staff members can delete content'
+      );
+    }
+    
+    // Update user's custom claims if they're in the staff collection
+    await admin.auth().setCustomUserClaims(context.auth.uid, { staff: true });
   }
 
   const { confessionId, replyId } = data;
@@ -965,6 +1012,7 @@ exports.submitReport = functions.https.onRequest(async (req, res) => {
       status: 'pending',
       priority: reason === 'threat' ? 'high' : 'normal',
       reportedAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(), // Add this line for sorting
       userAgent: userAgent || '',
       reportedFrom: reportedFrom || '',
       ipAddress: req.ip || null

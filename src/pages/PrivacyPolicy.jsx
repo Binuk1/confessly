@@ -1,5 +1,6 @@
 import React from 'react';
 import { MdOutlinePrivacyTip } from "react-icons/md";
+import PageFeedback from '../components/PageFeedback';
 import '../styles/PrivacyPolicy.css';
 
 const PrivacyPolicy = () => {
@@ -104,6 +105,7 @@ const PrivacyPolicy = () => {
           <p>Email: privacy@confessly.app</p>
         </section>
       </div>
+      <PageFeedback />
     </div>
   );
 };
